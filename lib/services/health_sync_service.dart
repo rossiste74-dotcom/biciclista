@@ -1,0 +1,94 @@
+import 'package:flutter/foundation.dart';
+import 'package:health/health.dart';
+import 'database_service.dart';
+import '../models/health_snapshot.dart';
+
+/// Service for synchronizing health data from Apple Health or Google Fit
+class HealthSyncService {
+  final _health = Health();
+  final _db = DatabaseService();
+
+  /// Request permissions for required health data types
+  Future<bool> requestPermissions() async {
+    final types = [
+      HealthDataType.HEART_RATE,
+      HealthDataType.SLEEP_SESSION,
+      HealthDataType.WEIGHT,
+    ];
+
+    try {
+      return await _health.requestAuthorization(types);
+    } catch (e) {
+      debugPrint('Error requesting health permissions: $e');
+      return false;
+    }
+  }
+
+  /// Synchronize health data for the last 7 days
+  Future<void> syncRecentData() async {
+    final types = [
+      HealthDataType.HEART_RATE,
+      HealthDataType.SLEEP_SESSION,
+      HealthDataType.WEIGHT,
+    ];
+
+    final now = DateTime.now();
+    final startDate = now.subtract(const Duration(days: 7));
+
+    // For simplicity in this demo, we'll fetch only for "yesterday" or "today"
+    // and map it to a HealthSnapshot. Real implementations would iterate through days.
+    
+    try {
+      final healthData = await _health.getHealthDataFromTypes(
+        startTime: startDate,
+        endTime: now,
+        types: types,
+      );
+      
+      final profile = await _db.getUserProfile();
+      if (profile == null) return;
+
+      // Group data by date to batch updates to the profile history
+      Map<DateTime, Map<String, dynamic>> dailyData = {};
+
+      for (var data in healthData) {
+        final date = DateTime(data.dateFrom.year, data.dateFrom.month, data.dateFrom.day);
+        dailyData.putIfAbsent(date, () => {});
+        
+        switch (data.type) {
+          case HealthDataType.WEIGHT:
+            dailyData[date]!['weight'] = (data.value as num).toDouble();
+            break;
+          case HealthDataType.HEART_RATE:
+            dailyData[date]!['hrv'] = (data.value as num).toInt();
+            break;
+          case HealthDataType.SLEEP_SESSION:
+            final duration = data.dateTo.difference(data.dateFrom).inMinutes / 60.0;
+            dailyData[date]!['sleep'] = (dailyData[date]!['sleep'] ?? 0.0) + duration;
+            break;
+          default:
+            break;
+        }
+      }
+
+      // Update UserProfile history and summary fields
+      for (var entry in dailyData.entries) {
+        profile.updateHealthSnapshot(
+          date: entry.key,
+          weight: entry.value['weight'],
+          hrv: entry.value['hrv'],
+          sleepHours: entry.value['sleep'],
+        );
+      }
+
+      profile.lastHealthSync = DateTime.now();
+      await _db.saveUserProfile(profile);
+
+      // Optional: Clean up older health snapshots if they are no longer the primary source
+      // For now we keep them to avoid breaking other parts of the app until fully refactored
+    } catch (e) {
+      debugPrint('Error syncing health data: $e');
+      throw Exception('Health sync failed: $e');
+    }
+  }
+}
