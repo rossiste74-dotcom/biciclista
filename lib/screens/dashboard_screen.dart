@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/clothing_item.dart';
 import '../models/planned_ride.dart';
-import '../models/health_snapshot.dart';
 import '../models/outfit_suggestion.dart';
 import '../models/user_profile.dart';
 import '../services/database_service.dart';
@@ -38,6 +37,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   List<double> _hrvTrend = [];
   List<double> _weightTrend = [];
+  List<double> _sleepTrend = [];
+  List<double> _readinessTrend = [];
   
   // Stats
   double _totalKm = 0.0;
@@ -61,6 +62,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // 2. Derive Trends from Profile History
         _hrvTrend = _biometricService.getHrvTrendFromProfile(_profile!);
         _weightTrend = _biometricService.getWeightTrendFromProfile(_profile!);
+        _sleepTrend = _biometricService.getSleepTrendFromProfile(_profile!);
+        _readinessTrend = _biometricService.getReadinessTrendFromProfile(_profile!);
       }
 
       // 3. Load Ride Stats
@@ -130,9 +133,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       delegate: SliverChildListDelegate([
                         _buildStatsSection(),
                         const SizedBox(height: 24),
+                        _buildBiometricStatsSection(),
+                        const SizedBox(height: 24),
                         _buildReadinessSection(),
                         const SizedBox(height: 24),
                         _buildNextRideSection(),
+                        const SizedBox(height: 24),
+                        _buildTotalReadinessTrend(),
                         const SizedBox(height: 24),
                         _buildTrendsSection(),
                         const SizedBox(height: 100),
@@ -174,6 +181,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'Km Settimana',
             color: Colors.orange,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBiometricStatsSection() {
+    if (_profile == null) return const SizedBox.shrink();
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.monitor_weight_outlined,
+            value: '${_profile!.weight.toStringAsFixed(1)} kg',
+            label: 'Peso',
+            color: Colors.purple,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.favorite_border,
+            value: '${_profile!.hrv} ms',
+            label: 'HRV',
+            color: Colors.red,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.bed_outlined,
+            value: '${_profile!.sleepHours.toStringAsFixed(1)} h',
+            label: 'Sonno',
+            color: Colors.indigo,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTotalReadinessTrend() {
+    if (_readinessTrend.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Trend Totale Readiness',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        MetricSparklineChart(
+          label: 'Readiness Score',
+          values: _readinessTrend,
+          color: Colors.orange,
+          unit: '',
         ),
       ],
     );

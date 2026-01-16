@@ -76,6 +76,46 @@ class BiometricService {
     }
   }
 
+  /// Extracts Sleep trend from profile health history
+  List<double> getSleepTrendFromProfile(UserProfile profile) {
+    if (profile.healthHistory == null || profile.healthHistory!.isEmpty) return [];
+    try {
+      final List<dynamic> history = json.decode(profile.healthHistory!);
+      return history
+          .map((e) => (e['sleep'] as num?)?.toDouble() ?? 0.0)
+          .where((v) => v > 0)
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Extracts Readiness trend by calculating it for each history entry
+  List<double> getReadinessTrendFromProfile(UserProfile profile) {
+    if (profile.healthHistory == null || profile.healthHistory!.isEmpty) return [];
+    try {
+      final List<dynamic> history = json.decode(profile.healthHistory!);
+      List<double> readinessTrend = [];
+      
+      for (var entry in history) {
+        final hrv = (entry['hrv'] as num?)?.toInt() ?? 0;
+        final sleep = (entry['sleep'] as num?)?.toDouble() ?? 0.0;
+        
+        if (hrv > 0 || sleep > 0) {
+          // Create a temporary profile object for calculation (or we could refactor the method)
+          final tempProfile = UserProfile()
+            ..hrv = hrv
+            ..sleepHours = sleep;
+          
+          readinessTrend.add(calculateReadinessFromProfile(tempProfile).toDouble());
+        }
+      }
+      return readinessTrend;
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Get status description based on readiness score
   String getReadinessStatus(int score) {
     if (score >= 85) return 'Eccellente';

@@ -89,6 +89,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     profile.thermalSensitivity = _thermalSensitivity;
     profile.preferredUnit = 'km'; // Default for now
 
+    // Record manual update in health history for trends
+    profile.updateHealthSnapshot(
+      date: DateTime.now(),
+      weight: double.tryParse(_weightController.text),
+      hrv: int.tryParse(_hrvController.text),
+      sleepHours: double.tryParse(_sleepController.text),
+    );
+
     await _db.saveUserProfile(profile);
 
     if (mounted) {
