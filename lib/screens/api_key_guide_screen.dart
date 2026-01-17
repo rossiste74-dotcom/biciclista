@@ -148,7 +148,7 @@ class APIKeyGuideScreen extends StatelessWidget {
           _buildStepTitle(context, '5️⃣ Incolla in BICICLISTICO'),
           _buildStepDescription(context, 'Torna qui, seleziona "Google Gemini" e incolla la chiave.'),
           const SizedBox(height: 16),
-          _buildCostCard(context, '💰 Piano gratuito: 15 richieste/minuto, ottimo per iniziare!'),
+          _buildCostCard(context, '💰 Gemini 2.5 Flash: Veloce, economico e molto capace - piano gratuito!'),
         ];
       
       case AIProvider.openai:

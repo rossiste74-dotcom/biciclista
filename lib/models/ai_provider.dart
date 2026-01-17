@@ -2,7 +2,7 @@
 enum AIProvider {
   openai('OpenAI', 'GPT-4o, GPT-4o mini'),
   claude('Anthropic Claude', 'Claude 3.5 Sonnet'),
-  gemini('Google Gemini', 'Gemini 1.5 Pro');
+  gemini('Google Gemini', 'Gemini 2.5 Flash');
 
   final String displayName;
   final String models;

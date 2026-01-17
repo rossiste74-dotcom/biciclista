@@ -103,10 +103,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.of(context).push(
+            onPressed: () async {
+              // Navigate to settings and check if AI config changed
+              final result = await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
+              
+              // If AI configuration changed, reload current page
+              if (result == true && _selectedIndex == 0) {
+                // Force rebuild of DashboardScreen
+                setState(() {});
+              }
             },
           ),
         ],

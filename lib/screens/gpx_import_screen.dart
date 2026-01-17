@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/bicycle.dart';
 import '../services/database_service.dart';
 import '../services/gpx_service.dart';
+import '../services/ai_service.dart';
 
 /// Screen for importing GPX files and creating planned rides
 class GpxImportScreen extends StatefulWidget {
@@ -78,15 +79,34 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
         bicycleId: _selectedBicycle?.id,
       );
 
-      if (plannedRide != null && mounted) {
-        // Success! Navigate back
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Percorso importato con successo!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(plannedRide);
+      if (plannedRide != null) {
+        // AI Analysis Step
+        final aiService = AIService(); // Import AIService at top of file
+        if (await aiService.isConfigured() && mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Generazione analisi AI in corso...'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          final analysis = await aiService.analyzeRide(plannedRide);
+          plannedRide.aiAnalysis = analysis;
+          
+          // Update ride with analysis
+          final db = DatabaseService();
+          await db.updatePlannedRide(plannedRide);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Percorso importato e analizzato!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(plannedRide);
+        }
       }
     } catch (e) {
       setState(() {

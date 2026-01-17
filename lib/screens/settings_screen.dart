@@ -54,10 +54,16 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.psychology_outlined),
             title: const Text('Configurazione AI'),
             subtitle: const Text('Bring Your Own Key (OpenAI, Claude, Gemini)'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AISettingsScreen()),
-            ),
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AISettingsScreen()),
+              );
+              // If AI config changed, pop with result
+              if (result == true && context.mounted) {
+                Navigator.pop(context, true);
+              }
+            },
           ),
           const Divider(),
           _buildHeader(context, 'Gestione Dati'),

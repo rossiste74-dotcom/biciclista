@@ -438,9 +438,53 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                             _buildAdvancedInsights(),
                             const SizedBox(height: 24),
                             
+                            // AI Analysis
+                            if (widget.plannedRide.aiAnalysis != null) ...[
+                              Text(
+                                'Analisi Coach AI',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 16),
+                              Card(
+                                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.psychology,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Analisi Biometrica & Percorso',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(),
+                                      Text(
+                                        widget.plannedRide.aiAnalysis!,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
                             // Weather Timeline
                             if (_weatherPoints.isNotEmpty) ...[
-                              Text(
+                                Text(
                                 'Timeline Meteo',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),

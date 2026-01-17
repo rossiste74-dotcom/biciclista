@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/ai_service.dart';
-import 'ai_advice_dialog.dart';
+import '../screens/ai_coach_screen.dart';
 
 /// AI Coach card for the dashboard
 class AICoachCard extends StatefulWidget {
@@ -23,10 +23,18 @@ class _AICoachCardState extends State<AICoachCard> {
 
   Future<void> _checkConfiguration() async {
     final configured = await _aiService.isConfigured();
-    setState(() {
-      _isConfigured = configured;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isConfigured = configured;
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Reload configuration status (can be called externally)
+  Future<void> reload() async {
+    setState(() => _isLoading = true);
+    await _checkConfiguration();
   }
 
   @override
@@ -39,9 +47,8 @@ class _AICoachCardState extends State<AICoachCard> {
       elevation: 2,
       child: InkWell(
         onTap: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AIAdviceDialog(),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AICoachScreen()),
           );
         },
         borderRadius: BorderRadius.circular(12),

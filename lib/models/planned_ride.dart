@@ -35,6 +35,9 @@ class PlannedRide {
   /// User notes about the ride
   String? notes;
 
+  /// AI analysis and advice for this ride
+  String? aiAnalysis;
+
   /// Whether the ride has been completed
   @Index()
   bool isCompleted = false;

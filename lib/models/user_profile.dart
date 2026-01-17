@@ -99,6 +99,9 @@ class UserProfile {
   /// API key for the selected AI provider (stored locally, not synced)
   String? aiApiKey;
 
+  /// Specific model ID (e.g. gemini-1.5-flash)
+  String? aiModel;
+
   /// Timestamp when the profile was created
   late DateTime createdAt;
 

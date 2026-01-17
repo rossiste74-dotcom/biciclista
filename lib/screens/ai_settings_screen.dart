@@ -18,6 +18,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _apiKeyController = TextEditingController();
   
   AIProvider? _selectedProvider;
+  String? _selectedModel;
   bool _isLoading = true;
   bool _obscureKey = true;
   bool _isTesting = false;
@@ -39,8 +40,15 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     if (profile != null) {
       setState(() {
         _selectedProvider = profile.getAIProvider();
+        _selectedModel = profile.aiModel; // Load model
         _apiKeyController.text = profile.aiApiKey ?? '';
         _isLoading = false;
+        
+        // Set default model if null but provider selected
+        if (_selectedProvider != null && _selectedModel == null) {
+           final models = _getModelsForProvider(_selectedProvider!);
+           if (models.isNotEmpty) _selectedModel = models.first['id'];
+        }
       });
     } else {
       setState(() => _isLoading = false);
@@ -54,6 +62,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     if (profile == null) return;
 
     profile.setAIProvider(_selectedProvider);
+    profile.aiModel = _selectedModel; // Save model
     profile.aiApiKey = _apiKeyController.text.trim().isEmpty ? null : _apiKeyController.text.trim();
     
     await _db.saveUserProfile(profile);
@@ -62,7 +71,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configurazione AI salvata!')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Return true to indicate configuration changed
     }
   }
 
@@ -80,10 +89,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     final profile = await _db.getUserProfile();
     if (profile != null) {
       final previousProvider = profile.getAIProvider();
+      final previousModel = profile.aiModel; // Capture previous model
       final previousKey = profile.aiApiKey;
       
       // Set test values
       profile.setAIProvider(_selectedProvider);
+      profile.aiModel = _selectedModel; // Set test model
       profile.aiApiKey = _apiKeyController.text.trim();
       await _db.saveUserProfile(profile);
       
@@ -93,6 +104,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       
       // Restore previous values
       profile.setAIProvider(previousProvider);
+      profile.aiModel = previousModel; // Restore model
       profile.aiApiKey = previousKey;
       await _db.saveUserProfile(profile);
       
@@ -293,6 +305,32 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               ),
             ),
     );
+  }
+
+  List<Map<String, String>> _getModelsForProvider(AIProvider provider) {
+    switch (provider) {
+      case AIProvider.gemini:
+        return [
+          {'id': 'gemini-2.5-flash', 'name': 'Gemini 2.5 Flash (Raccomandato)'},
+          {'id': 'gemini-1.5-pro', 'name': 'Gemini 1.5 Pro (Migliore Qualità)'},
+          {'id': 'gemini-1.5-flash', 'name': 'Gemini 1.5 Flash (Veloce)'},
+          {'id': 'gemma-2-9b-it', 'name': 'Gemma 2 9B (Experimental)'},
+          // User request placeholder - mapping to gemma-2-9b or just custom
+          {'id': 'gemma-3-12b', 'name': 'Gemma 3 12B (User Request)'}, 
+        ];
+      case AIProvider.openai:
+        return [
+          {'id': 'gpt-4o-mini', 'name': 'GPT-4o Mini (Raccomandato)'},
+          {'id': 'gpt-4o', 'name': 'GPT-4o (Migliore Qualità)'},
+          {'id': 'gpt-3.5-turbo', 'name': 'GPT-3.5 Turbo (Legacy)'},
+        ];
+      case AIProvider.claude:
+        return [
+          {'id': 'claude-3-5-sonnet-20241022', 'name': 'Claude 3.5 Sonnet (Raccomandato)'},
+          {'id': 'claude-3-haiku-20240307', 'name': 'Claude 3 Haiku (Veloce)'},
+          {'id': 'claude-3-5-opus-20240229', 'name': 'Claude 3 Opus (Migliore Qualità)'},
+        ];
+    }
   }
 
   String _getProviderInstructions(AIProvider provider) {

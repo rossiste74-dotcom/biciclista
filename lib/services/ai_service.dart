@@ -137,6 +137,64 @@ class AIService {
     return prompt.toString();
   }
 
+  /// Analyze a planned ride and provide advice
+  Future<String> analyzeRide(PlannedRide ride) async {
+    final profile = await _db.getUserProfile();
+    
+    // Check configuration
+    if (profile == null) return "Profilo utente non trovato.";
+    final provider = profile.getAIProvider();
+    final apiKey = profile.aiApiKey;
+    if (provider == null || apiKey == null || apiKey.trim().isEmpty) {
+      return "AI non configurata. Vai nelle impostazioni per attivare l'analista.";
+    }
+
+    // Build specialized prompt
+    final prompt = StringBuffer();
+    prompt.writeln('Sei un direttore sportivo e meteorologo esperto di ciclismo. Analizza questo percorso:');
+    prompt.writeln();
+    prompt.writeln('**Dati Percorso:**');
+    prompt.writeln('- Distanza: ${ride.distance.toStringAsFixed(1)} km');
+    prompt.writeln('- Dislivello: ${ride.elevation.toStringAsFixed(0)} m');
+    prompt.writeln('- Data: ${ride.rideDate.day}/${ride.rideDate.month} ore ${ride.rideDate.hour}:${ride.rideDate.minute}');
+    
+    if (ride.forecastWeather != null) {
+      try {
+        final w = json.decode(ride.forecastWeather!);
+        prompt.writeln('- Meteo previsto: ${w['temperature']}°C, Vento ${w['windSpeed']}km/h');
+      } catch (_) {}
+    }
+
+    prompt.writeln();
+    prompt.writeln('**Dati Ciclista:**');
+    prompt.writeln('- Peso: ${profile.weight}kg');
+    prompt.writeln('- HRV ultimi 7gg: ${profile.hrv} (Readiness: ${_calculateReadinessScore(profile)}/100)');
+
+    prompt.writeln();
+    prompt.writeln('Fornisci una breve analisi (max 150 parole) strutturata in:');
+    prompt.writeln('1. **Difficoltà Percepita**: Quanto sarà dura per me oggi?');
+    prompt.writeln('2. **Strategia**: Come affrontare il dislivello/distanza?');
+    prompt.writeln('3. **Consiglio Pratico**: Abbigliamento o nutrizione.');
+    prompt.writeln('Usa un tono professionale ma motivante. Rispondi in italiano.');
+
+    try {
+      final result = await _callAI(
+        provider: provider,
+        apiKey: apiKey,
+        systemPrompt: "Sei un coach di ciclismo esperto. Sii conciso, preciso e utile.",
+        userMessage: prompt.toString(),
+      );
+
+      if (result['success']) {
+        return result['content'];
+      } else {
+        return "Impossibile generare l'analisi: ${result['error']}";
+      }
+    } catch (e) {
+      return "Errore durante l'analisi: $e";
+    }
+  }
+
   /// Calculate readiness score from profile data
   int _calculateReadinessScore(UserProfile profile) {
     int score = 50; // Base score
@@ -174,18 +232,21 @@ class AIService {
     required String systemPrompt,
     required String userMessage,
   }) async {
+    final profile = await _db.getUserProfile();
+    final model = profile?.aiModel;
+    
     switch (provider) {
       case AIProvider.openai:
-        return await _callOpenAI(apiKey, systemPrompt, userMessage);
+        return await _callOpenAI(apiKey, systemPrompt, userMessage, model);
       case AIProvider.claude:
-        return await _callClaude(apiKey, systemPrompt, userMessage);
+        return await _callClaude(apiKey, systemPrompt, userMessage, model);
       case AIProvider.gemini:
-        return await _callGemini(apiKey, systemPrompt, userMessage);
+        return await _callGemini(apiKey, systemPrompt, userMessage, model);
     }
   }
 
   /// Call OpenAI API
-  Future<Map<String, dynamic>> _callOpenAI(String apiKey, String systemPrompt, String userMessage) async {
+  Future<Map<String, dynamic>> _callOpenAI(String apiKey, String systemPrompt, String userMessage, String? model) async {
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
     
     final response = await http.post(
@@ -195,15 +256,19 @@ class AIService {
         'Authorization': 'Bearer $apiKey',
       },
       body: json.encode({
-        'model': 'gpt-4o-mini',
+        'model': model ?? 'gpt-4o-mini',
         'messages': [
           {'role': 'system', 'content': systemPrompt},
           {'role': 'user', 'content': userMessage},
         ],
-        'max_tokens': 300,
+        'max_tokens': 4096,
         'temperature': 0.7,
       }),
     );
+
+    if (response.statusCode == 429) {
+      return {'success': false, 'error': 'Limite richieste OpenAI raggiunto. Riprova più tardi.'};
+    }
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -216,7 +281,7 @@ class AIService {
   }
 
   /// Call Claude API
-  Future<Map<String, dynamic>> _callClaude(String apiKey, String systemPrompt, String userMessage) async {
+  Future<Map<String, dynamic>> _callClaude(String apiKey, String systemPrompt, String userMessage, String? model) async {
     final url = Uri.parse('https://api.anthropic.com/v1/messages');
     
     final response = await http.post(
@@ -227,14 +292,18 @@ class AIService {
         'anthropic-version': '2023-06-01',
       },
       body: json.encode({
-        'model': 'claude-3-5-sonnet-20241022',
-        'max_tokens': 300,
+        'model': model ?? 'claude-3-5-sonnet-20241022',
+        'max_tokens': 4096,
         'system': systemPrompt,
         'messages': [
           {'role': 'user', 'content': userMessage},
         ],
       }),
     );
+
+    if (response.statusCode == 429) {
+      return {'success': false, 'error': 'Limite richieste Claude raggiunto. Riprova più tardi.'};
+    }
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -246,9 +315,11 @@ class AIService {
     }
   }
 
-  /// Call Gemini API
-  Future<Map<String, dynamic>> _callGemini(String apiKey, String systemPrompt, String userMessage) async {
-    final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=$apiKey');
+  /// Call Gemini API  
+  Future<Map<String, dynamic>> _callGemini(String apiKey, String systemPrompt, String userMessage, String? model) async {
+    // Default to gemini-2.5-flash if not specified
+    final modelId = model != null && model.isNotEmpty ? model : 'gemini-2.5-flash';
+    final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/$modelId:generateContent?key=$apiKey');
     
     // Combine system prompt and user message for Gemini
     final fullPrompt = '$systemPrompt\n\n**Domanda dell\'utente:** $userMessage';
@@ -263,11 +334,15 @@ class AIService {
           'parts': [{'text': fullPrompt}]
         }],
         'generationConfig': {
-          'maxOutputTokens': 300,
+          'maxOutputTokens': 8192,
           'temperature': 0.7,
         },
       }),
     );
+
+    if (response.statusCode == 429) {
+      return {'success': false, 'error': 'Limite giornaliero Gemini raggiunto (Quota Exceeded). Riprova domani o cambia modello nelle impostazioni.'};
+    }
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

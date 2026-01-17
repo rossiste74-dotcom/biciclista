@@ -17,63 +17,68 @@ const PlannedRideSchema = CollectionSchema(
   name: r'PlannedRide',
   id: 5531456562814518774,
   properties: {
-    r'bicycleId': PropertySchema(
+    r'aiAnalysis': PropertySchema(
       id: 0,
+      name: r'aiAnalysis',
+      type: IsarType.string,
+    ),
+    r'bicycleId': PropertySchema(
+      id: 1,
       name: r'bicycleId',
       type: IsarType.long,
     ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'distance': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'distance',
       type: IsarType.double,
     ),
     r'elevation': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'elevation',
       type: IsarType.double,
     ),
     r'forecastWeather': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'forecastWeather',
       type: IsarType.string,
     ),
     r'gpxFilePath': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'gpxFilePath',
       type: IsarType.string,
     ),
     r'isCompleted': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'isCompleted',
       type: IsarType.bool,
     ),
     r'latitude': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'latitude',
       type: IsarType.double,
     ),
     r'longitude': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'longitude',
       type: IsarType.double,
     ),
     r'notes': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'notes',
       type: IsarType.string,
     ),
     r'rideDate': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'rideDate',
       type: IsarType.dateTime,
     ),
     r'rideName': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'rideName',
       type: IsarType.string,
     )
@@ -126,6 +131,12 @@ int _plannedRideEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.aiAnalysis;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.forecastWeather;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -158,18 +169,19 @@ void _plannedRideSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.bicycleId);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeDouble(offsets[2], object.distance);
-  writer.writeDouble(offsets[3], object.elevation);
-  writer.writeString(offsets[4], object.forecastWeather);
-  writer.writeString(offsets[5], object.gpxFilePath);
-  writer.writeBool(offsets[6], object.isCompleted);
-  writer.writeDouble(offsets[7], object.latitude);
-  writer.writeDouble(offsets[8], object.longitude);
-  writer.writeString(offsets[9], object.notes);
-  writer.writeDateTime(offsets[10], object.rideDate);
-  writer.writeString(offsets[11], object.rideName);
+  writer.writeString(offsets[0], object.aiAnalysis);
+  writer.writeLong(offsets[1], object.bicycleId);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeDouble(offsets[3], object.distance);
+  writer.writeDouble(offsets[4], object.elevation);
+  writer.writeString(offsets[5], object.forecastWeather);
+  writer.writeString(offsets[6], object.gpxFilePath);
+  writer.writeBool(offsets[7], object.isCompleted);
+  writer.writeDouble(offsets[8], object.latitude);
+  writer.writeDouble(offsets[9], object.longitude);
+  writer.writeString(offsets[10], object.notes);
+  writer.writeDateTime(offsets[11], object.rideDate);
+  writer.writeString(offsets[12], object.rideName);
 }
 
 PlannedRide _plannedRideDeserialize(
@@ -179,19 +191,20 @@ PlannedRide _plannedRideDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = PlannedRide();
-  object.bicycleId = reader.readLongOrNull(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.distance = reader.readDouble(offsets[2]);
-  object.elevation = reader.readDouble(offsets[3]);
-  object.forecastWeather = reader.readStringOrNull(offsets[4]);
-  object.gpxFilePath = reader.readStringOrNull(offsets[5]);
+  object.aiAnalysis = reader.readStringOrNull(offsets[0]);
+  object.bicycleId = reader.readLongOrNull(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.distance = reader.readDouble(offsets[3]);
+  object.elevation = reader.readDouble(offsets[4]);
+  object.forecastWeather = reader.readStringOrNull(offsets[5]);
+  object.gpxFilePath = reader.readStringOrNull(offsets[6]);
   object.id = id;
-  object.isCompleted = reader.readBool(offsets[6]);
-  object.latitude = reader.readDoubleOrNull(offsets[7]);
-  object.longitude = reader.readDoubleOrNull(offsets[8]);
-  object.notes = reader.readStringOrNull(offsets[9]);
-  object.rideDate = reader.readDateTime(offsets[10]);
-  object.rideName = reader.readStringOrNull(offsets[11]);
+  object.isCompleted = reader.readBool(offsets[7]);
+  object.latitude = reader.readDoubleOrNull(offsets[8]);
+  object.longitude = reader.readDoubleOrNull(offsets[9]);
+  object.notes = reader.readStringOrNull(offsets[10]);
+  object.rideDate = reader.readDateTime(offsets[11]);
+  object.rideName = reader.readStringOrNull(offsets[12]);
   return object;
 }
 
@@ -203,28 +216,30 @@ P _plannedRideDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 2:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 3:
       return (reader.readDouble(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 8:
       return (reader.readDoubleOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 10:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readDateTime(offset)) as P;
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -475,6 +490,160 @@ extension PlannedRideQueryWhere
 
 extension PlannedRideQueryFilter
     on QueryBuilder<PlannedRide, PlannedRide, QFilterCondition> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'aiAnalysis',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'aiAnalysis',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'aiAnalysis',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'aiAnalysis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'aiAnalysis',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aiAnalysis',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      aiAnalysisIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'aiAnalysis',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
       bicycleIdIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1638,6 +1807,18 @@ extension PlannedRideQueryLinks
 
 extension PlannedRideQuerySortBy
     on QueryBuilder<PlannedRide, PlannedRide, QSortBy> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAiAnalysis() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiAnalysis', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAiAnalysisDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiAnalysis', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.asc);
@@ -1786,6 +1967,18 @@ extension PlannedRideQuerySortBy
 
 extension PlannedRideQuerySortThenBy
     on QueryBuilder<PlannedRide, PlannedRide, QSortThenBy> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAiAnalysis() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiAnalysis', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAiAnalysisDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiAnalysis', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.asc);
@@ -1946,6 +2139,13 @@ extension PlannedRideQuerySortThenBy
 
 extension PlannedRideQueryWhereDistinct
     on QueryBuilder<PlannedRide, PlannedRide, QDistinct> {
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByAiAnalysis(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'aiAnalysis', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'bicycleId');
@@ -2029,6 +2229,12 @@ extension PlannedRideQueryProperty
   QueryBuilder<PlannedRide, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<PlannedRide, String?, QQueryOperations> aiAnalysisProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'aiAnalysis');
     });
   }
 
