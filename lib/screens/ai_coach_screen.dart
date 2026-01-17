@@ -214,7 +214,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
                         child: TextField(
                           controller: _questionController,
                           decoration: const InputDecoration(
-                            hintText: 'Chiedi al Butler...',
+                            hintText: 'Chiedi al Biciclista...',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(Radius.circular(24)),
                             ),

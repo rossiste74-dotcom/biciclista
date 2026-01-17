@@ -54,6 +54,7 @@ class AIService {
   /// Generate cycling advice based on user data
   Future<Map<String, dynamic>> getAdvice({
     required String userQuestion,
+    bool useHealthContext = true,
   }) async {
     final profile = await _db.getUserProfile();
     if (profile == null) {
@@ -68,7 +69,7 @@ class AIService {
     }
 
     // Build comprehensive prompt with user data
-    final systemPrompt = await _buildSystemPrompt(profile);
+    final systemPrompt = await _buildSystemPrompt(profile, includeHealthData: useHealthContext);
     
     try {
       return await _callAI(
@@ -83,56 +84,62 @@ class AIService {
   }
 
   /// Build system prompt with user's biometric, weather, and ride data
-  Future<String> _buildSystemPrompt(UserProfile profile) async {
+  Future<String> _buildSystemPrompt(UserProfile profile, {bool includeHealthData = true}) async {
     final prompt = StringBuffer();
     
     prompt.writeln('You are an expert cycling coach and meteorologist. Analyze the following data and provide concise, motivating advice in Italian:');
     prompt.writeln();
-    prompt.writeln('**Dati Atleta:**');
-    prompt.writeln('- Peso: ${profile.weight.toStringAsFixed(1)}kg');
-    prompt.writeln('- HRV (Heart Rate Variability): ${profile.hrv}ms');
-    prompt.writeln('- Sonno: ${profile.sleepHours.toStringAsFixed(1)} ore');
-    
-    // Calculate readiness score
-    final readiness = _calculateReadinessScore(profile);
-    prompt.writeln('- Readiness Score: $readiness/100');
-    prompt.writeln();
 
-    // Try to get next ride and weather
-    final upcomingRides = await _db.getUpcomingRides();
-    if (upcomingRides.isNotEmpty) {
-      final nextRide = upcomingRides.first;
-      prompt.writeln('**Percorso Pianificato:**');
-      if (nextRide.rideName != null && nextRide.rideName!.isNotEmpty) {
-        prompt.writeln('- Nome: ${nextRide.rideName}');
-      }
-      prompt.writeln('- Distanza: ${nextRide.distance.toStringAsFixed(1)}km');
-      prompt.writeln('- Dislivello: ${nextRide.elevation.toStringAsFixed(0)}m');
-      prompt.writeln('- Data: ${nextRide.rideDate.day}/${nextRide.rideDate.month}');
+    if (includeHealthData) {
+      prompt.writeln('**Dati Atleta:**');
+      prompt.writeln('- Peso: ${profile.weight.toStringAsFixed(1)}kg');
+      prompt.writeln('- HRV (Heart Rate Variability): ${profile.hrv}ms');
+      prompt.writeln('- Sonno: ${profile.sleepHours.toStringAsFixed(1)} ore');
       
-      // Add weather if available in forecast
-      if (nextRide.forecastWeather != null && nextRide.forecastWeather!.isNotEmpty) {
-        try {
-          final weatherData = json.decode(nextRide.forecastWeather!);
-          prompt.writeln();
-          prompt.writeln('**Condizioni Meteo Previste:**');
-          prompt.writeln('- Temperatura: ${weatherData['temperature']}°C');
-          if (weatherData['windSpeed'] != null) {
-            prompt.writeln('- Vento: ${weatherData['windSpeed']}km/h');
-          }
-          if (weatherData['humidity'] != null) {
-            prompt.writeln('- Umidità: ${weatherData['humidity']}%');
-          }
-        } catch (e) {
-          // Weather data parsing failed, skip
+      // Calculate readiness score
+      final readiness = _calculateReadinessScore(profile);
+      prompt.writeln('- Readiness Score: $readiness/100');
+      prompt.writeln();
+
+      // Try to get next ride and weather
+      final upcomingRides = await _db.getUpcomingRides();
+      if (upcomingRides.isNotEmpty) {
+        final nextRide = upcomingRides.first;
+        prompt.writeln('**Percorso Pianificato:**');
+        if (nextRide.rideName != null && nextRide.rideName!.isNotEmpty) {
+          prompt.writeln('- Nome: ${nextRide.rideName}');
         }
+        prompt.writeln('- Distanza: ${nextRide.distance.toStringAsFixed(1)}km');
+        prompt.writeln('- Dislivello: ${nextRide.elevation.toStringAsFixed(0)}m');
+        prompt.writeln('- Data: ${nextRide.rideDate.day}/${nextRide.rideDate.month}');
+        
+        // Add weather if available in forecast
+        if (nextRide.forecastWeather != null && nextRide.forecastWeather!.isNotEmpty) {
+          try {
+            final weatherData = json.decode(nextRide.forecastWeather!);
+            prompt.writeln();
+            prompt.writeln('**Condizioni Meteo Previste:**');
+            prompt.writeln('- Temperatura: ${weatherData['temperature']}°C');
+            if (weatherData['windSpeed'] != null) {
+              prompt.writeln('- Vento: ${weatherData['windSpeed']}km/h');
+            }
+            if (weatherData['humidity'] != null) {
+              prompt.writeln('- Umidità: ${weatherData['humidity']}%');
+            }
+          } catch (e) {
+            // Weather data parsing failed, skip
+          }
+        }
+      } else {
+        prompt.writeln('**Percorso Pianificato:** Nessun percorso imminente.');
       }
     } else {
-      prompt.writeln('**Percorso Pianificato:** Nessun percorso imminente.');
+      prompt.writeln('**Modalità Meccanico/Tecnico:**');
+      prompt.writeln('Ignora dati fisiologici. Concentrati solo sulla richiesta tecnica riguardo la biciletta.');
     }
 
     prompt.writeln();
-    prompt.writeln('Fornisci consigli specifici su intensità di allenamento, abbigliamento consigliato e motivazione. Sii conciso (max 150 parole) e motivante. Rispondi sempre in italiano.');
+    prompt.writeln('Fornisci consigli specifici. Sii conciso (max 150 parole) e utile. Rispondi sempre in italiano.');
     
     return prompt.toString();
   }

@@ -1,13 +1,13 @@
 # Biciclistico 🚴‍♂️
 
-**Biciclistico** è il tuo assistente digitale personale per il ciclismo. Non un semplice tracker, ma un vero **Butler** che si prende cura della tua esperienza in sella, dalla manutenzione della bici ai consigli sull'abbigliamento, potenziato dall'Intelligenza Artificiale.
+**Biciclistico** è il tuo assistente digitale personale per il ciclismo. Non un semplice tracker, ma un vero **Biciclista** che si prende cura della tua esperienza in sella, dalla manutenzione della bici ai consigli sull'abbigliamento, potenziato dall'Intelligenza Artificiale.
 
 ![App Icon](assets/icon/icon.png)
 
 ## ✨ Funzionalità Principali
 
-### 🧠 AI Coach "Butler" (BYOK)
-Il cuore pulsante dell'app. Configura la tua chiave API personale (OpenAI, Claude o Gemini) e lascia che il Butler analizzi i tuoi dati:
+### 🧠 AI Coach "Biciclista" (BYOK)
+Il cuore pulsante dell'app. Configura la tua chiave API personale (OpenAI, Claude o Gemini) e lascia che il Biciclista analizzi i tuoi dati:
 *   **Analisi Biometrica**: Incrocia HRV, sonno e recupero per dirti quanto spingere.
 *   **Consigli Meteo**: Suggerisce l'outfit perfetto in base a temperatura e vento.
 *   **Analisi Percorsi**: Valuta la difficoltà di un percorso importato in relazione alla tua forma attuale.

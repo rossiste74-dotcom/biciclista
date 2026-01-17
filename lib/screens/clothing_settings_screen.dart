@@ -253,7 +253,7 @@ class _ClothingSettingsScreenState extends State<ClothingSettingsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Il "Butler" userà queste soglie insieme alla tua sensibilità termica per darti consigli su misura.',
+              'Il "Biciclista" userà queste soglie insieme alla tua sensibilità termica per darti consigli su misura.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

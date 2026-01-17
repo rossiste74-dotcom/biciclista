@@ -181,7 +181,10 @@ class _GarageScreenState extends State<GarageScreen> {
         "Sii tecnico ma chiaro.";
 
     try {
-      final result = await aiService.getAdvice(userQuestion: prompt);
+      final result = await aiService.getAdvice(
+        userQuestion: prompt, 
+        useHealthContext: false,
+      );
       
       if (!mounted) return;
       Navigator.pop(context);

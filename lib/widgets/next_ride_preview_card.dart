@@ -103,7 +103,7 @@ class NextRidePreviewCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'CONSIGLIO BUTLER',
+                                'CONSIGLIO BICICLISTA',
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                       color: Theme.of(context).colorScheme.secondary,
                                       fontWeight: FontWeight.bold,

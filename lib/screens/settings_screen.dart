@@ -24,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.checkroom),
             title: const Text('Soglie Abbigliamento'),
-            subtitle: const Text('Personalizza le temperature del "Butler"'),
+            subtitle: const Text('Personalizza le temperature del "Biciclista"'),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ClothingSettingsScreen()),

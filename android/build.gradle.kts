@@ -18,13 +18,22 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 
-    val project = this
-    project.plugins.whenPluginAdded {
-        if (this is com.android.build.gradle.LibraryPlugin) {
-            val extension = project.extensions.getByType(com.android.build.gradle.LibraryExtension::class.java)
-            if (extension.namespace == null) {
-                extension.namespace = "dev.isar.${project.name.replace("-", "_")}"
+    val subproject = this
+    fun configureSdk() {
+        if (subproject.plugins.hasPlugin("com.android.library")) {
+            val android = subproject.extensions.getByName("android") as com.android.build.gradle.LibraryExtension
+            if (android.namespace == null) {
+                android.namespace = "dev.isar.${subproject.name.replace("-", "_")}"
             }
+            android.compileSdk = 36
+        }
+    }
+
+    if (subproject.state.executed) {
+        configureSdk()
+    } else {
+        subproject.afterEvaluate {
+            configureSdk()
         }
     }
 }

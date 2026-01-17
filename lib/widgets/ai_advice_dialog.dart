@@ -140,7 +140,7 @@ class _AIAdviceDialogState extends State<AIAdviceDialog> {
               FilledButton.icon(
                 onPressed: _isLoading ? null : _getAdvice,
                 icon: const Icon(Icons.auto_awesome),
-                label: Text(_isLoading ? 'Generando...' : 'Chiedi al Butler'),
+                label: Text(_isLoading ? 'Generando...' : 'Chiedi al Biciclista'),
               ),
               const SizedBox(height: 20),
               if (_error != null)
