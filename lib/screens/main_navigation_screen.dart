@@ -5,6 +5,7 @@ import 'settings_screen.dart';
 import 'gpx_import_screen.dart';
 import 'manual_ride_screen.dart';
 import 'qr_scan_screen.dart';
+import 'profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -74,6 +75,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       appBar: AppBar(
         title: Text(_selectedIndex == 0 ? 'Biciclistico' : 'Le Mie Attività'),
         actions: [
+          IconButton(
+            icon: CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              radius: 16,
+              child: Icon(
+                Icons.person,
+                size: 20,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {

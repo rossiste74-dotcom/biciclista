@@ -358,6 +358,7 @@ class GpxService {
   Future<PlannedRide?> createPlannedRideFromGpx({
     required DateTime rideDate,
     String forecastWeather = '{}',
+    int? bicycleId,
   }) async {
     // Step 1: Import GPX file
     final gpxFile = await importGpxFile();
@@ -381,11 +382,21 @@ class GpxService {
         ..distance = gpxData['distance'] as double
         ..elevation = gpxData['elevation'] as double
         ..latitude = coords.middleLat
-        ..longitude = coords.middleLng;
+        ..longitude = coords.middleLng
+        ..bicycleId = bicycleId;
 
       // Step 5: Save to database
       final db = DatabaseService();
       await db.createPlannedRide(plannedRide);
+      
+      // Update bicycle total distance if bicycleId is provided
+      if (bicycleId != null) {
+        final bicycle = await db.getBicycleById(bicycleId);
+        if (bicycle != null) {
+          bicycle.totalDistance += plannedRide.distance;
+          await db.updateBicycle(bicycle);
+        }
+      }
 
       return plannedRide;
     } catch (e) {

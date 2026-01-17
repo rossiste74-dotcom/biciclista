@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/user_profile.dart';
+import '../models/bicycle.dart';
 import '../services/database_service.dart';
 import '../services/health_sync_service.dart';
 
@@ -18,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   bool _isLoading = true;
   UserProfile? _profile;
+  List<Bicycle> _bicycles = [];
 
   // Controllers
   final _nameController = TextEditingController();
@@ -32,10 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _selectedGender = 'Maschio';
   int _thermalSensitivity = 3;
 
-  @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadBicycles();
   }
 
   @override
@@ -71,6 +73,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadBicycles() async {
+    final bicycles = await _db.getAllBicycles();
+    setState(() {
+      _bicycles = bicycles;
+    });
   }
 
   Future<void> _saveProfile() async {
@@ -287,6 +296,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       label: _thermalSensitivity.toString(),
                       onChanged: (v) => setState(() => _thermalSensitivity = v.toInt()),
                     ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionHeader('Le Mie Biciclette'),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          onPressed: () => _showBicycleDialog(),
+                          tooltip: 'Aggiungi bicicletta',
+                        ),
+                      ],
+                    ),
+                    if (_bicycles.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'Nessuna bicicletta registrata. Aggiungine una!',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ..._bicycles.map((bike) => Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            child: Icon(
+                              Icons.pedal_bike,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          title: Text(bike.name),
+                          subtitle: Text('${bike.type} • ${bike.totalDistance.toStringAsFixed(1)} km'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => _showBicycleDialog(bike: bike),
+                                tooltip: 'Modifica',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () => _deleteBicycle(bike),
+                                tooltip: 'Elimina',
+                              ),
+                            ],
+                          ),
+                        ),
+                      )),
                     const SizedBox(height: 48),
                     SizedBox(
                       width: double.infinity,
@@ -347,6 +410,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sincronizzazione fallita: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showBicycleDialog({Bicycle? bike}) async {
+    final nameController = TextEditingController(text: bike?.name ?? '');
+    final typeController = TextEditingController(text: bike?.type ?? 'Road');
+    final gearingController = TextEditingController(text: bike?.gearingSystem ?? 'Mechanical');
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(bike == null ? 'Aggiungi Bicicletta' : 'Modifica Bicicletta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome',
+                  hintText: 'es: La mia Specialized',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: typeController.text,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Road', 'MTB', 'Gravel', 'City', 'E-Bike']
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => typeController.text = v!,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: gearingController.text,
+                decoration: const InputDecoration(
+                  labelText: 'Sistema di Trasmissione',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Mechanical', 'Electronic', 'Single Speed']
+                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .toList(),
+                onChanged: (v) => gearingController.text = v!,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Inserisci un nome')),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: Text(bike == null ? 'Aggiungi' : 'Salva'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final newBike = bike ?? Bicycle();
+      newBike.name = nameController.text;
+      newBike.type = typeController.text;
+      newBike.gearingSystem = gearingController.text;
+      
+      if (bike == null) {
+        newBike.totalDistance = 0;
+        newBike.lastMaintenance = DateTime.now();
+        await _db.createBicycle(newBike);
+      } else {
+        await _db.updateBicycle(newBike);
+      }
+      
+      await _loadBicycles();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(bike == null ? 'Bicicletta aggiunta!' : 'Bicicletta aggiornata!')),
+        );
+      }
+    }
+    
+    nameController.dispose();
+    typeController.dispose();
+    gearingController.dispose();
+  }
+
+  Future<void> _deleteBicycle(Bicycle bike) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Conferma eliminazione'),
+        content: Text('Sei sicuro di voler eliminare "${bike.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _db.deleteBicycle(bike.id);
+      await _loadBicycles();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bicicletta eliminata')),
         );
       }
     }

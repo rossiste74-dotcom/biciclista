@@ -17,58 +17,63 @@ const PlannedRideSchema = CollectionSchema(
   name: r'PlannedRide',
   id: 5531456562814518774,
   properties: {
-    r'createdAt': PropertySchema(
+    r'bicycleId': PropertySchema(
       id: 0,
+      name: r'bicycleId',
+      type: IsarType.long,
+    ),
+    r'createdAt': PropertySchema(
+      id: 1,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'distance': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'distance',
       type: IsarType.double,
     ),
     r'elevation': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'elevation',
       type: IsarType.double,
     ),
     r'forecastWeather': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'forecastWeather',
       type: IsarType.string,
     ),
     r'gpxFilePath': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'gpxFilePath',
       type: IsarType.string,
     ),
     r'isCompleted': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'isCompleted',
       type: IsarType.bool,
     ),
     r'latitude': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'latitude',
       type: IsarType.double,
     ),
     r'longitude': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'longitude',
       type: IsarType.double,
     ),
     r'notes': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'notes',
       type: IsarType.string,
     ),
     r'rideDate': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'rideDate',
       type: IsarType.dateTime,
     ),
     r'rideName': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'rideName',
       type: IsarType.string,
     )
@@ -153,17 +158,18 @@ void _plannedRideSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeDouble(offsets[1], object.distance);
-  writer.writeDouble(offsets[2], object.elevation);
-  writer.writeString(offsets[3], object.forecastWeather);
-  writer.writeString(offsets[4], object.gpxFilePath);
-  writer.writeBool(offsets[5], object.isCompleted);
-  writer.writeDouble(offsets[6], object.latitude);
-  writer.writeDouble(offsets[7], object.longitude);
-  writer.writeString(offsets[8], object.notes);
-  writer.writeDateTime(offsets[9], object.rideDate);
-  writer.writeString(offsets[10], object.rideName);
+  writer.writeLong(offsets[0], object.bicycleId);
+  writer.writeDateTime(offsets[1], object.createdAt);
+  writer.writeDouble(offsets[2], object.distance);
+  writer.writeDouble(offsets[3], object.elevation);
+  writer.writeString(offsets[4], object.forecastWeather);
+  writer.writeString(offsets[5], object.gpxFilePath);
+  writer.writeBool(offsets[6], object.isCompleted);
+  writer.writeDouble(offsets[7], object.latitude);
+  writer.writeDouble(offsets[8], object.longitude);
+  writer.writeString(offsets[9], object.notes);
+  writer.writeDateTime(offsets[10], object.rideDate);
+  writer.writeString(offsets[11], object.rideName);
 }
 
 PlannedRide _plannedRideDeserialize(
@@ -173,18 +179,19 @@ PlannedRide _plannedRideDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = PlannedRide();
-  object.createdAt = reader.readDateTime(offsets[0]);
-  object.distance = reader.readDouble(offsets[1]);
-  object.elevation = reader.readDouble(offsets[2]);
-  object.forecastWeather = reader.readStringOrNull(offsets[3]);
-  object.gpxFilePath = reader.readStringOrNull(offsets[4]);
+  object.bicycleId = reader.readLongOrNull(offsets[0]);
+  object.createdAt = reader.readDateTime(offsets[1]);
+  object.distance = reader.readDouble(offsets[2]);
+  object.elevation = reader.readDouble(offsets[3]);
+  object.forecastWeather = reader.readStringOrNull(offsets[4]);
+  object.gpxFilePath = reader.readStringOrNull(offsets[5]);
   object.id = id;
-  object.isCompleted = reader.readBool(offsets[5]);
-  object.latitude = reader.readDoubleOrNull(offsets[6]);
-  object.longitude = reader.readDoubleOrNull(offsets[7]);
-  object.notes = reader.readStringOrNull(offsets[8]);
-  object.rideDate = reader.readDateTime(offsets[9]);
-  object.rideName = reader.readStringOrNull(offsets[10]);
+  object.isCompleted = reader.readBool(offsets[6]);
+  object.latitude = reader.readDoubleOrNull(offsets[7]);
+  object.longitude = reader.readDoubleOrNull(offsets[8]);
+  object.notes = reader.readStringOrNull(offsets[9]);
+  object.rideDate = reader.readDateTime(offsets[10]);
+  object.rideName = reader.readStringOrNull(offsets[11]);
   return object;
 }
 
@@ -196,26 +203,28 @@ P _plannedRideDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 2:
       return (reader.readDouble(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
       return (reader.readDoubleOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readDateTime(offset)) as P;
+    case 11:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -466,6 +475,80 @@ extension PlannedRideQueryWhere
 
 extension PlannedRideQueryFilter
     on QueryBuilder<PlannedRide, PlannedRide, QFilterCondition> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'bicycleId',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'bicycleId',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'bicycleId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'bicycleId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'bicycleId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      bicycleIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'bicycleId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
       createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -1555,6 +1638,18 @@ extension PlannedRideQueryLinks
 
 extension PlannedRideQuerySortBy
     on QueryBuilder<PlannedRide, PlannedRide, QSortBy> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByBicycleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bicycleId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByBicycleIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bicycleId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1691,6 +1786,18 @@ extension PlannedRideQuerySortBy
 
 extension PlannedRideQuerySortThenBy
     on QueryBuilder<PlannedRide, PlannedRide, QSortThenBy> {
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByBicycleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bicycleId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByBicycleIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bicycleId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1839,6 +1946,12 @@ extension PlannedRideQuerySortThenBy
 
 extension PlannedRideQueryWhereDistinct
     on QueryBuilder<PlannedRide, PlannedRide, QDistinct> {
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByBicycleId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'bicycleId');
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -1916,6 +2029,12 @@ extension PlannedRideQueryProperty
   QueryBuilder<PlannedRide, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<PlannedRide, int?, QQueryOperations> bicycleIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'bicycleId');
     });
   }
 

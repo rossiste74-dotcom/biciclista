@@ -92,10 +92,13 @@ class SettingsScreen extends StatelessWidget {
           Center(
             child: Opacity(
               opacity: 0.8,
-              child: Image.asset(
-                'assets/log1.png',
-                width: 200,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Image.asset(
+                  'assets/log1.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

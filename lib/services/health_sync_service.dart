@@ -10,14 +10,23 @@ class HealthSyncService {
 
   /// Request permissions for required health data types
   Future<bool> requestPermissions() async {
+    // Configure to use Health Connect
+    // await _health.configure(useHealthConnectIfAvailable: true);
+
     final types = [
-      HealthDataType.HEART_RATE,
-      HealthDataType.SLEEP_SESSION,
-      HealthDataType.WEIGHT,
+       // HealthDataType.HEART_RATE,
+       // HealthDataType.SLEEP_SESSION,
+       HealthDataType.WEIGHT,
     ];
 
     try {
-      return await _health.requestAuthorization(types);
+      final status = await _health.getHealthConnectSdkStatus();
+      debugPrint('Health Connect Status: $status');
+      
+      return await _health.requestAuthorization(
+        types,
+        permissions: types.map((e) => HealthDataAccess.READ).toList(),
+      );
     } catch (e) {
       debugPrint('Error requesting health permissions: $e');
       return false;
@@ -28,7 +37,7 @@ class HealthSyncService {
   Future<void> syncRecentData() async {
     final types = [
       HealthDataType.HEART_RATE,
-      HealthDataType.SLEEP_SESSION,
+      // HealthDataType.SLEEP_SESSION,
       HealthDataType.WEIGHT,
     ];
 

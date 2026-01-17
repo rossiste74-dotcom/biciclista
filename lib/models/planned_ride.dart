@@ -39,6 +39,9 @@ class PlannedRide {
   @Index()
   bool isCompleted = false;
 
+  /// ID of the bicycle used for this ride (optional)
+  int? bicycleId;
+
   /// Timestamp when the ride was planned
   late DateTime createdAt;
 

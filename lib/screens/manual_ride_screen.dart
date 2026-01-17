@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../models/planned_ride.dart';
+import '../models/bicycle.dart';
 import '../services/database_service.dart';
 
 class ManualRideScreen extends StatefulWidget {
@@ -25,6 +26,25 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   bool _isSearching = false;
   List<dynamic> _searchResults = [];
   Map<String, dynamic>? _selectedLocation;
+  
+  List<Bicycle> _bicycles = [];
+  Bicycle? _selectedBicycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBicycles();
+  }
+
+  Future<void> _loadBicycles() async {
+    final bicycles = await _db.getAllBicycles();
+    setState(() {
+      _bicycles = bicycles;
+      if (bicycles.length == 1) {
+        _selectedBicycle = bicycles.first;
+      }
+    });
+  }
 
   Future<void> _selectDateTime() async {
     final date = await showDatePicker(
@@ -91,9 +111,18 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       
     // Use the location name as a note prefix if provided
     if (_selectedLocation != null) {
-      final locName = _selectedLocation!['name'];
+      final locName = _selectedLocation!['name']; 
       final admin = _selectedLocation!['admin1'] ?? '';
       ride.notes = 'Partenza: $locName ($admin)\n\n${_notesController.text}';
+    }
+
+    // Save bicycle ID if selected
+    if (_selectedBicycle != null) {
+      ride.bicycleId = _selectedBicycle!.id;
+      
+      // Update bicycle total distance
+      _selectedBicycle!.totalDistance += ride.distance;
+      await _db.updateBicycle(_selectedBicycle!);
     }
 
     await _db.createPlannedRide(ride);
@@ -175,6 +204,29 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                   ),
                 ),
               ),
+              if (_bicycles.length > 1) ...[
+                const SizedBox(height: 24),
+                _buildSectionHeader('Bicicletta'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: DropdownButtonFormField<Bicycle>(
+                      value: _selectedBicycle,
+                      decoration: const InputDecoration(
+                        labelText: 'Scegli bicicletta',
+                        border: OutlineInputBorder(),
+                      ),
+                      hint: const Text('Seleziona la bicicletta usata'),
+                      items: _bicycles.map((bike) => DropdownMenuItem(
+                        value: bike,
+                        child: Text('${bike.name} (${bike.type})'),
+                      )).toList(),
+                      onChanged: (v) => setState(() => _selectedBicycle = v),
+                      validator: (v) => v == null ? 'Seleziona una bicicletta' : null,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               _buildSectionHeader('Località (per il meteo)'),
               TextField(
