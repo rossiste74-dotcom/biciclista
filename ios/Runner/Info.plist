@@ -55,10 +55,10 @@
 		<string>L'app usa la tua posizione per la navigazione assistita lungo il percorso.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>L'app usa la tua posizione per la navigazione assistita lungo il percorso.</string>
-    <key>NSHealthShareUsageDescription</key>
-    <string>L'app necessita di accedere ai dati sanitari (peso, HRV, sonno) per mostrarti i trend di recupero.</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>L'app potrebbe aggiornare i tuoi dati sanitari se richiesto.</string>
+		<key>NSHealthShareUsageDescription</key>
+		<string>L'app necessita di accedere ai dati sanitari (peso, HRV, sonno) per mostrarti i trend di recupero.</string>
+		<key>NSHealthUpdateUsageDescription</key>
+		<string>L'app potrebbe aggiornare i tuoi dati sanitari se richiesto.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>

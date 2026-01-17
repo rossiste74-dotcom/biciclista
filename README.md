@@ -43,7 +43,62 @@ Pianifica e analizza le tue uscite:
 2.  **Garage**: Aggiungi le tue bici e configura i componenti che vuoi monitorare.
 3.  **AI (Opzionale)**: Vai in Impostazioni > AI Coach e inserisci la tua API Key.
 
+## 📦 Installazione e Sviluppo
+
+### Requisiti di Sistema
+*   **Flutter SDK**: Versione 3.10.4 o superiore.
+*   **Dart SDK**: Incluso in Flutter.
+*   **Android Studio** (per Android) o **Xcode** (per iOS/macOS).
+*   **Dispositivo Fisico**: Consigliato per testare GPS e sensori (Emulatore supportato ma limitato).
+
+### 🏃 Esecuzione in Ambiente di Sviluppo (Agility/Locale)
+Per avviare l'app nel tuo ambiente di sviluppo o IDE preferito:
+
+1.  **Clona il Repository**:
+    ```bash
+    git clone https://github.com/stefanorossi/biciclista.git
+    cd biciclista
+    ```
+2.  **Installa le Dipendenze**:
+    ```bash
+    flutter pub get
+    ```
+3.  **Avvia l'Applicazione**:
+    Collega il telefono via USB (o avvia un emulatore) ed esegui:
+    ```bash
+    flutter run
+    ```
+
+### 📱 Generazione APK (Installazione Manuale)
+Se vuoi generare un file `.apk` da inviare e installare manualmente su un dispositivo Android:
+
+1.  **Compila la Release**:
+    Esegui questo comando nel terminale del progetto:
+    ```bash
+    flutter build apk --release
+    ```
+2.  **Trova il File**:
+    Al termine della compilazione, troverai il file APK in:
+    `build/app/outputs/flutter-apk/app-release.apk`
+3.  **Installa**:
+    *   Invia il file al tuo smartphone (via email, Telegram, Drive, USB).
+    *   Aprilo dal telefono e autorizza l'installazione da "Sorgenti Sconosciute" se richiesto.
+
+### 🤖 Automazione con GitHub Actions
+Questo repository include un workflow pre-configurato per compilare automaticamente l'APK nel cloud.
+
+1.  **Carica il Codice**: Fai push delle modifiche sul branch `main`.
+2.  **Monitora la Build**:
+    *   Vai sulla tab **Actions** del repository GitHub.
+    *   Clicca sull'ultimo workflow "Build Android APK".
+3.  **Scarica l'APK**:
+    *   A build terminata (icona verde ✅), scorri in basso nella sezione **Artifacts**.
+    *   Clicca su `app-release` per scaricare lo zip contenente l'APK.
+
+---
+
 ## 🛠️ Stack Tecnologico
+
 Sviluppato con ❤️ usando **Flutter**.
 *   **Database**: [Isar](https://isar.dev/) (NoSQL locale ultra-veloce).
 *   **Mappe**: [Flutter Map](https://pub.dev/packages/flutter_map) & OpenStreetMap.
