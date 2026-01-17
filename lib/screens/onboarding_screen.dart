@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../services/database_service.dart';
 import 'dashboard_screen.dart';
+import 'main_navigation_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -74,17 +75,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ..type = _bikeType
         ..gearingSystem = 'Mechanical' // Default
         ..lastMaintenance = DateTime.now() // Default
-        ..totalDistance = double.tryParse(_bikeKmController.text) ?? 0.0;
+        ..totalKilometers = double.tryParse(_bikeKmController.text) ?? 0.0;
+        
+      bike.applyDefaults(); // Apply threshold defaults based on type
       
       debugPrint('Saving bike...');
       await _db.createBicycle(bike);
       debugPrint('Bike saved.');
 
       if (mounted) {
-        debugPrint('Navigating to Dashboard...');
+        debugPrint('Navigating to Main App...');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
+          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        ); // Fixed: Navigate to Main shell, not just Dashboard
       }
     } catch (e, stack) {
       debugPrint('Error completing onboarding: $e');

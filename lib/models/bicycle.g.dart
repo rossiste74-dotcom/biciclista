@@ -17,35 +17,76 @@ const BicycleSchema = CollectionSchema(
   name: r'Bicycle',
   id: 4348081153741485789,
   properties: {
-    r'createdAt': PropertySchema(
+    r'bikeImagePath': PropertySchema(
       id: 0,
+      name: r'bikeImagePath',
+      type: IsarType.string,
+    ),
+    r'brakeLimitKm': PropertySchema(
+      id: 1,
+      name: r'brakeLimitKm',
+      type: IsarType.double,
+    ),
+    r'chainKms': PropertySchema(
+      id: 2,
+      name: r'chainKms',
+      type: IsarType.double,
+    ),
+    r'chainLimitKm': PropertySchema(
+      id: 3,
+      name: r'chainLimitKm',
+      type: IsarType.double,
+    ),
+    r'components': PropertySchema(
+      id: 4,
+      name: r'components',
+      type: IsarType.objectList,
+      target: r'BicycleComponent',
+    ),
+    r'createdAt': PropertySchema(
+      id: 5,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'gearingSystem': PropertySchema(
-      id: 1,
+      id: 6,
       name: r'gearingSystem',
       type: IsarType.string,
     ),
     r'lastMaintenance': PropertySchema(
-      id: 2,
+      id: 7,
       name: r'lastMaintenance',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 3,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
-    r'totalDistance': PropertySchema(
-      id: 4,
-      name: r'totalDistance',
+    r'serviceIntervalKms': PropertySchema(
+      id: 9,
+      name: r'serviceIntervalKms',
+      type: IsarType.double,
+    ),
+    r'totalKilometers': PropertySchema(
+      id: 10,
+      name: r'totalKilometers',
       type: IsarType.double,
     ),
     r'type': PropertySchema(
-      id: 5,
+      id: 11,
       name: r'type',
       type: IsarType.string,
+    ),
+    r'tyreKms': PropertySchema(
+      id: 12,
+      name: r'tyreKms',
+      type: IsarType.double,
+    ),
+    r'tyreLimitKm': PropertySchema(
+      id: 13,
+      name: r'tyreLimitKm',
+      type: IsarType.double,
     )
   },
   estimateSize: _bicycleEstimateSize,
@@ -69,7 +110,7 @@ const BicycleSchema = CollectionSchema(
     )
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'BicycleComponent': BicycleComponentSchema},
   getId: _bicycleGetId,
   getLinks: _bicycleGetLinks,
   attach: _bicycleAttach,
@@ -82,6 +123,21 @@ int _bicycleEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.bikeImagePath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.components.length * 3;
+  {
+    final offsets = allOffsets[BicycleComponent]!;
+    for (var i = 0; i < object.components.length; i++) {
+      final value = object.components[i];
+      bytesCount +=
+          BicycleComponentSchema.estimateSize(value, offsets, allOffsets);
+    }
+  }
   bytesCount += 3 + object.gearingSystem.length * 3;
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.type.length * 3;
@@ -94,12 +150,25 @@ void _bicycleSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeString(offsets[1], object.gearingSystem);
-  writer.writeDateTime(offsets[2], object.lastMaintenance);
-  writer.writeString(offsets[3], object.name);
-  writer.writeDouble(offsets[4], object.totalDistance);
-  writer.writeString(offsets[5], object.type);
+  writer.writeString(offsets[0], object.bikeImagePath);
+  writer.writeDouble(offsets[1], object.brakeLimitKm);
+  writer.writeDouble(offsets[2], object.chainKms);
+  writer.writeDouble(offsets[3], object.chainLimitKm);
+  writer.writeObjectList<BicycleComponent>(
+    offsets[4],
+    allOffsets,
+    BicycleComponentSchema.serialize,
+    object.components,
+  );
+  writer.writeDateTime(offsets[5], object.createdAt);
+  writer.writeString(offsets[6], object.gearingSystem);
+  writer.writeDateTime(offsets[7], object.lastMaintenance);
+  writer.writeString(offsets[8], object.name);
+  writer.writeDouble(offsets[9], object.serviceIntervalKms);
+  writer.writeDouble(offsets[10], object.totalKilometers);
+  writer.writeString(offsets[11], object.type);
+  writer.writeDouble(offsets[12], object.tyreKms);
+  writer.writeDouble(offsets[13], object.tyreLimitKm);
 }
 
 Bicycle _bicycleDeserialize(
@@ -109,13 +178,27 @@ Bicycle _bicycleDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Bicycle();
-  object.createdAt = reader.readDateTime(offsets[0]);
-  object.gearingSystem = reader.readString(offsets[1]);
+  object.bikeImagePath = reader.readStringOrNull(offsets[0]);
+  object.brakeLimitKm = reader.readDouble(offsets[1]);
+  object.chainKms = reader.readDouble(offsets[2]);
+  object.chainLimitKm = reader.readDouble(offsets[3]);
+  object.components = reader.readObjectList<BicycleComponent>(
+        offsets[4],
+        BicycleComponentSchema.deserialize,
+        allOffsets,
+        BicycleComponent(),
+      ) ??
+      [];
+  object.createdAt = reader.readDateTime(offsets[5]);
+  object.gearingSystem = reader.readString(offsets[6]);
   object.id = id;
-  object.lastMaintenance = reader.readDateTime(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.totalDistance = reader.readDouble(offsets[4]);
-  object.type = reader.readString(offsets[5]);
+  object.lastMaintenance = reader.readDateTime(offsets[7]);
+  object.name = reader.readString(offsets[8]);
+  object.serviceIntervalKms = reader.readDouble(offsets[9]);
+  object.totalKilometers = reader.readDouble(offsets[10]);
+  object.type = reader.readString(offsets[11]);
+  object.tyreKms = reader.readDouble(offsets[12]);
+  object.tyreLimitKm = reader.readDouble(offsets[13]);
   return object;
 }
 
@@ -127,17 +210,39 @@ P _bicycleDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
-    case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readString(offset)) as P;
-    case 4:
       return (reader.readDouble(offset)) as P;
+    case 2:
+      return (reader.readDouble(offset)) as P;
+    case 3:
+      return (reader.readDouble(offset)) as P;
+    case 4:
+      return (reader.readObjectList<BicycleComponent>(
+            offset,
+            BicycleComponentSchema.deserialize,
+            allOffsets,
+            BicycleComponent(),
+          ) ??
+          []) as P;
     case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readDateTime(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDouble(offset)) as P;
+    case 10:
+      return (reader.readDouble(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readDouble(offset)) as P;
+    case 13:
+      return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -276,6 +381,427 @@ extension BicycleQueryWhere on QueryBuilder<Bicycle, Bicycle, QWhereClause> {
 
 extension BicycleQueryFilter
     on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'bikeImagePath',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      bikeImagePathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'bikeImagePath',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      bikeImagePathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'bikeImagePath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'bikeImagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'bikeImagePath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'bikeImagePath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      bikeImagePathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'bikeImagePath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> brakeLimitKmEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'brakeLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> brakeLimitKmGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'brakeLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> brakeLimitKmLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'brakeLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> brakeLimitKmBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'brakeLimitKm',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainKmsEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'chainKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainKmsGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'chainKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainKmsLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'chainKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainKmsBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'chainKms',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainLimitKmEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'chainLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainLimitKmGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'chainLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainLimitKmLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'chainLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> chainLimitKmBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'chainLimitKm',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> componentsLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> componentsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> componentsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      componentsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      componentsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> componentsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'components',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> createdAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -697,13 +1223,14 @@ extension BicycleQueryFilter
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalDistanceEqualTo(
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      serviceIntervalKmsEqualTo(
     double value, {
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'totalDistance',
+        property: r'serviceIntervalKms',
         value: value,
         epsilon: epsilon,
       ));
@@ -711,7 +1238,7 @@ extension BicycleQueryFilter
   }
 
   QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
-      totalDistanceGreaterThan(
+      serviceIntervalKmsGreaterThan(
     double value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -719,14 +1246,15 @@ extension BicycleQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'totalDistance',
+        property: r'serviceIntervalKms',
         value: value,
         epsilon: epsilon,
       ));
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalDistanceLessThan(
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      serviceIntervalKmsLessThan(
     double value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -734,14 +1262,15 @@ extension BicycleQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'totalDistance',
+        property: r'serviceIntervalKms',
         value: value,
         epsilon: epsilon,
       ));
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalDistanceBetween(
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      serviceIntervalKmsBetween(
     double lower,
     double upper, {
     bool includeLower = true,
@@ -750,7 +1279,70 @@ extension BicycleQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'totalDistance',
+        property: r'serviceIntervalKms',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalKilometersEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalKilometers',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      totalKilometersGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalKilometers',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalKilometersLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalKilometers',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> totalKilometersBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalKilometers',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -889,15 +1481,194 @@ extension BicycleQueryFilter
       ));
     });
   }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreKmsEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tyreKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreKmsGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tyreKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreKmsLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tyreKms',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreKmsBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tyreKms',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreLimitKmEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tyreLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreLimitKmGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tyreLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreLimitKmLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tyreLimitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> tyreLimitKmBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tyreLimitKm',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
 }
 
 extension BicycleQueryObject
-    on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {}
+    on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> componentsElement(
+      FilterQuery<BicycleComponent> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'components');
+    });
+  }
+}
 
 extension BicycleQueryLinks
     on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {}
 
 extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeImagePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeImagePath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBrakeLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'brakeLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBrakeLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'brakeLimitKm', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByChainKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainKms', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByChainKmsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByChainLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByChainLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainLimitKm', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -946,15 +1717,27 @@ extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTotalDistance() {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByServiceIntervalKms() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalDistance', Sort.asc);
+      return query.addSortBy(r'serviceIntervalKms', Sort.asc);
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTotalDistanceDesc() {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByServiceIntervalKmsDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalDistance', Sort.desc);
+      return query.addSortBy(r'serviceIntervalKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTotalKilometers() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalKilometers', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTotalKilometersDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalKilometers', Sort.desc);
     });
   }
 
@@ -969,10 +1752,82 @@ extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
       return query.addSortBy(r'type', Sort.desc);
     });
   }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTyreKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreKms', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTyreKmsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTyreLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByTyreLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreLimitKm', Sort.desc);
+    });
+  }
 }
 
 extension BicycleQuerySortThenBy
     on QueryBuilder<Bicycle, Bicycle, QSortThenBy> {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeImagePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeImagePath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBrakeLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'brakeLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBrakeLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'brakeLimitKm', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByChainKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainKms', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByChainKmsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByChainLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByChainLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'chainLimitKm', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1033,15 +1888,27 @@ extension BicycleQuerySortThenBy
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTotalDistance() {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByServiceIntervalKms() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalDistance', Sort.asc);
+      return query.addSortBy(r'serviceIntervalKms', Sort.asc);
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTotalDistanceDesc() {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByServiceIntervalKmsDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalDistance', Sort.desc);
+      return query.addSortBy(r'serviceIntervalKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTotalKilometers() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalKilometers', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTotalKilometersDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalKilometers', Sort.desc);
     });
   }
 
@@ -1056,10 +1923,60 @@ extension BicycleQuerySortThenBy
       return query.addSortBy(r'type', Sort.desc);
     });
   }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTyreKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreKms', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTyreKmsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreKms', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTyreLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreLimitKm', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByTyreLimitKmDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tyreLimitKm', Sort.desc);
+    });
+  }
 }
 
 extension BicycleQueryWhereDistinct
     on QueryBuilder<Bicycle, Bicycle, QDistinct> {
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBikeImagePath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'bikeImagePath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBrakeLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'brakeLimitKm');
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByChainKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'chainKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByChainLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'chainLimitKm');
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -1087,9 +2004,15 @@ extension BicycleQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByTotalDistance() {
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByServiceIntervalKms() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'totalDistance');
+      return query.addDistinctBy(r'serviceIntervalKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByTotalKilometers() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'totalKilometers');
     });
   }
 
@@ -1099,6 +2022,18 @@ extension BicycleQueryWhereDistinct
       return query.addDistinctBy(r'type', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByTyreKms() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tyreKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByTyreLimitKm() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tyreLimitKm');
+    });
+  }
 }
 
 extension BicycleQueryProperty
@@ -1106,6 +2041,37 @@ extension BicycleQueryProperty
   QueryBuilder<Bicycle, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<Bicycle, String?, QQueryOperations> bikeImagePathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'bikeImagePath');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> brakeLimitKmProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'brakeLimitKm');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> chainKmsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'chainKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> chainLimitKmProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'chainLimitKm');
+    });
+  }
+
+  QueryBuilder<Bicycle, List<BicycleComponent>, QQueryOperations>
+      componentsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'components');
     });
   }
 
@@ -1133,9 +2099,15 @@ extension BicycleQueryProperty
     });
   }
 
-  QueryBuilder<Bicycle, double, QQueryOperations> totalDistanceProperty() {
+  QueryBuilder<Bicycle, double, QQueryOperations> serviceIntervalKmsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'totalDistance');
+      return query.addPropertyName(r'serviceIntervalKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> totalKilometersProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'totalKilometers');
     });
   }
 
@@ -1144,4 +2116,481 @@ extension BicycleQueryProperty
       return query.addPropertyName(r'type');
     });
   }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> tyreKmsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tyreKms');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> tyreLimitKmProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tyreLimitKm');
+    });
+  }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const BicycleComponentSchema = Schema(
+  name: r'BicycleComponent',
+  id: -8116974888476475607,
+  properties: {
+    r'currentKm': PropertySchema(
+      id: 0,
+      name: r'currentKm',
+      type: IsarType.double,
+    ),
+    r'lastMaintenance': PropertySchema(
+      id: 1,
+      name: r'lastMaintenance',
+      type: IsarType.dateTime,
+    ),
+    r'limitKm': PropertySchema(
+      id: 2,
+      name: r'limitKm',
+      type: IsarType.double,
+    ),
+    r'name': PropertySchema(
+      id: 3,
+      name: r'name',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _bicycleComponentEstimateSize,
+  serialize: _bicycleComponentSerialize,
+  deserialize: _bicycleComponentDeserialize,
+  deserializeProp: _bicycleComponentDeserializeProp,
+);
+
+int _bicycleComponentEstimateSize(
+  BicycleComponent object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.name;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _bicycleComponentSerialize(
+  BicycleComponent object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeDouble(offsets[0], object.currentKm);
+  writer.writeDateTime(offsets[1], object.lastMaintenance);
+  writer.writeDouble(offsets[2], object.limitKm);
+  writer.writeString(offsets[3], object.name);
+}
+
+BicycleComponent _bicycleComponentDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = BicycleComponent();
+  object.currentKm = reader.readDouble(offsets[0]);
+  object.lastMaintenance = reader.readDateTimeOrNull(offsets[1]);
+  object.limitKm = reader.readDouble(offsets[2]);
+  object.name = reader.readStringOrNull(offsets[3]);
+  return object;
+}
+
+P _bicycleComponentDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readDouble(offset)) as P;
+    case 1:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 2:
+      return (reader.readDouble(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension BicycleComponentQueryFilter
+    on QueryBuilder<BicycleComponent, BicycleComponent, QFilterCondition> {
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      currentKmEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'currentKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      currentKmGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'currentKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      currentKmLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'currentKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      currentKmBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'currentKm',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastMaintenance',
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastMaintenance',
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastMaintenance',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastMaintenance',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastMaintenance',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      lastMaintenanceBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastMaintenance',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      limitKmEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'limitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      limitKmGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'limitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      limitKmLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'limitKm',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      limitKmBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'limitKm',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'name',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'name',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<BicycleComponent, BicycleComponent, QAfterFilterCondition>
+      nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension BicycleComponentQueryObject
+    on QueryBuilder<BicycleComponent, BicycleComponent, QFilterCondition> {}

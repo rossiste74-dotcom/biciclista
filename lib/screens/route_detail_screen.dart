@@ -15,6 +15,7 @@ import '../services/weather_service.dart';
 import '../services/outfit_service.dart';
 import '../services/database_service.dart';
 import '../services/qr_service.dart';
+import '../services/notification_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:latlong2/latlong.dart';
 import '../widgets/route_map_widget.dart';
@@ -273,6 +274,117 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     );
   }
 
+  Future<void> _showCompletionDialog() async {
+    final bikes = await _db.getAllBicycles();
+    
+    if (!mounted) return;
+
+    if (bikes.isEmpty) {
+      // Just mark as done if no bikes (fallback)
+      _completeRide(null);
+      return; 
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Con quale bici hai pedalato?', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 16),
+            ...bikes.map((bike) => ListTile(
+              leading: const Icon(Icons.pedal_bike),
+              title: Text(bike.name),
+              subtitle: Text(bike.type),
+              onTap: () {
+                Navigator.pop(context);
+                _completeRide(bike);
+              },
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _completeRide(dynamic bike) async {
+    // Note: bike is dynamic because DatabaseService returns Isar objects which might need casting if imported
+    // But here we use standard methods.
+    
+    // Update Ride
+    setState(() {
+      widget.plannedRide.isCompleted = true;
+    });
+    await _db.updatePlannedRide(widget.plannedRide);
+    
+    // Update Bike stats if selected
+    if (bike != null) {
+      final double rideDist = widget.plannedRide.distance.isNaN ? 0.0 : widget.plannedRide.distance;
+      
+      // Update stats safely
+      bike.totalKilometers = (bike.totalKilometers.isNaN ? 0.0 : bike.totalKilometers) + rideDist;
+      
+      // Update legacy fields for compatibility
+      bike.chainKms = (bike.chainKms.isNaN ? 0.0 : bike.chainKms) + rideDist;
+      bike.tyreKms = (bike.tyreKms.isNaN ? 0.0 : bike.tyreKms) + rideDist;
+      
+      // Update dynamic components
+      final notify = NotificationService();
+      
+      for (var component in bike.components) {
+        component.currentKm = (component.currentKm.isNaN ? 0.0 : component.currentKm) + rideDist;
+        
+        // Check alerts
+        if (component.limitKm > 0 && component.currentKm >= component.limitKm * 0.9) {
+           await notify.showMaintenanceAlert(
+             id: (bike.id * 1000) + bike.components.indexOf(component), 
+             title: '⚠️ Manutenzione necessaria su ${bike.name}',
+             body: 'Il componente "${component.name}" ha raggiunto ${component.currentKm.toInt()} km. Verifica lo stato!',
+           );
+        }
+      }
+      
+      await _db.updateBicycle(bike);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Corsa completata! Km aggiunti a ${bike?.name ?? "nessuna bici"}.')),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Elimina Attività'),
+        content: const Text('Sei sicuro di voler eliminare questa attività?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _db.deletePlannedRide(widget.plannedRide.id);
+      if (mounted) {
+        Navigator.pop(context); // Close details screen
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -286,21 +398,21 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
             ),
             tooltip: widget.plannedRide.isCompleted ? 'Segna come da fare' : 'Segna come completato',
             onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              setState(() {
-                widget.plannedRide.isCompleted = !widget.plannedRide.isCompleted;
-              });
-              await _db.updatePlannedRide(widget.plannedRide);
-              
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(
-                    widget.plannedRide.isCompleted 
-                      ? 'Attività segnata come completata!' 
-                      : 'Attività spostata in pianificate'
-                  ),
-                ),
-              );
+              if (!widget.plannedRide.isCompleted) {
+                // If marking as done, ask for bike
+                _showCompletionDialog();
+              } else {
+                // If unmarking, just toggle back
+                setState(() {
+                  widget.plannedRide.isCompleted = false;
+                });
+                await _db.updatePlannedRide(widget.plannedRide);
+                if (mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Attività spostata in pianificate')),
+                  );
+                }
+              }
             },
           ),
           IconButton(
@@ -883,51 +995,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     );
   }
 
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina Percorso'),
-        content: const Text(
-          'Sei sicuro di voler eliminare questa pedalata? L\'azione è irreversibile.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmed == true && mounted) {
-      final db = DatabaseService();
-      await db.deletePlannedRide(widget.plannedRide.id);
-      
-      // Optionally delete the physical file too
-      try {
-        if (widget.plannedRide.gpxFilePath != null) {
-          final file = File(widget.plannedRide.gpxFilePath!);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        }
-      } catch (e) {
-        debugPrint('Failed to delete GPX file: $e');
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
-    }
-  }
 }
 
 class _WeatherPoint {

@@ -96,7 +96,7 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
                                 Icon(Icons.straighten, size: 16, color: Theme.of(context).colorScheme.primary),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${bike.totalDistance.toStringAsFixed(1)} km totali',
+                                  '${bike.totalKilometers.toStringAsFixed(1)} km totali',
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.w600,
@@ -210,8 +210,9 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
       newBike.gearingSystem = gearingController.text;
       
       if (bike == null) {
-        newBike.totalDistance = 0;
+        newBike.totalKilometers = 0;
         newBike.lastMaintenance = DateTime.now();
+        newBike.applyDefaults(); // Apply threshold defaults
         await _db.createBicycle(newBike);
       } else {
         await _db.updateBicycle(newBike);

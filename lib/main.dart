@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:biciclistico/screens/onboarding_screen.dart';
 import 'package:biciclistico/screens/main_navigation_screen.dart';
 import 'services/database_service.dart';
+import 'services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -12,6 +13,9 @@ void main() async {
   
   final dbService = DatabaseService();
   await dbService.init();
+
+  final notificationService = NotificationService();
+  await notificationService.init();
   
   final profile = await dbService.getUserProfile();
 

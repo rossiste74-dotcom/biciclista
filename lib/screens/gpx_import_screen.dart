@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/bicycle.dart';
+
 import '../services/database_service.dart';
 import '../services/gpx_service.dart';
 import '../services/ai_service.dart';
@@ -20,24 +20,9 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
   String? _errorMessage;
   Map<String, dynamic>? _gpxPreview;
   
-  List<Bicycle> _bicycles = [];
-  Bicycle? _selectedBicycle;
-  
   @override
   void initState() {
     super.initState();
-    _loadBicycles();
-  }
-
-  Future<void> _loadBicycles() async {
-    final db = DatabaseService();
-    final bicycles = await db.getAllBicycles();
-    setState(() {
-      _bicycles = bicycles;
-      if (bicycles.length == 1) {
-        _selectedBicycle = bicycles.first;
-      }
-    });
   }
 
   Future<void> _selectDateTime() async {
@@ -76,7 +61,6 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
     try {
       final plannedRide = await _gpxService.createPlannedRideFromGpx(
         rideDate: _selectedDate,
-        bicycleId: _selectedBicycle?.id,
       );
 
       if (plannedRide != null) {
@@ -181,39 +165,6 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Bicycle selector (if multiple bikes)
-                  if (_bicycles.length > 1) ...[
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Bicicletta',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: 12),
-                            DropdownButtonFormField<Bicycle>(
-                              value: _selectedBicycle,
-                              decoration: const InputDecoration(
-                                labelText: 'Scegli bicicletta',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              hint: const Text('Seleziona la bicicletta usata'),
-                              items: _bicycles.map((bike) => DropdownMenuItem(
-                                value: bike,
-                                child: Text('${bike.name} (${bike.type})'),
-                              )).toList(),
-                              onChanged: (v) => setState(() => _selectedBicycle = v),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
 
                   // Import button
                   FilledButton.icon(

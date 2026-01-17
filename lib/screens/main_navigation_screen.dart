@@ -6,7 +6,8 @@ import 'gpx_import_screen.dart';
 import 'manual_ride_screen.dart';
 import 'qr_scan_screen.dart';
 import 'profile_screen.dart';
-import 'bicycles_screen.dart';
+
+import 'garage_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -21,6 +22,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const RidesListScreen(),
+    const GarageScreen(),
   ];
 
   void _showAddMenu() {
@@ -93,15 +95,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.pedal_bike),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BicyclesScreen()),
-              );
-            },
-            tooltip: 'Le mie biciclette',
-          ),
-          IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () async {
               // Navigate to settings and check if AI config changed
@@ -140,12 +133,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             selectedIcon: Icon(Icons.directions_bike),
             label: 'Attività',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.garage_outlined),
+            selectedIcon: Icon(Icons.garage),
+            label: 'Garage',
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddMenu,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _selectedIndex == 1 
+          ? FloatingActionButton(
+              onPressed: _showAddMenu,
+              child: const Icon(Icons.add),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

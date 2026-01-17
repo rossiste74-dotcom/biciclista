@@ -1,0 +1,549 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import '../models/bicycle.dart';
+import '../models/user_profile.dart'; // Needed for type safety if used
+import '../services/database_service.dart';
+import '../services/ai_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+
+class GarageScreen extends StatefulWidget {
+  const GarageScreen({super.key});
+
+  @override
+  State<GarageScreen> createState() => _GarageScreenState();
+}
+
+class _GarageScreenState extends State<GarageScreen> {
+  final _db = DatabaseService();
+  final _picker = ImagePicker();
+  List<Bicycle> _bikes = [];
+  bool _isLoading = true;
+  StreamSubscription? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBikes();
+    // Listen for DB changes
+    _subscription = _db.watchBicycles().listen((_) {
+      _loadBikes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadBikes() async {
+    final bikes = await _db.getAllBicycles();
+    
+    // Migration Logic: If any bike has components empty but has legacy data, applyDefaults.
+    bool needsUpdate = false;
+    for (var bike in bikes) {
+      if (bike.components.isEmpty) {
+        bike.applyDefaults();
+        await _db.updateBicycle(bike);
+        needsUpdate = true;
+      }
+    }
+    
+    if (needsUpdate) {
+      // Stream listener will trigger reload, but we can force it just in case logic is racy
+    }
+
+    if (mounted) {
+      setState(() {
+        _bikes = bikes;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _pickImage(Bicycle bike) async {
+    final hasCamera = await _isCameraAvailable();
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Aggiorna Foto', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSourceOption(Icons.camera_alt, 'Fotocamera', ImageSource.camera, context),
+                _buildSourceOption(Icons.photo_library, 'Galleria', ImageSource.gallery, context),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image != null) {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'bike_${bike.id}_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+      final savedImage = await File(image.path).copy('${appDir.path}/$fileName');
+
+      bike.bikeImagePath = savedImage.path;
+      
+      await _db.updateBicycle(bike);
+      
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  Widget _buildSourceOption(IconData icon, String label, ImageSource source, BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.pop(context, source),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _isCameraAvailable() async => true; 
+
+  Future<void> _resetComponent(Bicycle bike, BicycleComponent component) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset ${component.name}?'),
+        content: const Text('Confermi di aver sostituito questo componente? Il contatore verrà azzerato.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Conferma')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      component.currentKm = 0.0;
+      component.lastMaintenance = DateTime.now();
+      
+      // Also update legacy fields for safety if it matches
+      if (component.name == 'Catena') bike.chainKms = 0.0;
+      if (component.name == 'Copertoni') bike.tyreKms = 0.0;
+      
+      bike.lastMaintenance = DateTime.now();
+      await _db.updateBicycle(bike);
+    }
+  }
+
+  Future<void> _askMechanic(Bicycle bike, String componentName) async {
+    final aiService = AIService();
+    
+    if (!mounted) return;
+    
+    if (!await aiService.isConfigured()) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Configura prima l\'AI nelle impostazioni!')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    String prompt = "Ho una bicicletta ${bike.name} (${bike.type}). "
+        "Devo fare manutenzione a: $componentName. "
+        "Guidami passo dopo passo (max 5 punti) su come controllare l'usura o sostituirlo. "
+        "Sii tecnico ma chiaro.";
+
+    try {
+      final result = await aiService.getAdvice(userQuestion: prompt);
+      
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(24),
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.build_circle, color: Theme.of(context).colorScheme.primary, size: 32),
+                  const SizedBox(width: 12),
+                  Text('Meccanico AI', style: Theme.of(context).textTheme.headlineSmall),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Text(
+                    result['success'] ? result['content'] : "Errore: ${result['error']}",
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Ho capito'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore AI: $e')));
+    }
+  }
+
+  Color _getStatusColor(double current, double limit) {
+    double percentage = current / limit;
+    if (percentage < 0.7) return Colors.green;
+    if (percentage < 0.9) return Colors.orange;
+    return Colors.red;
+  }
+
+  Future<void> _showBicycleDialog({Bicycle? bike}) async {
+    final nameController = TextEditingController(text: bike?.name ?? '');
+    final typeController = TextEditingController(text: bike?.type ?? 'Road');
+    final gearingController = TextEditingController(text: bike?.gearingSystem ?? 'Mechanical');
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(bike == null ? 'Aggiungi Bicicletta' : 'Modifica Bicicletta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome',
+                  hintText: 'es: La mia Specialized',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: typeController.text,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Road', 'MTB', 'Gravel', 'City', 'E-Bike']
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => typeController.text = v!,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: gearingController.text,
+                decoration: const InputDecoration(
+                  labelText: 'Sistema di Trasmissione',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Mechanical', 'Electronic', 'Single Speed']
+                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .toList(),
+                onChanged: (v) => gearingController.text = v!,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Inserisci un nome')),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: Text(bike == null ? 'Aggiungi' : 'Salva'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      final newBike = bike ?? Bicycle();
+      newBike.name = nameController.text;
+      newBike.type = typeController.text;
+      newBike.gearingSystem = gearingController.text;
+      
+      if (bike == null) {
+        newBike.totalKilometers = 0;
+        newBike.lastMaintenance = DateTime.now();
+        // Fetch UserProfile to get definitions
+        final profile = await _db.getUserProfile();
+        if (profile != null && profile.maintenanceDefinitions.isNotEmpty) {
+          // Use global definitions
+          newBike.components = profile.maintenanceDefinitions.map((def) => BicycleComponent()
+            ..name = def.name
+            ..limitKm = def.defaultInterval ?? 3000.0
+            ..currentKm = 0
+            ..lastMaintenance = DateTime.now()
+          ).toList();
+        } else {
+          // Fallback to legacy
+          newBike.applyDefaults();
+        }
+        await _db.createBicycle(newBike);
+      } else {
+        await _db.updateBicycle(newBike);
+      }
+      
+      // _loadBikes(); // Handled by stream
+    }
+  }
+
+  Future<void> _deleteBicycle(Bicycle bike) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Conferma eliminazione'),
+        content: Text('Sei sicuro di voler eliminare "${bike.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _db.deleteBicycle(bike.id);
+    }
+  }
+
+  Widget _buildComponentStatus(BuildContext context, Bicycle bike, BicycleComponent component) {
+    final double safeCurrent = component.currentKm.isNaN ? 0.0 : component.currentKm;
+    final double safeMax = (component.limitKm.isNaN || component.limitKm == 0) ? 1.0 : component.limitKm;
+
+    final color = _getStatusColor(safeCurrent, safeMax);
+    final progress = (safeCurrent / safeMax).clamp(0.0, 1.0);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(component.name ?? 'Componente', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('${safeCurrent.toStringAsFixed(0)} / ${safeMax.toStringAsFixed(0)} km'),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: progress,
+          color: color,
+          backgroundColor: color.withOpacity(0.2),
+          minHeight: 8,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              onPressed: () => _askMechanic(bike, component.name ?? 'Componente'),
+              icon: const Icon(Icons.smart_toy, size: 16),
+              label: const Text('Aiuto AI'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: () => _resetComponent(bike, component),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                minimumSize: const Size(0, 32),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+              child: const Text('Reset', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'garage_fab', 
+        onPressed: () => _showBicycleDialog(),
+        icon: const Icon(Icons.add),
+        label: const Text('Aggiungi Bici'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _bikes.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.pedal_bike, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text('Il tuo garage è vuoto.'),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () => _showBicycleDialog(), 
+                        child: const Text('Aggiungi Bici'),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
+                  itemCount: _bikes.length,
+                  itemBuilder: (context, index) {
+                    final bike = _bikes[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ... Image Header ...
+                          GestureDetector(
+                            onTap: () => _pickImage(bike),
+                            child: Container(
+                              height: 180,
+                              width: double.infinity,
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: bike.bikeImagePath != null
+                                        ? Image.file(
+                                            File(bike.bikeImagePath!),
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            errorBuilder: (_,__,___) => const Icon(Icons.broken_image),
+                                          )
+                                        : Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.add_a_photo, size: 48, color: Theme.of(context).colorScheme.primary),
+                                              const SizedBox(height: 8),
+                                              const Text('Tocca per aggiungere foto'),
+                                            ],
+                                          ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, color: Colors.white, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
+                                      onSelected: (value) {
+                                        if (value == 'edit') _showBicycleDialog(bike: bike);
+                                        if (value == 'delete') _deleteBicycle(bike);
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Modifica')])),
+                                        const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 20), SizedBox(width: 8), Text('Elimina', style: TextStyle(color: Colors.red))])),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      bike.name,
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      '${bike.totalKilometers.isNaN ? 0.0 : bike.totalKilometers.toStringAsFixed(0)} km',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        color: Theme.of(context).colorScheme.secondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(bike.type, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                                const SizedBox(height: 24),
+
+                                // Dynamic Components List
+                                ...bike.components.map((c) => Column(
+                                  children: [
+                                    _buildComponentStatus(context, bike, c),
+                                    const SizedBox(height: 16),
+                                  ],
+                                )),
+                                
+                                if (bike.components.isEmpty)
+                                  const Text('Nessun componente tracciato', style: TextStyle(fontStyle: FontStyle.italic)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}

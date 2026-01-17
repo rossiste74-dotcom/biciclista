@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/backup_service.dart';
 import 'profile_screen.dart';
 import 'clothing_settings_screen.dart';
+import 'maintenance_settings_screen.dart';
 import 'navigation_settings_screen.dart';
 import 'ai_settings_screen.dart';
 
@@ -20,16 +21,6 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          _buildHeader(context, 'Profilo'),
-          ListTile(
-            leading: const Icon(Icons.person_pin_outlined),
-            title: const Text('Profilo Ciclista'),
-            subtitle: const Text('Dati anagrafici e biometrici'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
-          ),
           ListTile(
             leading: const Icon(Icons.checkroom),
             title: const Text('Soglie Abbigliamento'),
@@ -46,6 +37,17 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const NavigationSettingsScreen()),
+            ),
+          ),
+          const Divider(),
+          _buildHeader(context, 'Manutenzione'),
+          ListTile(
+            leading: const Icon(Icons.build_circle_outlined),
+            title: const Text('Componenti & Soglie'),
+            subtitle: const Text('Gestisci intervalli e nuovi componenti'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MaintenanceSettingsScreen()),
             ),
           ),
           const Divider(),

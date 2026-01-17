@@ -4,9 +4,18 @@ import 'ai_provider.dart';
 
 part 'user_profile.g.dart';
 
+@embedded
+class MaintenanceDefinition {
+  String? name;
+  double? defaultInterval;
+}
+
 @collection
 class UserProfile {
   Id id = Isar.autoIncrement;
+
+  /// Maintenance definitions for all bikes
+  List<MaintenanceDefinition> maintenanceDefinitions = [];
 
   /// User's name
   String? name;
@@ -118,6 +127,13 @@ class UserProfile {
     coolThreshold = 10.0;
     coldThreshold = 5.0;
     sensitivityAdjustment = 3.0; // +/- 3 degrees based on sensitivity
+    
+    // Default Maintenance Definitions
+    maintenanceDefinitions = [
+      MaintenanceDefinition()..name = 'Catena'..defaultInterval = 3500.0,
+      MaintenanceDefinition()..name = 'Copertoni'..defaultInterval = 5000.0,
+      MaintenanceDefinition()..name = 'Freni'..defaultInterval = 2500.0,
+    ];
 
     // Default kits (using ClothingItem enum indexes)
     // 0: summerKit, 1: vest, 2: armWarmers, 3: legWarmers, 4: longSleeveJersey

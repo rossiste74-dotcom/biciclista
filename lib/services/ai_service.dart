@@ -353,4 +353,38 @@ class AIService {
       return {'success': false, 'error': error['error']['message'] ?? 'Errore sconosciuto'};
     }
   }
+
+  /// Fetch available models from Gemini API
+  Future<List<Map<String, String>>> getAvailableGeminiModels(String apiKey) async {
+    try {
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models?key=$apiKey');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> models = data['models'];
+        
+        return models
+            .where((m) {
+              // Filter for generateContent supported models
+              final supportedMethods = List<String>.from(m['supportedGenerationMethods'] ?? []);
+              return supportedMethods.contains('generateContent');
+            })
+            .map<Map<String, String>>((m) {
+              String name = m['name'].toString(); // e.g. "models/gemini-pro"
+              if (name.startsWith('models/')) {
+                name = name.replaceAll('models/', '');
+              }
+              return {
+                'id': name,
+                'name': m['displayName'] ?? name,
+              };
+            }).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching models: $e');
+      return [];
+    }
+  }
 }

@@ -287,6 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       label: _thermalSensitivity.toString(),
                       onChanged: (v) => setState(() => _thermalSensitivity = v.toInt()),
                     ),
+                    const SizedBox(height: 32),
                     const SizedBox(height: 48),
                     SizedBox(
                       width: double.infinity,

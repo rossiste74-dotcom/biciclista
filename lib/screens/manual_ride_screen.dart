@@ -121,7 +121,7 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       ride.bicycleId = _selectedBicycle!.id;
       
       // Update bicycle total distance
-      _selectedBicycle!.totalDistance += ride.distance;
+      _selectedBicycle!.totalKilometers += ride.distance;
       await _db.updateBicycle(_selectedBicycle!);
     }
 

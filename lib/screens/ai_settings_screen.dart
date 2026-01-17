@@ -44,8 +44,14 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _apiKeyController.text = profile.aiApiKey ?? '';
         _isLoading = false;
         
+        // Fetch dynamic models if Gemini
+        if (_selectedProvider == AIProvider.gemini && _apiKeyController.text.isNotEmpty) {
+           _fetchGeminiModels();
+        }
+
         // Set default model if null but provider selected
         if (_selectedProvider != null && _selectedModel == null) {
+           // Wait slightly for fetch? No, just set safe default from static list first
            final models = _getModelsForProvider(_selectedProvider!);
            if (models.isNotEmpty) _selectedModel = models.first['id'];
         }
@@ -210,7 +216,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                                 child: Text(provider.displayName),
                               );
                             }).toList(),
-                            onChanged: (value) => setState(() => _selectedProvider = value),
+                            onChanged: (value) {
+                              setState(() => _selectedProvider = value);
+                              if (value == AIProvider.gemini && _apiKeyController.text.isNotEmpty) {
+                                _fetchGeminiModels();
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -226,6 +237,54 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Modello AI',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_selectedProvider != null)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _geminiModels.any((m) => m['id'] == _selectedModel) || 
+                                     _getModelsForProvider(_selectedProvider!).any((m) => m['id'] == _selectedModel) 
+                                     ? _selectedModel 
+                                     : null, // Reset to null if invalid to avoid crash
+                              decoration: const InputDecoration(
+                                labelText: 'Seleziona Modello',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.memory_outlined),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduce padding
+                              ),
+                              items: _getModelsForProvider(_selectedProvider!).map((m) {
+                                return DropdownMenuItem(
+                                  value: m['id'],
+                                  child: Text(
+                                    m['name']!,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1, // Prevent multiline expansion causing layout issues
+                                    style: const TextStyle(fontSize: 14), // Slightly smaller font
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) => setState(() => _selectedModel = value),
+                              isExpanded: true,
+                              menuMaxHeight: 400, // Limit menu height
+                            ),
+                          ),
+                          if (_selectedProvider == AIProvider.gemini) 
+                            IconButton(
+                              icon: const Icon(Icons.refresh),
+                              onPressed: _fetchGeminiModels,
+                              tooltip: 'Aggiorna Lista Modelli',
+                            ),
+                        ],
+                      ),
                     const SizedBox(height: 24),
                     Text(
                       'API Key',
@@ -307,30 +366,81 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     );
   }
 
+  // Cache for dynamic models
+  List<Map<String, String>> _geminiModels = [];
+
+  Future<void> _fetchGeminiModels() async {
+    if (_apiKeyController.text.trim().isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final aiService = AIService();
+      final models = await aiService.getAvailableGeminiModels(_apiKeyController.text.trim());
+      
+      if (mounted) {
+        setState(() {
+          _geminiModels = models;
+          _isLoading = false;
+          
+          // If current selected model is not in list but we have a list, default to first or keep custom
+          if (_selectedModel != null && !_geminiModels.any((m) => m['id'] == _selectedModel)) {
+             // Keep it if it was manually set, or default to a safe one if completely invalid?
+             // Let's keep it to be safe, but if null select first.
+          }
+          if (_selectedModel == null && _geminiModels.isNotEmpty) {
+             _selectedModel = _geminiModels.first['id'];
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   List<Map<String, String>> _getModelsForProvider(AIProvider provider) {
+    List<Map<String, String>> models = [];
+    
     switch (provider) {
       case AIProvider.gemini:
-        return [
-          {'id': 'gemini-2.5-flash', 'name': 'Gemini 2.5 Flash (Raccomandato)'},
-          {'id': 'gemini-1.5-pro', 'name': 'Gemini 1.5 Pro (Migliore Qualità)'},
-          {'id': 'gemini-1.5-flash', 'name': 'Gemini 1.5 Flash (Veloce)'},
-          {'id': 'gemma-2-9b-it', 'name': 'Gemma 2 9B (Experimental)'},
-          // User request placeholder - mapping to gemma-2-9b or just custom
-          {'id': 'gemma-3-12b', 'name': 'Gemma 3 12B (User Request)'}, 
-        ];
+        if (_geminiModels.isNotEmpty) {
+           models = List.from(_geminiModels);
+        } else {
+          // Static fallback while loading or error
+          models = [
+            {'id': 'gemini-2.5-flash', 'name': 'Gemini 2.5 Flash (Raccomandato)'},
+            {'id': 'gemini-2.5-flash-lite', 'name': 'Gemini 2.5 Flash Lite'},
+            {'id': 'gemini-1.5-pro', 'name': 'Gemini 1.5 Pro'},
+            {'id': 'gemini-1.5-flash', 'name': 'Gemini 1.5 Flash'},
+            if (_selectedModel != null && _selectedModel!.startsWith('gemma'))
+               {'id': _selectedModel!, 'name': _selectedModel!} // Temporary keep user selection valid
+            else
+               {'id': 'gemma-3-12b', 'name': 'Gemma 3 12B - User Request'}, 
+          ];
+        }
+        break;
       case AIProvider.openai:
-        return [
+        models = [
           {'id': 'gpt-4o-mini', 'name': 'GPT-4o Mini (Raccomandato)'},
           {'id': 'gpt-4o', 'name': 'GPT-4o (Migliore Qualità)'},
           {'id': 'gpt-3.5-turbo', 'name': 'GPT-3.5 Turbo (Legacy)'},
         ];
+        break;
       case AIProvider.claude:
-        return [
+        models = [
           {'id': 'claude-3-5-sonnet-20241022', 'name': 'Claude 3.5 Sonnet (Raccomandato)'},
           {'id': 'claude-3-haiku-20240307', 'name': 'Claude 3 Haiku (Veloce)'},
           {'id': 'claude-3-5-opus-20240229', 'name': 'Claude 3 Opus (Migliore Qualità)'},
         ];
+        break;
     }
+    
+    // Safety check: ensure _selectedModel is in the list to avoid Dropdown assertion error
+    if (_selectedModel != null && !models.any((m) => m['id'] == _selectedModel)) {
+      models.add({'id': _selectedModel!, 'name': _selectedModel!});
+    }
+    
+    return models;
   }
 
   String _getProviderInstructions(AIProvider provider) {

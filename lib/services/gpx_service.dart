@@ -393,7 +393,7 @@ class GpxService {
       if (bicycleId != null) {
         final bicycle = await db.getBicycleById(bicycleId);
         if (bicycle != null) {
-          bicycle.totalDistance += plannedRide.distance;
+          bicycle.totalKilometers += plannedRide.distance;
           await db.updateBicycle(bicycle);
         }
       }

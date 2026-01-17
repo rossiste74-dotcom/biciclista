@@ -127,63 +127,69 @@ const UserProfileSchema = CollectionSchema(
       name: r'lastHealthSync',
       type: IsarType.dateTime,
     ),
-    r'name': PropertySchema(
+    r'maintenanceDefinitions': PropertySchema(
       id: 22,
+      name: r'maintenanceDefinitions',
+      type: IsarType.objectList,
+      target: r'MaintenanceDefinition',
+    ),
+    r'name': PropertySchema(
+      id: 23,
       name: r'name',
       type: IsarType.string,
     ),
     r'offCourseThresholdM': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'offCourseThresholdM',
       type: IsarType.double,
     ),
     r'preferredUnit': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'preferredUnit',
       type: IsarType.string,
     ),
     r'restingHeartRate': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'restingHeartRate',
       type: IsarType.long,
     ),
     r'sensitivityAdjustment': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'sensitivityAdjustment',
       type: IsarType.double,
     ),
     r'sleepHours': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'sleepHours',
       type: IsarType.double,
     ),
     r'thermalSensitivity': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'thermalSensitivity',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'veryColdKit': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'veryColdKit',
       type: IsarType.longList,
     ),
     r'warmKit': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'warmKit',
       type: IsarType.longList,
     ),
     r'warmThreshold': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'warmThreshold',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'weight',
       type: IsarType.double,
     )
@@ -222,7 +228,7 @@ const UserProfileSchema = CollectionSchema(
     )
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'MaintenanceDefinition': MaintenanceDefinitionSchema},
   getId: _userProfileGetId,
   getLinks: _userProfileGetLinks,
   attach: _userProfileAttach,
@@ -262,6 +268,15 @@ int _userProfileEstimateSize(
     }
   }
   bytesCount += 3 + object.hotKit.length * 8;
+  bytesCount += 3 + object.maintenanceDefinitions.length * 3;
+  {
+    final offsets = allOffsets[MaintenanceDefinition]!;
+    for (var i = 0; i < object.maintenanceDefinitions.length; i++) {
+      final value = object.maintenanceDefinitions[i];
+      bytesCount +=
+          MaintenanceDefinitionSchema.estimateSize(value, offsets, allOffsets);
+    }
+  }
   {
     final value = object.name;
     if (value != null) {
@@ -302,18 +317,24 @@ void _userProfileSerialize(
   writer.writeDouble(offsets[19], object.hotThreshold);
   writer.writeLong(offsets[20], object.hrv);
   writer.writeDateTime(offsets[21], object.lastHealthSync);
-  writer.writeString(offsets[22], object.name);
-  writer.writeDouble(offsets[23], object.offCourseThresholdM);
-  writer.writeString(offsets[24], object.preferredUnit);
-  writer.writeLong(offsets[25], object.restingHeartRate);
-  writer.writeDouble(offsets[26], object.sensitivityAdjustment);
-  writer.writeDouble(offsets[27], object.sleepHours);
-  writer.writeLong(offsets[28], object.thermalSensitivity);
-  writer.writeDateTime(offsets[29], object.updatedAt);
-  writer.writeLongList(offsets[30], object.veryColdKit);
-  writer.writeLongList(offsets[31], object.warmKit);
-  writer.writeDouble(offsets[32], object.warmThreshold);
-  writer.writeDouble(offsets[33], object.weight);
+  writer.writeObjectList<MaintenanceDefinition>(
+    offsets[22],
+    allOffsets,
+    MaintenanceDefinitionSchema.serialize,
+    object.maintenanceDefinitions,
+  );
+  writer.writeString(offsets[23], object.name);
+  writer.writeDouble(offsets[24], object.offCourseThresholdM);
+  writer.writeString(offsets[25], object.preferredUnit);
+  writer.writeLong(offsets[26], object.restingHeartRate);
+  writer.writeDouble(offsets[27], object.sensitivityAdjustment);
+  writer.writeDouble(offsets[28], object.sleepHours);
+  writer.writeLong(offsets[29], object.thermalSensitivity);
+  writer.writeDateTime(offsets[30], object.updatedAt);
+  writer.writeLongList(offsets[31], object.veryColdKit);
+  writer.writeLongList(offsets[32], object.warmKit);
+  writer.writeDouble(offsets[33], object.warmThreshold);
+  writer.writeDouble(offsets[34], object.weight);
 }
 
 UserProfile _userProfileDeserialize(
@@ -346,18 +367,25 @@ UserProfile _userProfileDeserialize(
   object.hrv = reader.readLong(offsets[20]);
   object.id = id;
   object.lastHealthSync = reader.readDateTimeOrNull(offsets[21]);
-  object.name = reader.readStringOrNull(offsets[22]);
-  object.offCourseThresholdM = reader.readDouble(offsets[23]);
-  object.preferredUnit = reader.readString(offsets[24]);
-  object.restingHeartRate = reader.readLong(offsets[25]);
-  object.sensitivityAdjustment = reader.readDouble(offsets[26]);
-  object.sleepHours = reader.readDouble(offsets[27]);
-  object.thermalSensitivity = reader.readLong(offsets[28]);
-  object.updatedAt = reader.readDateTime(offsets[29]);
-  object.veryColdKit = reader.readLongList(offsets[30]) ?? [];
-  object.warmKit = reader.readLongList(offsets[31]) ?? [];
-  object.warmThreshold = reader.readDouble(offsets[32]);
-  object.weight = reader.readDouble(offsets[33]);
+  object.maintenanceDefinitions = reader.readObjectList<MaintenanceDefinition>(
+        offsets[22],
+        MaintenanceDefinitionSchema.deserialize,
+        allOffsets,
+        MaintenanceDefinition(),
+      ) ??
+      [];
+  object.name = reader.readStringOrNull(offsets[23]);
+  object.offCourseThresholdM = reader.readDouble(offsets[24]);
+  object.preferredUnit = reader.readString(offsets[25]);
+  object.restingHeartRate = reader.readLong(offsets[26]);
+  object.sensitivityAdjustment = reader.readDouble(offsets[27]);
+  object.sleepHours = reader.readDouble(offsets[28]);
+  object.thermalSensitivity = reader.readLong(offsets[29]);
+  object.updatedAt = reader.readDateTime(offsets[30]);
+  object.veryColdKit = reader.readLongList(offsets[31]) ?? [];
+  object.warmKit = reader.readLongList(offsets[32]) ?? [];
+  object.warmThreshold = reader.readDouble(offsets[33]);
+  object.weight = reader.readDouble(offsets[34]);
   return object;
 }
 
@@ -413,28 +441,36 @@ P _userProfileDeserializeProp<P>(
     case 21:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 22:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readObjectList<MaintenanceDefinition>(
+            offset,
+            MaintenanceDefinitionSchema.deserialize,
+            allOffsets,
+            MaintenanceDefinition(),
+          ) ??
+          []) as P;
     case 23:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 24:
-      return (reader.readString(offset)) as P;
-    case 25:
-      return (reader.readLong(offset)) as P;
-    case 26:
       return (reader.readDouble(offset)) as P;
+    case 25:
+      return (reader.readString(offset)) as P;
+    case 26:
+      return (reader.readLong(offset)) as P;
     case 27:
       return (reader.readDouble(offset)) as P;
     case 28:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 29:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 30:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readDateTime(offset)) as P;
     case 31:
       return (reader.readLongList(offset) ?? []) as P;
     case 32:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 33:
+      return (reader.readDouble(offset)) as P;
+    case 34:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2668,6 +2704,95 @@ extension UserProfileQueryFilter
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'maintenanceDefinitions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> nameIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3739,7 +3864,14 @@ extension UserProfileQueryFilter
 }
 
 extension UserProfileQueryObject
-    on QueryBuilder<UserProfile, UserProfile, QFilterCondition> {}
+    on QueryBuilder<UserProfile, UserProfile, QFilterCondition> {
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      maintenanceDefinitionsElement(FilterQuery<MaintenanceDefinition> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'maintenanceDefinitions');
+    });
+  }
+}
 
 extension UserProfileQueryLinks
     on QueryBuilder<UserProfile, UserProfile, QFilterCondition> {}
@@ -4880,6 +5012,13 @@ extension UserProfileQueryProperty
     });
   }
 
+  QueryBuilder<UserProfile, List<MaintenanceDefinition>, QQueryOperations>
+      maintenanceDefinitionsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'maintenanceDefinitions');
+    });
+  }
+
   QueryBuilder<UserProfile, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -4955,3 +5094,330 @@ extension UserProfileQueryProperty
     });
   }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const MaintenanceDefinitionSchema = Schema(
+  name: r'MaintenanceDefinition',
+  id: 4148380834830968073,
+  properties: {
+    r'defaultInterval': PropertySchema(
+      id: 0,
+      name: r'defaultInterval',
+      type: IsarType.double,
+    ),
+    r'name': PropertySchema(
+      id: 1,
+      name: r'name',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _maintenanceDefinitionEstimateSize,
+  serialize: _maintenanceDefinitionSerialize,
+  deserialize: _maintenanceDefinitionDeserialize,
+  deserializeProp: _maintenanceDefinitionDeserializeProp,
+);
+
+int _maintenanceDefinitionEstimateSize(
+  MaintenanceDefinition object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.name;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _maintenanceDefinitionSerialize(
+  MaintenanceDefinition object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeDouble(offsets[0], object.defaultInterval);
+  writer.writeString(offsets[1], object.name);
+}
+
+MaintenanceDefinition _maintenanceDefinitionDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = MaintenanceDefinition();
+  object.defaultInterval = reader.readDoubleOrNull(offsets[0]);
+  object.name = reader.readStringOrNull(offsets[1]);
+  return object;
+}
+
+P _maintenanceDefinitionDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension MaintenanceDefinitionQueryFilter on QueryBuilder<
+    MaintenanceDefinition, MaintenanceDefinition, QFilterCondition> {
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'defaultInterval',
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'defaultInterval',
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'defaultInterval',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'defaultInterval',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'defaultInterval',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> defaultIntervalBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'defaultInterval',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'name',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+          QAfterFilterCondition>
+      nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+          QAfterFilterCondition>
+      nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'name',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MaintenanceDefinition, MaintenanceDefinition,
+      QAfterFilterCondition> nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension MaintenanceDefinitionQueryObject on QueryBuilder<
+    MaintenanceDefinition, MaintenanceDefinition, QFilterCondition> {}
