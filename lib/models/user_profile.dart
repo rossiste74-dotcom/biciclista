@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 import 'dart:convert';
+import 'ai_provider.dart';
 
 part 'user_profile.g.dart';
 
@@ -90,6 +91,14 @@ class UserProfile {
   /// Timestamp of last health sync
   DateTime? lastHealthSync;
 
+  // ==================== AI Configuration ====================
+  /// Selected AI provider for AI Coach feature (stored as byte index, 255 = not set)
+  @Index()
+  byte aiProviderIndex = 255;
+  
+  /// API key for the selected AI provider (stored locally, not synced)
+  String? aiApiKey;
+
   /// Timestamp when the profile was created
   late DateTime createdAt;
 
@@ -171,5 +180,16 @@ class UserProfile {
 
     healthHistory = json.encode(history);
     updatedAt = DateTime.now();
+  }
+
+  /// Get the AI provider from the stored byte index
+  AIProvider? getAIProvider() {
+    if (aiProviderIndex == 255) return null;
+    return AIProvider.values[aiProviderIndex];
+  }
+
+  /// Set the AI provider by storing its index
+  void setAIProvider(AIProvider? provider) {
+    aiProviderIndex = provider == null ? 255 : provider.index;
   }
 }

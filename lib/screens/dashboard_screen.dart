@@ -12,6 +12,7 @@ import '../services/health_sync_service.dart';
 import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
 import '../widgets/metric_sparkline_chart.dart';
+import '../widgets/ai_coach_card.dart';
 import 'gpx_import_screen.dart';
 import 'route_detail_screen.dart';
 
@@ -136,6 +137,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildBiometricStatsSection(),
                         const SizedBox(height: 24),
                         _buildReadinessSection(),
+                        const SizedBox(height: 24),
+                        const AICoachCard(),
                         const SizedBox(height: 24),
                         _buildNextRideSection(),
                         const SizedBox(height: 24),

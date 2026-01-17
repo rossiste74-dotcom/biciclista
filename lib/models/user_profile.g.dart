@@ -22,153 +22,163 @@ const UserProfileSchema = CollectionSchema(
       name: r'age',
       type: IsarType.long,
     ),
-    r'alertType': PropertySchema(
+    r'aiApiKey': PropertySchema(
       id: 1,
+      name: r'aiApiKey',
+      type: IsarType.string,
+    ),
+    r'aiProviderIndex': PropertySchema(
+      id: 2,
+      name: r'aiProviderIndex',
+      type: IsarType.byte,
+    ),
+    r'alertType': PropertySchema(
+      id: 3,
       name: r'alertType',
       type: IsarType.long,
     ),
     r'coldKit': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'coldKit',
       type: IsarType.longList,
     ),
     r'coldThreshold': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'coldThreshold',
       type: IsarType.double,
     ),
     r'coolKit': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'coolKit',
       type: IsarType.longList,
     ),
     r'coolThreshold': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'coolThreshold',
       type: IsarType.double,
     ),
     r'createdAt': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'difficultyDistanceWeight': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'difficultyDistanceWeight',
       type: IsarType.double,
     ),
     r'difficultyElevationWeight': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'difficultyElevationWeight',
       type: IsarType.double,
     ),
     r'enableVoiceAlerts': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'enableVoiceAlerts',
       type: IsarType.bool,
     ),
     r'energySavingMode': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'energySavingMode',
       type: IsarType.bool,
     ),
     r'functionalThresholdPower': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'functionalThresholdPower',
       type: IsarType.long,
     ),
     r'gender': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'gender',
       type: IsarType.string,
     ),
     r'healthHistory': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'healthHistory',
       type: IsarType.string,
     ),
     r'height': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'height',
       type: IsarType.double,
     ),
     r'hotKit': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'hotKit',
       type: IsarType.longList,
     ),
     r'hotThreshold': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'hotThreshold',
       type: IsarType.double,
     ),
     r'hrv': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'hrv',
       type: IsarType.long,
     ),
     r'lastHealthSync': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'lastHealthSync',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'name',
       type: IsarType.string,
     ),
     r'offCourseThresholdM': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'offCourseThresholdM',
       type: IsarType.double,
     ),
     r'preferredUnit': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'preferredUnit',
       type: IsarType.string,
     ),
     r'restingHeartRate': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'restingHeartRate',
       type: IsarType.long,
     ),
     r'sensitivityAdjustment': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'sensitivityAdjustment',
       type: IsarType.double,
     ),
     r'sleepHours': PropertySchema(
-      id: 24,
+      id: 26,
       name: r'sleepHours',
       type: IsarType.double,
     ),
     r'thermalSensitivity': PropertySchema(
-      id: 25,
+      id: 27,
       name: r'thermalSensitivity',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 26,
+      id: 28,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'veryColdKit': PropertySchema(
-      id: 27,
+      id: 29,
       name: r'veryColdKit',
       type: IsarType.longList,
     ),
     r'warmKit': PropertySchema(
-      id: 28,
+      id: 30,
       name: r'warmKit',
       type: IsarType.longList,
     ),
     r'warmThreshold': PropertySchema(
-      id: 29,
+      id: 31,
       name: r'warmThreshold',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 30,
+      id: 32,
       name: r'weight',
       type: IsarType.double,
     )
@@ -191,6 +201,19 @@ const UserProfileSchema = CollectionSchema(
           caseSensitive: false,
         )
       ],
+    ),
+    r'aiProviderIndex': IndexSchema(
+      id: -4893139064508638982,
+      name: r'aiProviderIndex',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'aiProviderIndex',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
     )
   },
   links: {},
@@ -207,6 +230,12 @@ int _userProfileEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.aiApiKey;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.coldKit.length * 8;
   bytesCount += 3 + object.coolKit.length * 8;
   {
@@ -241,36 +270,38 @@ void _userProfileSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.age);
-  writer.writeLong(offsets[1], object.alertType);
-  writer.writeLongList(offsets[2], object.coldKit);
-  writer.writeDouble(offsets[3], object.coldThreshold);
-  writer.writeLongList(offsets[4], object.coolKit);
-  writer.writeDouble(offsets[5], object.coolThreshold);
-  writer.writeDateTime(offsets[6], object.createdAt);
-  writer.writeDouble(offsets[7], object.difficultyDistanceWeight);
-  writer.writeDouble(offsets[8], object.difficultyElevationWeight);
-  writer.writeBool(offsets[9], object.enableVoiceAlerts);
-  writer.writeBool(offsets[10], object.energySavingMode);
-  writer.writeLong(offsets[11], object.functionalThresholdPower);
-  writer.writeString(offsets[12], object.gender);
-  writer.writeString(offsets[13], object.healthHistory);
-  writer.writeDouble(offsets[14], object.height);
-  writer.writeLongList(offsets[15], object.hotKit);
-  writer.writeDouble(offsets[16], object.hotThreshold);
-  writer.writeLong(offsets[17], object.hrv);
-  writer.writeDateTime(offsets[18], object.lastHealthSync);
-  writer.writeString(offsets[19], object.name);
-  writer.writeDouble(offsets[20], object.offCourseThresholdM);
-  writer.writeString(offsets[21], object.preferredUnit);
-  writer.writeLong(offsets[22], object.restingHeartRate);
-  writer.writeDouble(offsets[23], object.sensitivityAdjustment);
-  writer.writeDouble(offsets[24], object.sleepHours);
-  writer.writeLong(offsets[25], object.thermalSensitivity);
-  writer.writeDateTime(offsets[26], object.updatedAt);
-  writer.writeLongList(offsets[27], object.veryColdKit);
-  writer.writeLongList(offsets[28], object.warmKit);
-  writer.writeDouble(offsets[29], object.warmThreshold);
-  writer.writeDouble(offsets[30], object.weight);
+  writer.writeString(offsets[1], object.aiApiKey);
+  writer.writeByte(offsets[2], object.aiProviderIndex);
+  writer.writeLong(offsets[3], object.alertType);
+  writer.writeLongList(offsets[4], object.coldKit);
+  writer.writeDouble(offsets[5], object.coldThreshold);
+  writer.writeLongList(offsets[6], object.coolKit);
+  writer.writeDouble(offsets[7], object.coolThreshold);
+  writer.writeDateTime(offsets[8], object.createdAt);
+  writer.writeDouble(offsets[9], object.difficultyDistanceWeight);
+  writer.writeDouble(offsets[10], object.difficultyElevationWeight);
+  writer.writeBool(offsets[11], object.enableVoiceAlerts);
+  writer.writeBool(offsets[12], object.energySavingMode);
+  writer.writeLong(offsets[13], object.functionalThresholdPower);
+  writer.writeString(offsets[14], object.gender);
+  writer.writeString(offsets[15], object.healthHistory);
+  writer.writeDouble(offsets[16], object.height);
+  writer.writeLongList(offsets[17], object.hotKit);
+  writer.writeDouble(offsets[18], object.hotThreshold);
+  writer.writeLong(offsets[19], object.hrv);
+  writer.writeDateTime(offsets[20], object.lastHealthSync);
+  writer.writeString(offsets[21], object.name);
+  writer.writeDouble(offsets[22], object.offCourseThresholdM);
+  writer.writeString(offsets[23], object.preferredUnit);
+  writer.writeLong(offsets[24], object.restingHeartRate);
+  writer.writeDouble(offsets[25], object.sensitivityAdjustment);
+  writer.writeDouble(offsets[26], object.sleepHours);
+  writer.writeLong(offsets[27], object.thermalSensitivity);
+  writer.writeDateTime(offsets[28], object.updatedAt);
+  writer.writeLongList(offsets[29], object.veryColdKit);
+  writer.writeLongList(offsets[30], object.warmKit);
+  writer.writeDouble(offsets[31], object.warmThreshold);
+  writer.writeDouble(offsets[32], object.weight);
 }
 
 UserProfile _userProfileDeserialize(
@@ -281,37 +312,39 @@ UserProfile _userProfileDeserialize(
 ) {
   final object = UserProfile();
   object.age = reader.readLong(offsets[0]);
-  object.alertType = reader.readLong(offsets[1]);
-  object.coldKit = reader.readLongList(offsets[2]) ?? [];
-  object.coldThreshold = reader.readDouble(offsets[3]);
-  object.coolKit = reader.readLongList(offsets[4]) ?? [];
-  object.coolThreshold = reader.readDouble(offsets[5]);
-  object.createdAt = reader.readDateTime(offsets[6]);
-  object.difficultyDistanceWeight = reader.readDouble(offsets[7]);
-  object.difficultyElevationWeight = reader.readDouble(offsets[8]);
-  object.enableVoiceAlerts = reader.readBool(offsets[9]);
-  object.energySavingMode = reader.readBool(offsets[10]);
-  object.functionalThresholdPower = reader.readLong(offsets[11]);
-  object.gender = reader.readStringOrNull(offsets[12]);
-  object.healthHistory = reader.readStringOrNull(offsets[13]);
-  object.height = reader.readDoubleOrNull(offsets[14]);
-  object.hotKit = reader.readLongList(offsets[15]) ?? [];
-  object.hotThreshold = reader.readDouble(offsets[16]);
-  object.hrv = reader.readLong(offsets[17]);
+  object.aiApiKey = reader.readStringOrNull(offsets[1]);
+  object.aiProviderIndex = reader.readByte(offsets[2]);
+  object.alertType = reader.readLong(offsets[3]);
+  object.coldKit = reader.readLongList(offsets[4]) ?? [];
+  object.coldThreshold = reader.readDouble(offsets[5]);
+  object.coolKit = reader.readLongList(offsets[6]) ?? [];
+  object.coolThreshold = reader.readDouble(offsets[7]);
+  object.createdAt = reader.readDateTime(offsets[8]);
+  object.difficultyDistanceWeight = reader.readDouble(offsets[9]);
+  object.difficultyElevationWeight = reader.readDouble(offsets[10]);
+  object.enableVoiceAlerts = reader.readBool(offsets[11]);
+  object.energySavingMode = reader.readBool(offsets[12]);
+  object.functionalThresholdPower = reader.readLong(offsets[13]);
+  object.gender = reader.readStringOrNull(offsets[14]);
+  object.healthHistory = reader.readStringOrNull(offsets[15]);
+  object.height = reader.readDoubleOrNull(offsets[16]);
+  object.hotKit = reader.readLongList(offsets[17]) ?? [];
+  object.hotThreshold = reader.readDouble(offsets[18]);
+  object.hrv = reader.readLong(offsets[19]);
   object.id = id;
-  object.lastHealthSync = reader.readDateTimeOrNull(offsets[18]);
-  object.name = reader.readStringOrNull(offsets[19]);
-  object.offCourseThresholdM = reader.readDouble(offsets[20]);
-  object.preferredUnit = reader.readString(offsets[21]);
-  object.restingHeartRate = reader.readLong(offsets[22]);
-  object.sensitivityAdjustment = reader.readDouble(offsets[23]);
-  object.sleepHours = reader.readDouble(offsets[24]);
-  object.thermalSensitivity = reader.readLong(offsets[25]);
-  object.updatedAt = reader.readDateTime(offsets[26]);
-  object.veryColdKit = reader.readLongList(offsets[27]) ?? [];
-  object.warmKit = reader.readLongList(offsets[28]) ?? [];
-  object.warmThreshold = reader.readDouble(offsets[29]);
-  object.weight = reader.readDouble(offsets[30]);
+  object.lastHealthSync = reader.readDateTimeOrNull(offsets[20]);
+  object.name = reader.readStringOrNull(offsets[21]);
+  object.offCourseThresholdM = reader.readDouble(offsets[22]);
+  object.preferredUnit = reader.readString(offsets[23]);
+  object.restingHeartRate = reader.readLong(offsets[24]);
+  object.sensitivityAdjustment = reader.readDouble(offsets[25]);
+  object.sleepHours = reader.readDouble(offsets[26]);
+  object.thermalSensitivity = reader.readLong(offsets[27]);
+  object.updatedAt = reader.readDateTime(offsets[28]);
+  object.veryColdKit = reader.readLongList(offsets[29]) ?? [];
+  object.warmKit = reader.readLongList(offsets[30]) ?? [];
+  object.warmThreshold = reader.readDouble(offsets[31]);
+  object.weight = reader.readDouble(offsets[32]);
   return object;
 }
 
@@ -325,64 +358,68 @@ P _userProfileDeserializeProp<P>(
     case 0:
       return (reader.readLong(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readByte(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 4:
       return (reader.readLongList(offset) ?? []) as P;
     case 5:
       return (reader.readDouble(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 7:
       return (reader.readDouble(offset)) as P;
     case 8:
-      return (reader.readDouble(offset)) as P;
-    case 9:
-      return (reader.readBool(offset)) as P;
-    case 10:
-      return (reader.readBool(offset)) as P;
-    case 11:
-      return (reader.readLong(offset)) as P;
-    case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
-      return (reader.readStringOrNull(offset)) as P;
-    case 14:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 15:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 16:
-      return (reader.readDouble(offset)) as P;
-    case 17:
-      return (reader.readLong(offset)) as P;
-    case 18:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 19:
-      return (reader.readStringOrNull(offset)) as P;
-    case 20:
-      return (reader.readDouble(offset)) as P;
-    case 21:
-      return (reader.readString(offset)) as P;
-    case 22:
-      return (reader.readLong(offset)) as P;
-    case 23:
-      return (reader.readDouble(offset)) as P;
-    case 24:
-      return (reader.readDouble(offset)) as P;
-    case 25:
-      return (reader.readLong(offset)) as P;
-    case 26:
       return (reader.readDateTime(offset)) as P;
-    case 27:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 28:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 29:
+    case 9:
       return (reader.readDouble(offset)) as P;
+    case 10:
+      return (reader.readDouble(offset)) as P;
+    case 11:
+      return (reader.readBool(offset)) as P;
+    case 12:
+      return (reader.readBool(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 17:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 18:
+      return (reader.readDouble(offset)) as P;
+    case 19:
+      return (reader.readLong(offset)) as P;
+    case 20:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 21:
+      return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readDouble(offset)) as P;
+    case 23:
+      return (reader.readString(offset)) as P;
+    case 24:
+      return (reader.readLong(offset)) as P;
+    case 25:
+      return (reader.readDouble(offset)) as P;
+    case 26:
+      return (reader.readDouble(offset)) as P;
+    case 27:
+      return (reader.readLong(offset)) as P;
+    case 28:
+      return (reader.readDateTime(offset)) as P;
+    case 29:
+      return (reader.readLongList(offset) ?? []) as P;
     case 30:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 31:
+      return (reader.readDouble(offset)) as P;
+    case 32:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -414,6 +451,14 @@ extension UserProfileQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'thermalSensitivity'),
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhere> anyAiProviderIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'aiProviderIndex'),
       );
     });
   }
@@ -579,6 +624,99 @@ extension UserProfileQueryWhere
       ));
     });
   }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhereClause>
+      aiProviderIndexEqualTo(int aiProviderIndex) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'aiProviderIndex',
+        value: [aiProviderIndex],
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhereClause>
+      aiProviderIndexNotEqualTo(int aiProviderIndex) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'aiProviderIndex',
+              lower: [],
+              upper: [aiProviderIndex],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'aiProviderIndex',
+              lower: [aiProviderIndex],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'aiProviderIndex',
+              lower: [aiProviderIndex],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'aiProviderIndex',
+              lower: [],
+              upper: [aiProviderIndex],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhereClause>
+      aiProviderIndexGreaterThan(
+    int aiProviderIndex, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'aiProviderIndex',
+        lower: [aiProviderIndex],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhereClause>
+      aiProviderIndexLessThan(
+    int aiProviderIndex, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'aiProviderIndex',
+        lower: [],
+        upper: [aiProviderIndex],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterWhereClause>
+      aiProviderIndexBetween(
+    int lowerAiProviderIndex,
+    int upperAiProviderIndex, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'aiProviderIndex',
+        lower: [lowerAiProviderIndex],
+        includeLower: includeLower,
+        upper: [upperAiProviderIndex],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension UserProfileQueryFilter
@@ -628,6 +766,215 @@ extension UserProfileQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'age',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'aiApiKey',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'aiApiKey',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> aiApiKeyEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> aiApiKeyBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'aiApiKey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'aiApiKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> aiApiKeyMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'aiApiKey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aiApiKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiApiKeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'aiApiKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiProviderIndexEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aiProviderIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiProviderIndexGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'aiProviderIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiProviderIndexLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'aiProviderIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      aiProviderIndexBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'aiProviderIndex',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -3244,6 +3591,31 @@ extension UserProfileQuerySortBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByAiApiKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiApiKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByAiApiKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiApiKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByAiProviderIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiProviderIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByAiProviderIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiProviderIndex', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByAlertType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'alertType', Sort.asc);
@@ -3581,6 +3953,31 @@ extension UserProfileQuerySortThenBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByAgeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'age', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByAiApiKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiApiKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByAiApiKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiApiKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByAiProviderIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiProviderIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByAiProviderIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aiProviderIndex', Sort.desc);
     });
   }
 
@@ -3930,6 +4327,20 @@ extension UserProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByAiApiKey(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'aiApiKey', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct>
+      distinctByAiProviderIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'aiProviderIndex');
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByAlertType() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'alertType');
@@ -4137,6 +4548,18 @@ extension UserProfileQueryProperty
   QueryBuilder<UserProfile, int, QQueryOperations> ageProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'age');
+    });
+  }
+
+  QueryBuilder<UserProfile, String?, QQueryOperations> aiApiKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'aiApiKey');
+    });
+  }
+
+  QueryBuilder<UserProfile, int, QQueryOperations> aiProviderIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'aiProviderIndex');
     });
   }
 

@@ -6,6 +6,7 @@ import 'gpx_import_screen.dart';
 import 'manual_ride_screen.dart';
 import 'qr_scan_screen.dart';
 import 'profile_screen.dart';
+import 'bicycles_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -90,6 +91,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.pedal_bike),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const BicyclesScreen()),
+              );
+            },
+            tooltip: 'Le mie biciclette',
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

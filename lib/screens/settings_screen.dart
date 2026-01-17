@@ -5,6 +5,7 @@ import '../services/backup_service.dart';
 import 'profile_screen.dart';
 import 'clothing_settings_screen.dart';
 import 'navigation_settings_screen.dart';
+import 'ai_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -45,6 +46,17 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const NavigationSettingsScreen()),
+            ),
+          ),
+          const Divider(),
+          _buildHeader(context, 'AI Coach'),
+          ListTile(
+            leading: const Icon(Icons.psychology_outlined),
+            title: const Text('Configurazione AI'),
+            subtitle: const Text('Bring Your Own Key (OpenAI, Claude, Gemini)'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AISettingsScreen()),
             ),
           ),
           const Divider(),
