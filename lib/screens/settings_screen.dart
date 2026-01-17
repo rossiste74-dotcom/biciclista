@@ -7,6 +7,7 @@ import 'clothing_settings_screen.dart';
 import 'maintenance_settings_screen.dart';
 import 'navigation_settings_screen.dart';
 import 'ai_settings_screen.dart';
+import 'user_guide_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -95,6 +96,16 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Importa Backup'),
             subtitle: const Text('Ripristina il database da un file JSON'),
             onTap: () => _confirmImport(context, backupService),
+          ),
+          _buildHeader(context, 'Supporto & Guida'),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Guida all\'Utilizzo'),
+            subtitle: const Text('Scopri come usare l\'app e i dati biometrici'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserGuideScreen()),
+            ),
           ),
           const Divider(),
           _buildHeader(context, 'Informazioni App'),

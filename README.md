@@ -72,17 +72,29 @@ Per avviare l'app nel tuo ambiente di sviluppo o IDE preferito:
 ### 📱 Generazione APK (Installazione Manuale)
 Se vuoi generare un file `.apk` da inviare e installare manualmente su un dispositivo Android:
 
-1.  **Compila la Release**:
-    Esegui questo comando nel terminale del progetto:
+#### Opzione A: APK Debug Ottimizzato (CONSIGLIATO)
+Build veloce, funzionante e ottimizzata per test e distribuzione informale:
+
+1.  **Compila**:
+    ```bash
+    flutter build apk --debug --shrink --obfuscate --split-debug-info=build/app/outputs/symbols
+    ```
+2.  **Trova il File**:
+    `build/app/outputs/flutter-apk/app-debug.apk`
+3.  **Installa**:
+    Invia il file al telefono e installalo (autorizza "Sorgenti Sconosciute" se richiesto).
+
+#### Opzione B: APK Release (Richiede configurazione avanzata)
+Per una build di produzione ottimizzata:
+
+1.  **Compila**:
     ```bash
     flutter build apk --release
     ```
 2.  **Trova il File**:
-    Al termine della compilazione, troverai il file APK in:
     `build/app/outputs/flutter-apk/app-release.apk`
-3.  **Installa**:
-    *   Invia il file al tuo smartphone (via email, Telegram, Drive, USB).
-    *   Aprilo dal telefono e autorizza l'installazione da "Sorgenti Sconosciute" se richiesto.
+
+> **Nota**: La build release potrebbe richiedere configurazione di firma e chiavi. Per uso personale, l'APK debug ottimizzato è sufficiente.
 
 ### 🤖 Automazione con GitHub Actions
 Questo repository include un workflow pre-configurato per compilare automaticamente l'APK nel cloud.

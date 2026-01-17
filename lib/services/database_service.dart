@@ -155,6 +155,11 @@ class DatabaseService {
     return isar.bicycles.watchLazy();
   }
 
+  /// Watch for changes in user profile
+  Stream<void> watchUserProfile() {
+    return isar.userProfiles.watchLazy();
+  }
+
   /// Get all completed rides
   Future<List<PlannedRide>> getCompletedRides() async {
     return await isar.plannedRides

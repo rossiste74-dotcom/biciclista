@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/clothing_item.dart';
@@ -31,6 +32,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _weatherService = WeatherService();
   final _healthSyncService = HealthSyncService();
 
+  StreamSubscription? _profileSubscription;
+  StreamSubscription? _ridesSubscription;
+  
   bool _isLoading = true;
   UserProfile? _profile;
   PlannedRide? _nextRide;
@@ -50,6 +54,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadAllData();
+    
+    // Auto-refresh when profile or rides change
+    _profileSubscription = _db.watchUserProfile().listen((_) => _loadAllData());
+    _ridesSubscription = _db.watchPlannedRides().listen((_) => _loadAllData());
+  }
+
+  @override
+  void dispose() {
+    _profileSubscription?.cancel();
+    _ridesSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAllData() async {

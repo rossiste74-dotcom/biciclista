@@ -22,21 +22,24 @@ class _GarageScreenState extends State<GarageScreen> {
   final _picker = ImagePicker();
   List<Bicycle> _bikes = [];
   bool _isLoading = true;
-  StreamSubscription? _subscription;
+  final List<StreamSubscription> _subscriptions = [];
 
   @override
   void initState() {
     super.initState();
     _loadBikes();
+    
     // Listen for DB changes
-    _subscription = _db.watchBicycles().listen((_) {
-      _loadBikes();
-    });
+    _subscriptions.add(_db.watchBicycles().listen((_) => _loadBikes()));
+    _subscriptions.add(_db.watchPlannedRides().listen((_) => _loadBikes()));
+    _subscriptions.add(_db.watchUserProfile().listen((_) => _loadBikes()));
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    for (var s in _subscriptions) {
+      s.cancel();
+    }
     super.dispose();
   }
 

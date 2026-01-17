@@ -14,8 +14,9 @@ class HealthSyncService {
     // await _health.configure(useHealthConnectIfAvailable: true);
 
     final types = [
-       // HealthDataType.HEART_RATE,
-       // HealthDataType.SLEEP_SESSION,
+       HealthDataType.HEART_RATE,
+       HealthDataType.HEART_RATE_VARIABILITY_RMSSD,
+       HealthDataType.SLEEP_SESSION,
        HealthDataType.WEIGHT,
     ];
 
@@ -37,7 +38,8 @@ class HealthSyncService {
   Future<void> syncRecentData() async {
     final types = [
       HealthDataType.HEART_RATE,
-      // HealthDataType.SLEEP_SESSION,
+      HealthDataType.HEART_RATE_VARIABILITY_RMSSD,
+      HealthDataType.SLEEP_SESSION,
       HealthDataType.WEIGHT,
     ];
 
@@ -64,12 +66,22 @@ class HealthSyncService {
         final date = DateTime(data.dateFrom.year, data.dateFrom.month, data.dateFrom.day);
         dailyData.putIfAbsent(date, () => {});
         
+        double? numericValue;
+        if (data.value is NumericHealthValue) {
+          numericValue = (data.value as NumericHealthValue).numericValue.toDouble();
+        }
+
         switch (data.type) {
           case HealthDataType.WEIGHT:
-            dailyData[date]!['weight'] = (data.value as num).toDouble();
+            if (numericValue != null) {
+              dailyData[date]!['weight'] = numericValue;
+            }
             break;
           case HealthDataType.HEART_RATE:
-            dailyData[date]!['hrv'] = (data.value as num).toInt();
+          case HealthDataType.HEART_RATE_VARIABILITY_RMSSD:
+            if (numericValue != null) {
+              dailyData[date]!['hrv'] = numericValue.toInt();
+            }
             break;
           case HealthDataType.SLEEP_SESSION:
             final duration = data.dateTo.difference(data.dateFrom).inMinutes / 60.0;
