@@ -6,6 +6,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:gpx/gpx.dart'; 
+import 'package:path_provider/path_provider.dart';
+
 
 import '../models/climb.dart';
 import '../models/clothing_item.dart';
@@ -513,6 +517,60 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     }
   }
 
+  Future<void> _shareRide() async {
+    setState(() => _isLoading = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      
+      // 1. Get GPX File
+      String gpxPath;
+      if (widget.plannedRide.gpxFilePath != null && File(widget.plannedRide.gpxFilePath!).existsSync()) {
+        gpxPath = widget.plannedRide.gpxFilePath!;
+      } else {
+        // Regen GPX if needed
+        final gpx = Gpx();
+        final trk = Trk(name: widget.plannedRide.rideName ?? 'Ride Butler Activity');
+        final seg = Trkseg();
+        
+        // Use coordinates from ride data
+        if (_routeData != null && _routeData!['allPoints'] != null) {
+           for (var p in _routeData!['allPoints']) {
+              seg.trkpts.add(Wpt(lat: p['lat'], lon: p['lng']));
+           }
+        }
+        
+        trk.trksegs.add(seg);
+        gpx.trks.add(trk);
+        gpx.creator = 'Ride Butler';
+        gpxPath = '${dir.path}/route.gpx';
+        await File(gpxPath).writeAsString(GpxWriter().asString(gpx, pretty: true));
+      }
+
+      // 2. Prepare Text
+      final sb = StringBuffer();
+      sb.writeln('🚴‍♂️ *${widget.plannedRide.rideName ?? "Nuovo Giro"}*');
+      sb.writeln('Guarda il mio percorso pianificato con *Ride Butler*! 🎩');
+      sb.writeln('');
+      sb.writeln('📏 ${widget.plannedRide.distance.toStringAsFixed(1)} km');
+      sb.writeln('⛰️ ${widget.plannedRide.elevation.toStringAsFixed(0)} m D+');
+      sb.writeln('');
+      sb.writeln('Scarica l\'app per unirti!');
+
+      // 3. Share Files (GPX + Text)
+      await Share.shareXFiles(
+        [XFile(gpxPath)], 
+        text: sb.toString(),
+      );
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore condivisione: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _confirmDelete() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -570,6 +628,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                 }
               }
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Condividi (WhatsApp/File)',
+            onPressed: _shareRide,
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_2),
@@ -1080,6 +1143,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       ),
     );
   }
+  
+
 
   Widget _buildMetricRow(IconData icon, String label, String value, [Color? valueColor]) {
     return Row(

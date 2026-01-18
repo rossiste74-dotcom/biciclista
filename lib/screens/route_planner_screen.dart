@@ -5,7 +5,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gpx/gpx.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:share_plus/share_plus.dart';
 import '../services/route_planning_service.dart';
 import '../services/database_service.dart';
 import '../models/planned_ride.dart';
@@ -287,47 +286,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     }
   }
 
-  Future<void> _shareRoute() async {
-    if (_allPoints.length < 2) return;
-    
-    setState(() => _isLoading = true);
-    
-    try {
-      // 1. Generate GPX String
-      final gpx = Gpx();
-      final trk = Trk(name: 'Percorso Condiviso');
-      final seg = Trkseg();
-      for (final p in _allPoints) {
-        seg.trkpts.add(Wpt(lat: p.latitude, lon: p.longitude, ele: 0));
-      }
-      trk.trksegs.add(seg);
-      gpx.trks.add(trk);
-      gpx.creator = 'Biciclista App';
-      final gpxString = GpxWriter().asString(gpx, pretty: true);
-      
-      // 2. Save to Temp File
-      final dir = await getTemporaryDirectory();
-      final fileName = 'percorso_biciclista.gpx';
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsString(gpxString);
-      
-      // 3. Prepare Text
-      final String summary = '🚴‍♂️ Ecco il mio percorso!\n\n'
-          '📏 Distanza: ${_totalDistanceKm.toStringAsFixed(1)} km\n'
-          '⛰️ Dislivello: ${_totalElevationM.toStringAsFixed(0)} m\n'
-          '🌍 Terreno: ${_profileName(_selectedProfile)}\n\n'
-          'Generato con Biciclista App';
-          
-      // 4. Share
-      final xFile = XFile(file.path);
-      await Share.shareXFiles([xFile], text: summary, subject: 'Il mio percorso in bici');
-      
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore condivisione: $e')));
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -344,11 +303,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
             icon: const Icon(Icons.settings),
             onPressed: _showSettingsDialog,
           ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Condividi su WhatsApp',
-            onPressed: _segments.isEmpty ? null : _shareRoute,
-          ),
+
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _segments.isEmpty ? null : _saveGpx,
