@@ -16,6 +16,7 @@ import '../widgets/metric_sparkline_chart.dart';
 import '../widgets/ai_coach_card.dart';
 import 'gpx_import_screen.dart';
 import 'route_detail_screen.dart';
+import 'route_planner_screen.dart';
 
 /// The main application dashboard centralizing health and ride data
 class DashboardScreen extends StatefulWidget {
@@ -136,6 +137,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showNewRideOptions,
+        label: const Text('Nuovo Giro'),
+        icon: const Icon(Icons.add_location_alt),
+      ),
       body: SafeArea(
         child: _isLoading 
           ? const Center(child: CircularProgressIndicator())
@@ -399,6 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildNoDataCard(String label, String value, {bool isPlaceholder = true}) {
+    // ... existing code ...
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -450,6 +457,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNewRideOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.upload_file, size: 28),
+              title: const Text('Importa GPX'),
+              subtitle: const Text('Carica un file esistente'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const GpxImportScreen()),
+                );
+                if (result != null) _loadAllData();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.draw, size: 28),
+              title: const Text('Disegna Percorso'),
+              subtitle: const Text('Crea traccia su mappa con Snap-to-Road'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final result = await Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (_) => const RoutePlannerScreen())
+                );
+                if (result == true) _loadAllData();
+              },
             ),
           ],
         ),
