@@ -51,7 +51,13 @@ class _IntegrationSettingsScreenState extends State<IntegrationSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Integrazioni')),
-      body: _isLoading 
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+           if (didPop) return;
+           Navigator.pop(context, _isStravaConnected);
+        },
+        child: _isLoading 
          ? const Center(child: CircularProgressIndicator())
          : Padding(
              padding: const EdgeInsets.all(16.0),
@@ -76,6 +82,7 @@ class _IntegrationSettingsScreenState extends State<IntegrationSettingsScreen> {
                ],
              ),
            ),
+      ),
     );
   }
 }

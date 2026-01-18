@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
+
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import 'main_navigation_screen.dart';
@@ -12,16 +14,28 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final List<String> _quotes = [
+    "Dopo la curva spiana",
+    "Mo te levo er KOM",
+    "Pedalo e non mollo",
+    "In discesa tutti fenomeni",
+    "Alle 8 alla casetta dell'acqua",
+    "W la fuga",
+    "Chi ha fatto la traccia?",
+  ];
+
+  late String _randomQuote;
+
   @override
   void initState() {
     super.initState();
+    _randomQuote = _quotes[Random().nextInt(_quotes.length)];
     _initializeApp();
   }
 
   Future<void> _initializeApp() async {
-    // Artificial delay to ensure logo visibility and prevent flash
-    // Also allows the engine to settle.
-    await Future.delayed(const Duration(milliseconds: 1500)); 
+    // 3 seconds delay as requested
+    await Future.delayed(const Duration(seconds: 3)); 
 
     try {
       final dbService = DatabaseService();
@@ -45,8 +59,6 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     } catch (e) {
       debugPrint('Initialization Error: $e');
-      // Fallback or Error Screen could go here. 
-      // For now, try to go to onboarding if DB fails
       if (mounted) {
          Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -57,51 +69,55 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double logoSize = MediaQuery.of(context).size.width * 0.8;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // App background color
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             // App Icon or Logo
+             // Pop-out Logo Container
              Container(
-               padding: const EdgeInsets.all(20),
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 shape: BoxShape.circle,
-                 boxShadow: [
-                   BoxShadow(
-                     color: Colors.black.withOpacity(0.2),
-                     blurRadius: 10,
-                     offset: const Offset(0, 5)
-                   )
-                 ]
-               ),
-               child: const Icon(
-                 Icons.directions_bike,
-                 size: 64,
-                 color: Colors.blue,
+               padding: const EdgeInsets.all(24),
+               width: logoSize,
+               height: logoSize,
+               child: Image.asset(
+                   'assets/log1.png',
+                   fit: BoxFit.contain,
                ),
              ),
-             const SizedBox(height: 24),
+             const SizedBox(height: 40),
+
+             // App Title
              Text(
-               'Biciclista',
+               'biciclistico',
                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                 color: Colors.white,
                  fontWeight: FontWeight.bold,
+                 color: Theme.of(context).colorScheme.onSurface,
+                 letterSpacing: 1.5,
                ),
              ),
-             const SizedBox(height: 8),
-             Text(
-               'Il tuo assistente smart',
-               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                 color: Colors.white70,
+             const SizedBox(height: 16),
+              
+             // Random Funny Quote
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 32),
+               child: Text(
+                 '"$_randomQuote"',
+                 textAlign: TextAlign.center,
+                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                   fontSize: 24,
+                   fontStyle: FontStyle.italic,
+                   color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                 ),
                ),
              ),
-             const SizedBox(height: 48),
-             const CircularProgressIndicator(
-               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-             )
+             
+
+             
+             const SizedBox(height: 60),
+             const CircularProgressIndicator()
           ],
         ),
       ),

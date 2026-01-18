@@ -788,60 +788,120 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                   const SizedBox(height: 16),
                                   _buildClimbsList(),
                                   const SizedBox(height: 24),
-                                ],
-    
-                                // Advanced Insights
-                                Text(
-                                  'Insight Avanzati',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildAdvancedInsights(),
-                                const SizedBox(height: 24),
-                                
-                                // AI Analysis
-                                if (widget.plannedRide.aiAnalysis != null) ...[
+                  
                                   Text(
-                                    'Analisi Coach AI',
+                                    'Insight Avanzati',
                                     style: Theme.of(context).textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: 16),
-                                  Card(
-                                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.psychology,
-                                                color: Theme.of(context).colorScheme.primary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Analisi Biometrica & Percorso',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const Divider(),
-                                          Text(
-                                            widget.plannedRide.aiAnalysis!,
-                                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1E2229), // Dark card bg
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                         _buildInsightRow('Indice Difficoltà', '1.0 / 10', Colors.lightGreen), // Placeholder calculation could be added
+                                         if (widget.plannedRide.movingTime == null) // Show estimated if no real time
+                                            _buildInsightRow('Tempo Stimato', '~${(widget.plannedRide.distance / 20).toStringAsFixed(1)}h', Colors.white),
+                                         _buildInsightRow('Calorie Stimate', '${(widget.plannedRide.distance * 30).toInt()} kcal', Colors.white),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 24),
                                 ],
+    
+                                // AI Analysis
+                                // Stats Grid
+                                if (widget.plannedRide.avgSpeed != null || widget.plannedRide.avgHeartRate != null || widget.plannedRide.avgPower != null)
+                                  GridView.count(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 1.6,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12,
+                                    children: [
+                                      if (widget.plannedRide.avgSpeed != null)
+                                        _buildDetailCard(
+                                          icon: Icons.speed,
+                                          label: 'Velocità Media',
+                                          value: '${widget.plannedRide.avgSpeed!.toStringAsFixed(1)} km/h',
+                                        ),
+                                      if (widget.plannedRide.calories != null)
+                                        _buildDetailCard(
+                                          icon: Icons.local_fire_department,
+                                          label: 'Calorie',
+                                          value: '${widget.plannedRide.calories} kcal',
+                                        ),
+                                      if (widget.plannedRide.avgHeartRate != null)
+                                        _buildDetailCard(
+                                          icon: Icons.favorite,
+                                          label: 'Freq. Cardiaca',
+                                          value: '${widget.plannedRide.avgHeartRate!.round()} bpm',
+                                          subValue: widget.plannedRide.maxHeartRate != null ? 'Max ${widget.plannedRide.maxHeartRate!.round()}' : null,
+                                        ),
+                                      if (widget.plannedRide.avgPower != null)
+                                        _buildDetailCard(
+                                          icon: Icons.bolt,
+                                          label: 'Potenza',
+                                          value: '${widget.plannedRide.avgPower!.round()} W',
+                                          subValue: widget.plannedRide.maxPower != null ? 'Max ${widget.plannedRide.maxPower!.round()}' : null,
+                                        ),
+                                      if (widget.plannedRide.avgCadence != null)
+                                        _buildDetailCard(
+                                          icon: Icons.autorenew,
+                                          label: 'Cadenza',
+                                          value: '${widget.plannedRide.avgCadence!.round()} rpm',
+                                        ),
+                                       if (widget.plannedRide.movingTime != null)
+                                        _buildDetailCard(
+                                          icon: Icons.timer,
+                                          label: 'Tempo',
+                                          value: '${widget.plannedRide.movingTime! ~/ 60} min',
+                                        ),
+                                    ],
+                                  ),
+                                  if (widget.plannedRide.aiAnalysis != null) ...[
+                                    const SizedBox(height: 24),
+                                    Card(
+                                      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.psychology,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Analisi Biometrica & Percorso',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const Divider(),
+                                            Text(
+                                              widget.plannedRide.aiAnalysis!,
+                                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
     
                                 // Weather Timeline
                                 if (_weatherPoints.isNotEmpty) ...[
@@ -1101,6 +1161,17 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     );
   }
 
+
+  Widget _buildInsightRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
   Widget _buildAdvancedInsights() {
     // Basic heuristics for metrics
     final distance = widget.plannedRide.distance;
@@ -1220,6 +1291,52 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    String? subValue,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subValue != null)
+            Text(
+              subValue,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+        ],
       ),
     );
   }

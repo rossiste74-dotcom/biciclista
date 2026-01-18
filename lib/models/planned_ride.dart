@@ -26,6 +26,30 @@ class PlannedRide {
   /// Total elevation gain in meters (extracted from GPX)
   late double elevation;
 
+  /// Moving time in seconds (from external sync)
+  int? movingTime;
+
+  /// Average speed in km/h (from external sync)
+  double? avgSpeed;
+
+  /// Average Heart Rate (bpm)
+  double? avgHeartRate;
+
+  /// Max Heart Rate (bpm)
+  double? maxHeartRate;
+
+  /// Average Power (watts)
+  double? avgPower;
+
+  /// Max Power (watts)
+  double? maxPower;
+
+  /// Average Cadence (rpm)
+  double? avgCadence;
+
+  /// Calories (kcal)
+  int? calories;
+
   /// Latitude for weather forecast (extracted from GPX)
   late double? latitude;
 

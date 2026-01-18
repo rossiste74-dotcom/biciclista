@@ -20,12 +20,19 @@ class BiciclisticoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Biciclistico',
+      title: 'biciclistico',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.light),
-        textTheme: GoogleFonts.interTextTheme(),
+        textTheme: GoogleFonts.interTextTheme().copyWith(
+          displayLarge: GoogleFonts.kiteOne(fontSize: 57),
+          displayMedium: GoogleFonts.kiteOne(fontSize: 45),
+          displaySmall: GoogleFonts.kiteOne(fontSize: 36),
+          headlineLarge: GoogleFonts.kiteOne(fontSize: 32),
+          headlineMedium: GoogleFonts.kiteOne(fontSize: 28),
+          headlineSmall: GoogleFonts.kiteOne(fontSize: 24),
+        ),
       ),
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
@@ -39,7 +46,14 @@ class BiciclisticoApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+          displayLarge: GoogleFonts.kiteOne(fontSize: 57),
+          displayMedium: GoogleFonts.kiteOne(fontSize: 45),
+          displaySmall: GoogleFonts.kiteOne(fontSize: 36),
+          headlineLarge: GoogleFonts.kiteOne(fontSize: 32),
+          headlineMedium: GoogleFonts.kiteOne(fontSize: 28),
+          headlineSmall: GoogleFonts.kiteOne(fontSize: 24),
+        ),
       ),
       themeMode: ThemeMode.system,
       home: const SplashScreen(), // Start with Splash

@@ -56,6 +56,25 @@ class _RouteMapWidgetState extends State<RouteMapWidget> {
         .map((point) => LatLng(point['lat']!, point['lng']!))
         .toList();
 
+    if (routeLatLngs.isEmpty) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.map_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 8),
+              Text(
+                'Nessuna traccia GPS disponibile',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Calculate bounds to center the map
     final bounds = _calculateBounds(routeLatLngs);
 

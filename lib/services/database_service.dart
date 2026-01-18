@@ -103,6 +103,21 @@ class DatabaseService {
 
   // ==================== PlannedRide CRUD ====================
 
+  /// Check if a ride already exists (duplicate detection by date)
+  Future<bool> doesRideExist(DateTime date) async {
+    // Check for exact match or within small window (e.g. 1 minute)
+    // Strava dates are precise, but better be safe against conversion drifts
+    final start = date.subtract(const Duration(seconds: 60));
+    final end = date.add(const Duration(seconds: 60));
+    
+    final count = await isar.plannedRides
+        .filter()
+        .rideDateBetween(start, end)
+        .count();
+        
+    return count > 0;
+  }
+
   /// Create a new planned ride
   Future<int> createPlannedRide(PlannedRide ride) async {
     return await isar.writeTxn(() async {

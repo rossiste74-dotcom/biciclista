@@ -103,10 +103,15 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.sync_alt),
             title: const Text('Connetti Strava & Komoot'),
             subtitle: const Text('Sincronizza le tue attività'),
-            onTap: () => Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) => const IntegrationSettingsScreen()),
-            ),
+            onTap: () async {
+               final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const IntegrationSettingsScreen()),
+               );
+               if (result == true && context.mounted) {
+                  Navigator.pop(context, true);
+               }
+            },
           ),
           const Divider(),
           _buildHeader(context, 'Supporto & Guida'),

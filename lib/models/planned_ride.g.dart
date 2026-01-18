@@ -22,63 +22,103 @@ const PlannedRideSchema = CollectionSchema(
       name: r'aiAnalysis',
       type: IsarType.string,
     ),
-    r'bicycleId': PropertySchema(
+    r'avgCadence': PropertySchema(
       id: 1,
+      name: r'avgCadence',
+      type: IsarType.double,
+    ),
+    r'avgHeartRate': PropertySchema(
+      id: 2,
+      name: r'avgHeartRate',
+      type: IsarType.double,
+    ),
+    r'avgPower': PropertySchema(
+      id: 3,
+      name: r'avgPower',
+      type: IsarType.double,
+    ),
+    r'avgSpeed': PropertySchema(
+      id: 4,
+      name: r'avgSpeed',
+      type: IsarType.double,
+    ),
+    r'bicycleId': PropertySchema(
+      id: 5,
       name: r'bicycleId',
       type: IsarType.long,
     ),
+    r'calories': PropertySchema(
+      id: 6,
+      name: r'calories',
+      type: IsarType.long,
+    ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 7,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'distance': PropertySchema(
-      id: 3,
+      id: 8,
       name: r'distance',
       type: IsarType.double,
     ),
     r'elevation': PropertySchema(
-      id: 4,
+      id: 9,
       name: r'elevation',
       type: IsarType.double,
     ),
     r'forecastWeather': PropertySchema(
-      id: 5,
+      id: 10,
       name: r'forecastWeather',
       type: IsarType.string,
     ),
     r'gpxFilePath': PropertySchema(
-      id: 6,
+      id: 11,
       name: r'gpxFilePath',
       type: IsarType.string,
     ),
     r'isCompleted': PropertySchema(
-      id: 7,
+      id: 12,
       name: r'isCompleted',
       type: IsarType.bool,
     ),
     r'latitude': PropertySchema(
-      id: 8,
+      id: 13,
       name: r'latitude',
       type: IsarType.double,
     ),
     r'longitude': PropertySchema(
-      id: 9,
+      id: 14,
       name: r'longitude',
       type: IsarType.double,
     ),
+    r'maxHeartRate': PropertySchema(
+      id: 15,
+      name: r'maxHeartRate',
+      type: IsarType.double,
+    ),
+    r'maxPower': PropertySchema(
+      id: 16,
+      name: r'maxPower',
+      type: IsarType.double,
+    ),
+    r'movingTime': PropertySchema(
+      id: 17,
+      name: r'movingTime',
+      type: IsarType.long,
+    ),
     r'notes': PropertySchema(
-      id: 10,
+      id: 18,
       name: r'notes',
       type: IsarType.string,
     ),
     r'rideDate': PropertySchema(
-      id: 11,
+      id: 19,
       name: r'rideDate',
       type: IsarType.dateTime,
     ),
     r'rideName': PropertySchema(
-      id: 12,
+      id: 20,
       name: r'rideName',
       type: IsarType.string,
     )
@@ -170,18 +210,26 @@ void _plannedRideSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.aiAnalysis);
-  writer.writeLong(offsets[1], object.bicycleId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeDouble(offsets[3], object.distance);
-  writer.writeDouble(offsets[4], object.elevation);
-  writer.writeString(offsets[5], object.forecastWeather);
-  writer.writeString(offsets[6], object.gpxFilePath);
-  writer.writeBool(offsets[7], object.isCompleted);
-  writer.writeDouble(offsets[8], object.latitude);
-  writer.writeDouble(offsets[9], object.longitude);
-  writer.writeString(offsets[10], object.notes);
-  writer.writeDateTime(offsets[11], object.rideDate);
-  writer.writeString(offsets[12], object.rideName);
+  writer.writeDouble(offsets[1], object.avgCadence);
+  writer.writeDouble(offsets[2], object.avgHeartRate);
+  writer.writeDouble(offsets[3], object.avgPower);
+  writer.writeDouble(offsets[4], object.avgSpeed);
+  writer.writeLong(offsets[5], object.bicycleId);
+  writer.writeLong(offsets[6], object.calories);
+  writer.writeDateTime(offsets[7], object.createdAt);
+  writer.writeDouble(offsets[8], object.distance);
+  writer.writeDouble(offsets[9], object.elevation);
+  writer.writeString(offsets[10], object.forecastWeather);
+  writer.writeString(offsets[11], object.gpxFilePath);
+  writer.writeBool(offsets[12], object.isCompleted);
+  writer.writeDouble(offsets[13], object.latitude);
+  writer.writeDouble(offsets[14], object.longitude);
+  writer.writeDouble(offsets[15], object.maxHeartRate);
+  writer.writeDouble(offsets[16], object.maxPower);
+  writer.writeLong(offsets[17], object.movingTime);
+  writer.writeString(offsets[18], object.notes);
+  writer.writeDateTime(offsets[19], object.rideDate);
+  writer.writeString(offsets[20], object.rideName);
 }
 
 PlannedRide _plannedRideDeserialize(
@@ -192,19 +240,27 @@ PlannedRide _plannedRideDeserialize(
 ) {
   final object = PlannedRide();
   object.aiAnalysis = reader.readStringOrNull(offsets[0]);
-  object.bicycleId = reader.readLongOrNull(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.distance = reader.readDouble(offsets[3]);
-  object.elevation = reader.readDouble(offsets[4]);
-  object.forecastWeather = reader.readStringOrNull(offsets[5]);
-  object.gpxFilePath = reader.readStringOrNull(offsets[6]);
+  object.avgCadence = reader.readDoubleOrNull(offsets[1]);
+  object.avgHeartRate = reader.readDoubleOrNull(offsets[2]);
+  object.avgPower = reader.readDoubleOrNull(offsets[3]);
+  object.avgSpeed = reader.readDoubleOrNull(offsets[4]);
+  object.bicycleId = reader.readLongOrNull(offsets[5]);
+  object.calories = reader.readLongOrNull(offsets[6]);
+  object.createdAt = reader.readDateTime(offsets[7]);
+  object.distance = reader.readDouble(offsets[8]);
+  object.elevation = reader.readDouble(offsets[9]);
+  object.forecastWeather = reader.readStringOrNull(offsets[10]);
+  object.gpxFilePath = reader.readStringOrNull(offsets[11]);
   object.id = id;
-  object.isCompleted = reader.readBool(offsets[7]);
-  object.latitude = reader.readDoubleOrNull(offsets[8]);
-  object.longitude = reader.readDoubleOrNull(offsets[9]);
-  object.notes = reader.readStringOrNull(offsets[10]);
-  object.rideDate = reader.readDateTime(offsets[11]);
-  object.rideName = reader.readStringOrNull(offsets[12]);
+  object.isCompleted = reader.readBool(offsets[12]);
+  object.latitude = reader.readDoubleOrNull(offsets[13]);
+  object.longitude = reader.readDoubleOrNull(offsets[14]);
+  object.maxHeartRate = reader.readDoubleOrNull(offsets[15]);
+  object.maxPower = reader.readDoubleOrNull(offsets[16]);
+  object.movingTime = reader.readLongOrNull(offsets[17]);
+  object.notes = reader.readStringOrNull(offsets[18]);
+  object.rideDate = reader.readDateTime(offsets[19]);
+  object.rideName = reader.readStringOrNull(offsets[20]);
   return object;
 }
 
@@ -218,28 +274,44 @@ P _plannedRideDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 4:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 8:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 9:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readBool(offset)) as P;
+    case 13:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 14:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 15:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 16:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 17:
+      return (reader.readLongOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readDateTime(offset)) as P;
+    case 20:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -645,6 +717,338 @@ extension PlannedRideQueryFilter
   }
 
   QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avgCadence',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avgCadence',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avgCadence',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avgCadence',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avgCadence',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgCadenceBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avgCadence',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avgHeartRate',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avgHeartRate',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avgHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avgHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avgHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgHeartRateBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avgHeartRate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgPowerIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avgPower',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgPowerIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avgPower',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> avgPowerEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avgPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgPowerGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avgPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgPowerLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avgPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> avgPowerBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avgPower',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgSpeedIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avgSpeed',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgSpeedIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avgSpeed',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> avgSpeedEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avgSpeed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgSpeedGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avgSpeed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      avgSpeedLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avgSpeed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> avgSpeedBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avgSpeed',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
       bicycleIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -710,6 +1114,79 @@ extension PlannedRideQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'bicycleId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      caloriesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calories',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      caloriesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calories',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> caloriesEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calories',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      caloriesGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calories',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      caloriesLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calories',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> caloriesBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calories',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1441,6 +1918,246 @@ extension PlannedRideQueryFilter
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'maxHeartRate',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'maxHeartRate',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'maxHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'maxHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'maxHeartRate',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxHeartRateBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'maxHeartRate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxPowerIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'maxPower',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxPowerIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'maxPower',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> maxPowerEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'maxPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxPowerGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'maxPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      maxPowerLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'maxPower',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> maxPowerBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'maxPower',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'movingTime',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'movingTime',
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'movingTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'movingTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'movingTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition>
+      movingTimeBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'movingTime',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterFilterCondition> notesIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1819,6 +2536,55 @@ extension PlannedRideQuerySortBy
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgCadence() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgCadence', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgCadenceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgCadence', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgHeartRate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy>
+      sortByAvgHeartRateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgHeartRate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgPower', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgPowerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgPower', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgSpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgSpeed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByAvgSpeedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgSpeed', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.asc);
@@ -1828,6 +2594,18 @@ extension PlannedRideQuerySortBy
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByBicycleIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByCalories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calories', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByCaloriesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calories', Sort.desc);
     });
   }
 
@@ -1928,6 +2706,43 @@ extension PlannedRideQuerySortBy
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByMaxHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxHeartRate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy>
+      sortByMaxHeartRateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxHeartRate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByMaxPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxPower', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByMaxPowerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxPower', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByMovingTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'movingTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByMovingTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'movingTime', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> sortByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -1979,6 +2794,55 @@ extension PlannedRideQuerySortThenBy
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgCadence() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgCadence', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgCadenceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgCadence', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgHeartRate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy>
+      thenByAvgHeartRateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgHeartRate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgPower', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgPowerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgPower', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgSpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgSpeed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByAvgSpeedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avgSpeed', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.asc);
@@ -1988,6 +2852,18 @@ extension PlannedRideQuerySortThenBy
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByBicycleIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bicycleId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByCalories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calories', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByCaloriesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calories', Sort.desc);
     });
   }
 
@@ -2100,6 +2976,43 @@ extension PlannedRideQuerySortThenBy
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByMaxHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxHeartRate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy>
+      thenByMaxHeartRateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxHeartRate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByMaxPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxPower', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByMaxPowerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxPower', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByMovingTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'movingTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByMovingTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'movingTime', Sort.desc);
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QAfterSortBy> thenByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -2146,9 +3059,39 @@ extension PlannedRideQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByAvgCadence() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avgCadence');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByAvgHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avgHeartRate');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByAvgPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avgPower');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByAvgSpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avgSpeed');
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByBicycleId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'bicycleId');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByCalories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calories');
     });
   }
 
@@ -2203,6 +3146,24 @@ extension PlannedRideQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByMaxHeartRate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'maxHeartRate');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByMaxPower() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'maxPower');
+    });
+  }
+
+  QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByMovingTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'movingTime');
+    });
+  }
+
   QueryBuilder<PlannedRide, PlannedRide, QDistinct> distinctByNotes(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2238,9 +3199,39 @@ extension PlannedRideQueryProperty
     });
   }
 
+  QueryBuilder<PlannedRide, double?, QQueryOperations> avgCadenceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avgCadence');
+    });
+  }
+
+  QueryBuilder<PlannedRide, double?, QQueryOperations> avgHeartRateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avgHeartRate');
+    });
+  }
+
+  QueryBuilder<PlannedRide, double?, QQueryOperations> avgPowerProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avgPower');
+    });
+  }
+
+  QueryBuilder<PlannedRide, double?, QQueryOperations> avgSpeedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avgSpeed');
+    });
+  }
+
   QueryBuilder<PlannedRide, int?, QQueryOperations> bicycleIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'bicycleId');
+    });
+  }
+
+  QueryBuilder<PlannedRide, int?, QQueryOperations> caloriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calories');
     });
   }
 
@@ -2290,6 +3281,24 @@ extension PlannedRideQueryProperty
   QueryBuilder<PlannedRide, double?, QQueryOperations> longitudeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'longitude');
+    });
+  }
+
+  QueryBuilder<PlannedRide, double?, QQueryOperations> maxHeartRateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'maxHeartRate');
+    });
+  }
+
+  QueryBuilder<PlannedRide, double?, QQueryOperations> maxPowerProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'maxPower');
+    });
+  }
+
+  QueryBuilder<PlannedRide, int?, QQueryOperations> movingTimeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'movingTime');
     });
   }
 
