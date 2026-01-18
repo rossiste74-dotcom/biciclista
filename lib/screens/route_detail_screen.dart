@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
 import '../models/climb.dart';
 import '../models/clothing_item.dart';
 import '../models/planned_ride.dart';
@@ -16,10 +20,10 @@ import '../services/outfit_service.dart';
 import '../services/database_service.dart';
 import '../services/qr_service.dart';
 import '../services/notification_service.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:latlong2/latlong.dart';
 import '../widgets/route_map_widget.dart';
 import 'active_navigation_screen.dart';
+
+
 
 /// Screen for viewing route details with map visualization
 class RouteDetailScreen extends StatefulWidget {
@@ -50,6 +54,158 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   
   final Map<String, WeatherConditions> _weatherPoints = {};
   bool _isMapExpanded = false;
+
+  bool _showWeatherLayer = false;
+  List<Marker> _weatherMapMarkers = [];
+  bool _isLoadingWeatherLayer = false;
+
+  Future<void> _toggleWeatherLayer() async {
+    if (_showWeatherLayer) {
+      setState(() => _showWeatherLayer = false);
+      return;
+    }
+
+    if (_weatherMapMarkers.isNotEmpty) {
+      setState(() => _showWeatherLayer = true);
+      return;
+    }
+
+    setState(() {
+      _isLoadingWeatherLayer = true;
+      _showWeatherLayer = true;
+    });
+
+    try {
+      if (_routeData != null && _routeData!['coordinates'] != null) {
+        final coords = _routeData!['coordinates'] as RouteCoordinates;
+        final baseDate = widget.plannedRide.rideDate;
+        const double avgSpeed = 20.0; // km/h
+
+        // Define key points matching the Weather Timeline
+        final pointsOfInterest = <_WeatherPoint>[
+          _WeatherPoint(coords.start, baseDate),
+          _WeatherPoint(
+            coords.middle, 
+            baseDate.add(Duration(minutes: ((coords.middleDistance ?? (widget.plannedRide.distance / 2)) / avgSpeed * 60).toInt())),
+          ),
+          _WeatherPoint(
+            coords.end, 
+            baseDate.add(Duration(minutes: (widget.plannedRide.distance / avgSpeed * 60).toInt())),
+          ),
+        ];
+
+        if (coords.high != null) {
+          pointsOfInterest.add(_WeatherPoint(
+            coords.high!,
+            baseDate.add(Duration(minutes: ((coords.highDistance ?? (widget.plannedRide.distance / 2)) / avgSpeed * 60).toInt())),
+          ));
+        }
+
+        final List<Marker> markers = [];
+        
+        debugPrint('DynamicWeather: Fetching for ${pointsOfInterest.length} key points (Start, Mid, End, Summit)');
+
+        for (var pt in pointsOfInterest) {
+          try {
+            final weather = await _weatherService.getForecast(
+              lat: pt.pos.latitude,
+              lng: pt.pos.longitude,
+              date: pt.time,
+            );
+            
+            markers.add(_buildWindMarker(
+              pt.pos,
+              weather
+            ));
+          } catch (e) {
+             debugPrint('Error fetch weather for point: $e');
+          }
+        }
+        
+        if (mounted) {
+           setState(() {
+             _weatherMapMarkers = markers;
+             _isLoadingWeatherLayer = false;
+           });
+           
+           if (markers.isEmpty) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Impossibile caricare il meteo per i punti chiave.')),
+             );
+           }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling weather layer: $e');
+      if (mounted) setState(() => _isLoadingWeatherLayer = false);
+    }
+  }
+
+// Simple helper class if not already defined (it is defined later in file usually, but locally here needs checking)
+// RouteDetailScreen has `_WeatherPoint` class defined?
+// Let's check. Use `view_code_item` or just check file content from previous `view_file`.
+// `view_file` showed `_WeatherPoint` usage in `_fetchWeatherPoints` (Line 205).
+// It is likely defined at the bottom of the file or in existing imports.
+// Wait, `_fetchWeatherPoints` uses it: `final points = { 'Partenza': _WeatherPoint(...) }`.
+// So the class `_WeatherPoint` MUST exist in this file or imported.
+// I'll check if it's at the bottom of the file.
+
+
+  Marker _buildWindMarker(LatLng pos, WeatherConditions w) {
+    Color color;
+    if (w.windSpeed < 10) {
+      color = Colors.lightBlueAccent;
+    } else if (w.windSpeed < 30) {
+      color = Colors.orange;
+    } else {
+      color = Colors.red;
+    }
+    
+    // Wind Direction: arrow pointing towards FLOW.
+    // windDirection (0=North wind) means blowing South.
+    // Arrow Up (0 deg) points North.
+    // To point South, rotate 180.
+    // Formula: (WindDir + 180) degrees.
+    final rotationRadians = ((w.windDirection ?? 0) + 180) * (math.pi / 180);
+
+    return Marker(
+      point: pos,
+      width: 40,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              shape: BoxShape.circle,
+            ),
+            width: 32,
+            height: 32,
+          ),
+          Transform.rotate(
+            angle: rotationRadians,
+            child: Icon(Icons.navigation, color: color, size: 24),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '${w.temperature.round()}°',
+                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -481,15 +637,41 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       .end,
                               distance: widget.plannedRide.distance,
                               elevation: widget.plannedRide.elevation,
+                              additionalMarkers: _showWeatherLayer ? _weatherMapMarkers : null,
                             ),
+                            // Weather Layer Loading Indicator
+                            if (_isLoadingWeatherLayer)
+                              const Positioned.fill(
+                                child: Center(
+                                  child: Card(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             // Expand/Collapse overlay button
                             Positioned(
                               top: 12,
                               right: 12,
-                              child: FloatingActionButton.small(
-                                heroTag: 'map_expand_btn',
-                                onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
-                                child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
+                              child: Column(
+                                children: [
+                                  FloatingActionButton.small(
+                                    heroTag: 'map_expand_btn',
+                                    onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
+                                    child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FloatingActionButton.small(
+                                    heroTag: 'weather_layer_btn',
+                                    backgroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.primary : null,
+                                    foregroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.onPrimary : null,
+                                    onPressed: _toggleWeatherLayer,
+                                    tooltip: 'Meteo sul percorso',
+                                    child: const Icon(Icons.air),
+                                  ),
+                                ],
                               ),
                             ),
                             // Tap area for expansion if collapsed

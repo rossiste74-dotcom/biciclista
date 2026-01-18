@@ -44,20 +44,44 @@ class _GarageScreenState extends State<GarageScreen> {
   }
 
   Future<void> _loadBikes() async {
+    final profile = await _db.getUserProfile();
     final bikes = await _db.getAllBicycles();
     
-    // Migration Logic: If any bike has components empty but has legacy data, applyDefaults.
     bool needsUpdate = false;
-    for (var bike in bikes) {
-      if (bike.components.isEmpty) {
-        bike.applyDefaults();
-        await _db.updateBicycle(bike);
-        needsUpdate = true;
-      }
-    }
     
-    if (needsUpdate) {
-      // Stream listener will trigger reload, but we can force it just in case logic is racy
+    if (profile != null && profile.maintenanceDefinitions.isNotEmpty) {
+      for (var bike in bikes) {
+        // Sync components with profile definitions
+        final existingNames = bike.components.map((c) => c.name).toSet();
+        
+        for (var def in profile.maintenanceDefinitions) {
+          if (!existingNames.contains(def.name)) {
+            bike.components.add(BicycleComponent()
+              ..name = def.name
+              ..limitKm = def.defaultInterval ?? 3000.0
+              ..currentKm = 0.0
+              ..lastMaintenance = DateTime.now()
+            );
+            needsUpdate = true;
+          } else {
+            // Update limit if it changed? Maybe better to leave it as is if customized per bike
+            // For now, let's keep it simple and just add missing ones.
+          }
+        }
+        
+        if (needsUpdate) {
+          await _db.updateBicycle(bike);
+        }
+      }
+    } else {
+      // Fallback for empty profile or legacy
+      for (var bike in bikes) {
+        if (bike.components.isEmpty) {
+          bike.applyDefaults();
+          await _db.updateBicycle(bike);
+          needsUpdate = true;
+        }
+      }
     }
 
     if (mounted) {
@@ -247,6 +271,7 @@ class _GarageScreenState extends State<GarageScreen> {
     final nameController = TextEditingController(text: bike?.name ?? '');
     final typeController = TextEditingController(text: bike?.type ?? 'Road');
     final gearingController = TextEditingController(text: bike?.gearingSystem ?? 'Mechanical');
+    final kmController = TextEditingController(text: bike?.totalKilometers.toStringAsFixed(0) ?? '0');
     
     final result = await showDialog<bool>(
       context: context,
@@ -263,6 +288,17 @@ class _GarageScreenState extends State<GarageScreen> {
                   hintText: 'es: La mia Specialized',
                   border: OutlineInputBorder(),
                 ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: kmController,
+                decoration: const InputDecoration(
+                  labelText: 'Chilometri Totali',
+                  suffixText: 'km',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -317,9 +353,9 @@ class _GarageScreenState extends State<GarageScreen> {
       newBike.name = nameController.text;
       newBike.type = typeController.text;
       newBike.gearingSystem = gearingController.text;
+      newBike.totalKilometers = double.tryParse(kmController.text) ?? 0.0;
       
       if (bike == null) {
-        newBike.totalKilometers = 0;
         newBike.lastMaintenance = DateTime.now();
         // Fetch UserProfile to get definitions
         final profile = await _db.getUserProfile();

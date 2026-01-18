@@ -85,18 +85,41 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
       
       if (name.isEmpty) return;
 
-      setState(() {
-        if (def != null) {
-          def.name = name;
-          def.defaultInterval = interval;
-        } else {
-          _profile!.maintenanceDefinitions.add(
-            MaintenanceDefinition()..name = name..defaultInterval = interval
+      try {
+        setState(() {
+          // Ensure we have a mutable copy of the list
+          final currentList = List<MaintenanceDefinition>.from(_profile!.maintenanceDefinitions);
+          
+          if (def != null) {
+            // Find and update item in the new list
+            final index = currentList.indexOf(def);
+            if (index != -1) {
+              currentList[index] = MaintenanceDefinition()..name = name..defaultInterval = interval;
+            }
+          } else {
+            currentList.add(
+              MaintenanceDefinition()..name = name..defaultInterval = interval
+            );
+          }
+          
+          _profile!.maintenanceDefinitions = currentList;
+        });
+        
+        await _db.updateUserProfile(_profile!);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impostazione salvata correttamente')),
           );
         }
-      });
-      
-      await _db.updateUserProfile(_profile!);
+      } catch (e) {
+        debugPrint('Error saving maintenance definition: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore durante il salvataggio: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -116,10 +139,26 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
     );
 
     if (confirm == true) {
-      setState(() {
-        _profile!.maintenanceDefinitions.remove(def);
-      });
-      await _db.updateUserProfile(_profile!);
+      try {
+        setState(() {
+          final currentList = List<MaintenanceDefinition>.from(_profile!.maintenanceDefinitions);
+          currentList.remove(def);
+          _profile!.maintenanceDefinitions = currentList;
+        });
+        await _db.updateUserProfile(_profile!);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Componente rimosso')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore durante l\'eliminazione: $e')),
+          );
+        }
+      }
     }
   }
 

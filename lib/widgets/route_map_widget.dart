@@ -22,6 +22,9 @@ class RouteMapWidget extends StatefulWidget {
   /// Elevation gain in meters (for info overlay)
   final double? elevation;
 
+  /// Extra markers to display (e.g., weather points)
+  final List<Marker>? additionalMarkers;
+
   const RouteMapWidget({
     super.key,
     required this.routePoints,
@@ -30,6 +33,7 @@ class RouteMapWidget extends StatefulWidget {
     this.endPoint,
     this.distance,
     this.elevation,
+    this.additionalMarkers,
   });
 
   @override
@@ -177,6 +181,10 @@ class _RouteMapWidgetState extends State<RouteMapWidget> {
           ),
         ),
       );
+    }
+
+    if (widget.additionalMarkers != null) {
+      markers.addAll(widget.additionalMarkers!);
     }
 
     return markers;
