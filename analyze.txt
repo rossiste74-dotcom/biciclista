@@ -1,0 +1,59 @@
+Analyzing biciclista...                                         
+
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ai_coach_screen.dart:137:84 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ai_coach_screen.dart:178:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ai_coach_screen.dart:258:63 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ai_coach_screen.dart:261:56 • deprecated_member_use
+warning • Unused import: '../models/user_profile.dart' • lib/screens/ai_settings_screen.dart:2:8 • unused_import
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/ai_settings_screen.dart:206:29 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/ai_settings_screen.dart:254:31 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/alert_rules_screen.dart:257:33 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/bicycles_screen.dart:47:70 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/bicycles_screen.dart:160:17 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/bicycles_screen.dart:172:17 • deprecated_member_use
+warning • The value of the field '_healthSyncService' isn't used • lib/screens/dashboard_screen.dart:34:9 • unused_field
+warning • The value of the field '_sleepTrend' isn't used • lib/screens/dashboard_screen.dart:46:16 • unused_field
+warning • Unused import: 'package:intl/intl.dart' • lib/screens/garage_screen.dart:5:8 • unused_import
+warning • Unused import: '../models/user_profile.dart' • lib/screens/garage_screen.dart:7:8 • unused_import
+warning • The value of the local variable 'hasCamera' isn't used • lib/screens/garage_screen.dart:96:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps • lib/screens/garage_screen.dart:99:7 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/garage_screen.dart:145:65 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/garage_screen.dart:193:29 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/garage_screen.dart:200:7 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/garage_screen.dart:259:28 • use_build_context_synchronously
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/garage_screen.dart:305:17 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/garage_screen.dart:317:17 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/garage_screen.dart:429:34 • deprecated_member_use
+   info • Unnecessary use of multiple underscores • lib/screens/garage_screen.dart:517:62 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/screens/garage_screen.dart:517:65 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/screens/maintenance_settings_screen.dart:182:41 • unnecessary_underscores
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/manual_ride_screen.dart:214:23 • deprecated_member_use
+warning • Unused import: 'dashboard_screen.dart' • lib/screens/onboarding_screen.dart:5:8 • unused_import
+   info • The member 'initState' overrides an inherited member but isn't annotated with '@override' • lib/screens/profile_screen.dart:35:8 • annotate_overrides
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/profile_screen.dart:146:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/route_detail_screen.dart:183:35 • deprecated_member_use
+  error • Undefined name 'gpx' • lib/screens/route_detail_screen.dart:548:46 • undefined_identifier
+warning • The value of the local variable 'dir' isn't used • lib/screens/route_detail_screen.dart:549:13 • unused_local_variable
+  error • The name 'dir' is already defined • lib/screens/route_detail_screen.dart:549:13 • duplicate_definition
+warning • The value of the local variable 'gpxPath' isn't used • lib/screens/route_detail_screen.dart:551:13 • unused_local_variable
+  error • The name 'gpxPath' is already defined • lib/screens/route_detail_screen.dart:551:13 • duplicate_definition
+   info • 'Share' is deprecated and shouldn't be used. Use SharePlus instead • lib/screens/route_detail_screen.dart:557:13 • deprecated_member_use
+   info • 'shareXFiles' is deprecated and shouldn't be used. Use SharePlus.instance.share() instead • lib/screens/route_detail_screen.dart:557:19 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/route_detail_screen.dart:624:41 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/route_detail_screen.dart:805:91 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/route_planner_screen.dart:104:31 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/route_planner_screen.dart:213:28 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/route_planner_screen.dart:618:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/route_planner_screen.dart:621:31 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/route_planner_screen.dart:625:28 • use_build_context_synchronously
+warning • Unused import: 'profile_screen.dart' • lib/screens/settings_screen.dart:5:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/user_guide_screen.dart:76:63 • deprecated_member_use
+warning • Unused import: '../models/weather_conditions.dart' • lib/services/ai_service.dart:6:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/services/ai_service.dart:393:7 • avoid_print
+warning • The value of the field '_db' isn't used • lib/services/biometric_service.dart:8:25 • unused_field
+warning • Unused import: '../models/health_snapshot.dart' • lib/services/health_sync_service.dart:4:8 • unused_import
+warning • Unused import: 'package:flutter/material.dart' • lib/services/notification_service.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/ai_advice_dialog.dart:175:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/ai_advice_dialog.dart:178:68 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/ai_advice_dialog.dart:219:72 • deprecated_member_use
+

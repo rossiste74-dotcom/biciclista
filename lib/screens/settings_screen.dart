@@ -8,6 +8,7 @@ import 'maintenance_settings_screen.dart';
 import 'navigation_settings_screen.dart';
 import 'ai_settings_screen.dart';
 import 'user_guide_screen.dart';
+import 'integration_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -97,6 +98,17 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('Ripristina il database da un file JSON'),
             onTap: () => _confirmImport(context, backupService),
           ),
+          _buildHeader(context, 'Integrazioni'),
+          ListTile(
+            leading: const Icon(Icons.sync_alt),
+            title: const Text('Connetti Strava & Komoot'),
+            subtitle: const Text('Sincronizza le tue attività'),
+            onTap: () => Navigator.push(
+               context,
+               MaterialPageRoute(builder: (context) => const IntegrationSettingsScreen()),
+            ),
+          ),
+          const Divider(),
           _buildHeader(context, 'Supporto & Guida'),
           ListTile(
             leading: const Icon(Icons.help_outline),
@@ -200,4 +212,6 @@ class SettingsScreen extends StatelessWidget {
       }
     }
   }
+
+
 }

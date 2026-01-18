@@ -13,7 +13,7 @@ import 'package:biciclistico/main.dart';
 void main() {
   testWidgets('App launches successfully', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const BiciclisticoApp(showOnboarding: true));
+    await tester.pumpWidget(const BiciclisticoApp());
 
     // Verify that the welcome screen is displayed
     expect(find.text('Benvenuto su Biciclistico'), findsOneWidget);

@@ -23,6 +23,11 @@ class HealthSyncService {
     try {
       final status = await _health.getHealthConnectSdkStatus();
       debugPrint('Health Connect Status: $status');
+
+      if (status == HealthConnectSdkStatus.sdkUnavailable) {
+         debugPrint('Health Connect SDK unavailable. Skipping payload request.');
+         return false;
+      }
       
       return await _health.requestAuthorization(
         types,

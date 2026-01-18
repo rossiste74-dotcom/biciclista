@@ -10,7 +10,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:gpx/gpx.dart'; 
 import 'package:path_provider/path_provider.dart';
 
-
 import '../models/climb.dart';
 import '../models/clothing_item.dart';
 import '../models/planned_ride.dart';
@@ -518,48 +517,53 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   }
 
   Future<void> _shareRide() async {
+    if (_routeData == null || _routeData!['allPoints'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dati percorso non disponibili')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final dir = await getTemporaryDirectory();
-      
-      // 1. Get GPX File
-      String gpxPath;
-      if (widget.plannedRide.gpxFilePath != null && File(widget.plannedRide.gpxFilePath!).existsSync()) {
-        gpxPath = widget.plannedRide.gpxFilePath!;
-      } else {
-        // Regen GPX if needed
-        final gpx = Gpx();
-        final trk = Trk(name: widget.plannedRide.rideName ?? 'Ride Butler Activity');
-        final seg = Trkseg();
-        
-        // Use coordinates from ride data
-        if (_routeData != null && _routeData!['allPoints'] != null) {
-           for (var p in _routeData!['allPoints']) {
-              seg.trkpts.add(Wpt(lat: p['lat'], lon: p['lng']));
-           }
-        }
-        
-        trk.trksegs.add(seg);
-        gpx.trks.add(trk);
-        gpx.creator = 'Ride Butler';
-        gpxPath = '${dir.path}/route.gpx';
-        await File(gpxPath).writeAsString(GpxWriter().asString(gpx, pretty: true));
+      // 1. Prepare GPX
+      final gpx = Gpx();
+      gpx.metadata = Metadata(
+        name: widget.plannedRide.rideName,
+        desc: widget.plannedRide.aiAnalysis ?? 'Percorso pianificato con Biciclista',
+        time: widget.plannedRide.rideDate,
+      );
+      gpx.creator = 'Ride Butler'; // Brand legacy name or Biciclista
+
+      final trk = Trk(name: widget.plannedRide.rideName ?? 'Giro');
+      final trkSeg = Trkseg();
+
+      for (var p in _routeData!['allPoints']) {
+        trkSeg.trkpts.add(
+          Wpt(
+            lat: p['lat'],
+            lon: p['lng'],
+            ele: p['ele']?.toDouble(),
+          ),
+        );
       }
+      trk.trksegs.add(trkSeg);
+      gpx.trks.add(trk);
 
-      // 2. Prepare Text
-      final sb = StringBuffer();
-      sb.writeln('🚴‍♂️ *${widget.plannedRide.rideName ?? "Nuovo Giro"}*');
-      sb.writeln('Guarda il mio percorso pianificato con *Ride Butler*! 🎩');
-      sb.writeln('');
-      sb.writeln('📏 ${widget.plannedRide.distance.toStringAsFixed(1)} km');
-      sb.writeln('⛰️ ${widget.plannedRide.elevation.toStringAsFixed(0)} m D+');
-      sb.writeln('');
-      sb.writeln('Scarica l\'app per unirti!');
+      final gpxString = GpxWriter().asString(gpx, pretty: true);
+      final dir = await getTemporaryDirectory();
+      final filename = 'percorso_${widget.plannedRide.id}.gpx';
+      final gpxPath = '${dir.path}/$filename';
+      
+      final File file = File(gpxPath);
+      await file.writeAsString(gpxString);
 
-      // 3. Share Files (GPX + Text)
+      // 2. Share
       await Share.shareXFiles(
-        [XFile(gpxPath)], 
-        text: sb.toString(),
+        [XFile(gpxPath, mimeType: 'application/gpx+xml')],
+        text: 'Che ne pensi di questa traccia per veri Biciclisti!!! 🚴‍♂️💨 \n\n'
+              '📊 ${widget.plannedRide.distance.toStringAsFixed(1)} km | ⛰️ ${widget.plannedRide.elevation.toInt()} m',
+        subject: widget.plannedRide.rideName ?? 'Condivisione Percorso',
       );
 
     } catch (e) {
@@ -680,214 +684,215 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                     children: [
                       // Map
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        height: _isMapExpanded ? 500 : 200,
-                        child: Stack(
-                          children: [
-                            RouteMapWidget(
-                              routePoints: List<Map<String, double>>.from(
-                                _routeData!['allPoints'] as List,
-                              ),
-                              startPoint: (_routeData!['coordinates']
-                                      as RouteCoordinates)
-                                  .start,
-                              middlePoint: (_routeData!['coordinates']
-                                      as RouteCoordinates)
-                                  .middle,
-                              endPoint:
-                                  (_routeData!['coordinates'] as RouteCoordinates)
-                                      .end,
-                              distance: widget.plannedRide.distance,
-                              elevation: widget.plannedRide.elevation,
-                              additionalMarkers: _showWeatherLayer ? _weatherMapMarkers : null,
-                            ),
-                            // Weather Layer Loading Indicator
-                            if (_isLoadingWeatherLayer)
-                              const Positioned.fill(
-                                child: Center(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: CircularProgressIndicator(),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            height: _isMapExpanded ? 500 : 200,
+                            child: Stack(
+                              children: [
+                                RouteMapWidget(
+                                  routePoints: List<Map<String, double>>.from(
+                                    _routeData!['allPoints'] as List,
+                                  ),
+                                  startPoint: (_routeData!['coordinates']
+                                          as RouteCoordinates)
+                                      .start,
+                                  middlePoint: (_routeData!['coordinates']
+                                          as RouteCoordinates)
+                                      .middle,
+                                  endPoint:
+                                      (_routeData!['coordinates'] as RouteCoordinates)
+                                          .end,
+                                  distance: widget.plannedRide.distance,
+                                  elevation: widget.plannedRide.elevation,
+                                  additionalMarkers: _showWeatherLayer ? _weatherMapMarkers : null,
+                                ),
+                                // Weather Layer Loading Indicator
+                                if (_isLoadingWeatherLayer)
+                                  const Positioned.fill(
+                                    child: Center(
+                                      child: Card(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(8.0),
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            // Expand/Collapse overlay button
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Column(
-                                children: [
-                                  FloatingActionButton.small(
-                                    heroTag: 'map_expand_btn',
-                                    onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
-                                    child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  FloatingActionButton.small(
-                                    heroTag: 'weather_layer_btn',
-                                    backgroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.primary : null,
-                                    foregroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.onPrimary : null,
-                                    onPressed: _toggleWeatherLayer,
-                                    tooltip: 'Meteo sul percorso',
-                                    child: const Icon(Icons.air),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Tap area for expansion if collapsed
-                            if (!_isMapExpanded)
-                              Positioned.fill(
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: () => setState(() => _isMapExpanded = true),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      // Route info
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Informazioni Percorso',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildInfoCard(),
-                            const SizedBox(height: 24),
-
-                            // Elevation Profile Chart
-                            if (_routeData != null && _routeData!['elevationProfile'] != null) ...[
-                              Text(
-                                'Profilo Altimetrico',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildElevationChart(),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Tough Climbs
-                            if (_routeData != null && (_routeData!['climbs'] as List).isNotEmpty) ...[
-                              Text(
-                                'Salite Impegnative',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildClimbsList(),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Advanced Insights
-                            Text(
-                              'Insight Avanzati',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildAdvancedInsights(),
-                            const SizedBox(height: 24),
-                            
-                            // AI Analysis
-                            if (widget.plannedRide.aiAnalysis != null) ...[
-                              Text(
-                                'Analisi Coach AI',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              Card(
-                                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
+                                // Expand/Collapse overlay button
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.psychology,
-                                            color: Theme.of(context).colorScheme.primary,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Analisi Biometrica & Percorso',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).colorScheme.primary,
-                                            ),
-                                          ),
-                                        ],
+                                      FloatingActionButton.small(
+                                        heroTag: 'map_expand_btn',
+                                        onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
+                                        child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
                                       ),
-                                      const Divider(),
-                                      Text(
-                                        widget.plannedRide.aiAnalysis!,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          height: 1.5,
-                                        ),
+                                      const SizedBox(height: 8),
+                                      FloatingActionButton.small(
+                                        heroTag: 'weather_layer_btn',
+                                        backgroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.primary : null,
+                                        foregroundColor: _showWeatherLayer ? Theme.of(context).colorScheme.onPrimary : null,
+                                        onPressed: _toggleWeatherLayer,
+                                        tooltip: 'Meteo sul percorso',
+                                        child: const Icon(Icons.air),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Weather Timeline
-                            if (_weatherPoints.isNotEmpty) ...[
+                                // Tap area for expansion if collapsed
+                                if (!_isMapExpanded)
+                                  Positioned.fill(
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () => setState(() => _isMapExpanded = true),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Route info
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                'Timeline Meteo',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildWeatherTimeline(),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Clothing Advice
-                            if (_outfit != null) ...[
-                              Text(
-                                'Consiglio Abbigliamento',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildClothingCard(),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Notes
-                            Text(
-                              'Note Personali',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _notesController,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                hintText: 'Aggiungi appunti su questa uscita...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  'Informazioni Percorso',
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.check),
-                                  onPressed: _saveNotes,
+                                const SizedBox(height: 16),
+                                _buildInfoCard(),
+                                const SizedBox(height: 24),
+    
+                                // Elevation Profile Chart
+                                if (_routeData != null && _routeData!['elevationProfile'] != null) ...[
+                                  Text(
+                                    'Profilo Altimetrico',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildElevationChart(),
+                                  const SizedBox(height: 24),
+                                ],
+    
+                                // Tough Climbs
+                                if (_routeData != null && (_routeData!['climbs'] as List).isNotEmpty) ...[
+                                  Text(
+                                    'Salite Impegnative',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildClimbsList(),
+                                  const SizedBox(height: 24),
+                                ],
+    
+                                // Advanced Insights
+                                Text(
+                                  'Insight Avanzati',
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                              ),
+                                const SizedBox(height: 16),
+                                _buildAdvancedInsights(),
+                                const SizedBox(height: 24),
+                                
+                                // AI Analysis
+                                if (widget.plannedRide.aiAnalysis != null) ...[
+                                  Text(
+                                    'Analisi Coach AI',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Card(
+                                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.psychology,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Analisi Biometrica & Percorso',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const Divider(),
+                                          Text(
+                                            widget.plannedRide.aiAnalysis!,
+                                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+    
+                                // Weather Timeline
+                                if (_weatherPoints.isNotEmpty) ...[
+                                    Text(
+                                    'Timeline Meteo',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildWeatherTimeline(),
+                                  const SizedBox(height: 24),
+                                ],
+    
+                                // Clothing Advice
+                                if (_outfit != null) ...[
+                                  Text(
+                                    'Consiglio Abbigliamento',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildClothingCard(),
+                                  const SizedBox(height: 24),
+                                ],
+    
+                                // Notes
+                                Text(
+                                  'Note Personali',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _notesController,
+                                  maxLines: 4,
+                                  decoration: InputDecoration(
+                                    hintText: 'Aggiungi appunti su questa uscita...',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.check),
+                                      onPressed: _saveNotes,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 40),
+                              ],
                             ),
-                            const SizedBox(height: 40),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+
     );
   }
 
@@ -1166,6 +1171,10 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       ],
     );
   }
+
+
+
+
 
   Color _getDifficultyColor(double difficulty) {
     if (difficulty < 3) return Colors.green;

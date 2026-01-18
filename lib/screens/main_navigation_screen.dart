@@ -8,6 +8,12 @@ import 'qr_scan_screen.dart';
 import 'profile_screen.dart';
 
 import 'garage_screen.dart';
+import '../services/sync_service.dart';
+import 'package:intl/intl.dart';
+import '../services/database_service.dart';
+import '../models/planned_ride.dart';
+import '../models/bicycle.dart';
+import '../services/notification_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -24,6 +30,149 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const RidesListScreen(),
     const GarageScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
+  }
+
+  Future<void> _checkExternalActivities() async {
+    final syncService = SyncService();
+    // 1. Check if we have credentials (e.g. Strava linked)
+    if (await syncService.isAuthenticated(SyncProvider.strava)) { 
+      try {
+        final activity = await syncService.syncLastActivity();
+        if (activity != null) {
+          _proposeImport(activity);
+        }
+      } catch (e) {
+          debugPrint('Sync Error: $e');
+      }
+    }
+  }
+
+  void _proposeImport(ImportedActivity activity) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Attività Trovata! 🚴'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Trovata nuova attività da ${activity.source}:'),
+            const SizedBox(height: 8),
+            Text('Nome: ${activity.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Data: ${DateFormat('dd/MM HH:mm').format(activity.date)}'),
+            Text('Distanza: ${activity.distance.toStringAsFixed(1)} km'),
+            Text('Velocità Media: ${activity.avgSpeed.toStringAsFixed(1)} km/h'),
+            const SizedBox(height: 16),
+            const Text('Vuoi importarla nel diario?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ignora'),
+          ),
+          FilledButton(
+            onPressed: () {
+               Navigator.pop(ctx);
+               _importActivity(activity);
+            },
+            child: const Text('Importa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importActivity(ImportedActivity activity) async {
+      final db = DatabaseService();
+      
+      // 1. Create PlannedRide entry
+      final newRide = PlannedRide()
+        ..rideName = activity.name
+        ..rideDate = activity.date
+        ..distance = activity.distance
+        ..elevation = activity.elevation
+        ..isCompleted = true // It's already done
+        ..gpxFilePath = null // No GPX file initially, unless we download stream later
+        ..aiAnalysis = 'Imported from ${activity.source} \nMoving Time: ${activity.movingTime ~/ 60} min \nAvg Speed: ${activity.avgSpeed.toStringAsFixed(1)} km/h';
+
+      await db.createPlannedRide(newRide);
+
+      
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attività salvata! Seleziona la bici usata...')));
+         // 2. Prompt for Bike to update stats
+         _showBikeSelectionDialog(newRide);
+      }
+  }
+
+  Future<void> _showBikeSelectionDialog(PlannedRide ride) async {
+    final db = DatabaseService();
+    final bicycles = await db.getAllBicycles();
+
+    if (!mounted) return;
+
+    if (bicycles.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nessuna bici in garage. Km non assegnati.')));
+       return;
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Con quale bici? 🚲'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: bicycles.length,
+            itemBuilder: (context, index) {
+              final bike = bicycles[index];
+              return ListTile(
+                leading: const Icon(Icons.directions_bike),
+                title: Text(bike.name),
+                subtitle: Text('${bike.totalKilometers.toInt()} km totali'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _updateBikeStats(bike, ride.distance, db);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateBikeStats(Bicycle bike, double distance, DatabaseService db) async {
+    bike.totalKilometers += distance;
+    
+    // Update components
+    final notify = NotificationService();
+    for (var component in bike.components) {
+      component.currentKm += distance;
+      
+      // Check limits
+      if (component.limitKm > 0 && component.currentKm >= component.limitKm * 0.9) {
+         await notify.showMaintenanceAlert(
+           id: (bike.id * 1000) + bike.components.indexOf(component), 
+           title: '⚠️ Manutenzione necessaria su ${bike.name}',
+           body: 'Il componente "${component.name}" ha raggiunto ${component.currentKm.toInt()} km. Verifica lo stato!',
+         );
+      }
+    }
+    
+    await db.updateBicycle(bike);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Km aggiunti a ${bike.name} e componenti aggiornati!')));
+    }
+  }
 
   void _showAddMenu() {
     showModalBottomSheet(
