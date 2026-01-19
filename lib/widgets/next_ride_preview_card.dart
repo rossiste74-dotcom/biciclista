@@ -7,14 +7,12 @@ import '../models/outfit_suggestion.dart';
 class NextRidePreviewCard extends StatelessWidget {
   final PlannedRide? ride;
   final OutfitSuggestion? outfit;
-  final VoidCallback onImportPressed;
   final VoidCallback onTap;
 
   const NextRidePreviewCard({
     super.key,
     this.ride,
     this.outfit,
-    required this.onImportPressed,
     required this.onTap,
   });
 
@@ -170,7 +168,7 @@ class NextRidePreviewCard extends StatelessWidget {
         child: Column(
           children: [
             Icon(
-              Icons.add_road,
+              Icons.calendar_today_outlined,
               size: 48,
               color: Theme.of(context).colorScheme.outline,
             ),
@@ -180,12 +178,15 @@ class NextRidePreviewCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: onImportPressed,
-              icon: const Icon(Icons.file_upload_outlined),
-              label: const Text('Importa Percorso GPX'),
+            const SizedBox(height: 8),
+            Text(
+              'Vai nella sezione Attività per pianificare una nuova uscita',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

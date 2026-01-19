@@ -4,10 +4,12 @@ import 'package:gpx/gpx.dart';
 import 'dashboard_screen.dart';
 import 'rides_list_screen.dart';
 import 'settings_screen.dart';
+import 'crew_screen.dart';
 import 'package:biciclistico/screens/gpx_import_screen.dart';
 
 import 'manual_ride_screen.dart';
 import 'qr_scan_screen.dart';
+import 'route_planner_screen.dart';
 import 'profile_screen.dart';
 
 import 'garage_screen.dart';
@@ -32,6 +34,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const DashboardScreen(),
     const RidesListScreen(),
     const GarageScreen(),
+    const CrewScreen(),
   ];
 
   @override
@@ -377,6 +380,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.draw),
+              title: const Text('Disegna su Mappa'),
+              subtitle: const Text('Crea traccia su mappa con Snap-to-Road'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => RoutePlannerScreen()),
+                );
+              },
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -451,6 +465,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: Icon(Icons.garage_outlined),
             selectedIcon: Icon(Icons.garage),
             label: 'Garage',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.group_outlined),
+            selectedIcon: Icon(Icons.group),
+            label: 'Crew',
           ),
         ],
       ),

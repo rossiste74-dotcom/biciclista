@@ -100,6 +100,14 @@ class UserProfile {
   /// Timestamp of last health sync
   DateTime? lastHealthSync;
 
+  // ==================== Community Mode & Cloud Sync ====================
+  /// Whether the user has enabled Community mode (Supabase sync)
+  bool isCommunityMode = false;
+  
+  /// Supabase user ID for cloud sync (null if in Autonomous mode)
+  String? supabaseUserId;
+
+
   // ==================== AI Configuration ====================
   /// Selected AI provider for AI Coach feature (stored as byte index, 255 = not set)
   @Index()

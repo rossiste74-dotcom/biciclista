@@ -105,7 +105,7 @@ class AlertRule {
   String get defaultVoiceMessage {
     switch (eventType) {
       case AlertEventType.offCourse:
-        return 'Attenzione, sei fuori percorso';
+        return 'Ehi, dove vai? La strada è dall\'altra parte, torna sulla traccia!';
       case AlertEventType.distanceToFinish:
         if (triggerValue != null) {
           final km = triggerValue!.toInt();

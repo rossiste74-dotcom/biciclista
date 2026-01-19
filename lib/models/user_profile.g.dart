@@ -122,74 +122,84 @@ const UserProfileSchema = CollectionSchema(
       name: r'hrv',
       type: IsarType.long,
     ),
-    r'lastHealthSync': PropertySchema(
+    r'isCommunityMode': PropertySchema(
       id: 21,
+      name: r'isCommunityMode',
+      type: IsarType.bool,
+    ),
+    r'lastHealthSync': PropertySchema(
+      id: 22,
       name: r'lastHealthSync',
       type: IsarType.dateTime,
     ),
     r'maintenanceDefinitions': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'maintenanceDefinitions',
       type: IsarType.objectList,
       target: r'MaintenanceDefinition',
     ),
     r'name': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'name',
       type: IsarType.string,
     ),
     r'offCourseThresholdM': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'offCourseThresholdM',
       type: IsarType.double,
     ),
     r'preferredUnit': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'preferredUnit',
       type: IsarType.string,
     ),
     r'restingHeartRate': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'restingHeartRate',
       type: IsarType.long,
     ),
     r'sensitivityAdjustment': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'sensitivityAdjustment',
       type: IsarType.double,
     ),
     r'sleepHours': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'sleepHours',
       type: IsarType.double,
     ),
+    r'supabaseUserId': PropertySchema(
+      id: 30,
+      name: r'supabaseUserId',
+      type: IsarType.string,
+    ),
     r'thermalSensitivity': PropertySchema(
-      id: 29,
+      id: 31,
       name: r'thermalSensitivity',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 30,
+      id: 32,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'veryColdKit': PropertySchema(
-      id: 31,
+      id: 33,
       name: r'veryColdKit',
       type: IsarType.longList,
     ),
     r'warmKit': PropertySchema(
-      id: 32,
+      id: 34,
       name: r'warmKit',
       type: IsarType.longList,
     ),
     r'warmThreshold': PropertySchema(
-      id: 33,
+      id: 35,
       name: r'warmThreshold',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 34,
+      id: 36,
       name: r'weight',
       type: IsarType.double,
     )
@@ -284,6 +294,12 @@ int _userProfileEstimateSize(
     }
   }
   bytesCount += 3 + object.preferredUnit.length * 3;
+  {
+    final value = object.supabaseUserId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.veryColdKit.length * 8;
   bytesCount += 3 + object.warmKit.length * 8;
   return bytesCount;
@@ -316,25 +332,27 @@ void _userProfileSerialize(
   writer.writeLongList(offsets[18], object.hotKit);
   writer.writeDouble(offsets[19], object.hotThreshold);
   writer.writeLong(offsets[20], object.hrv);
-  writer.writeDateTime(offsets[21], object.lastHealthSync);
+  writer.writeBool(offsets[21], object.isCommunityMode);
+  writer.writeDateTime(offsets[22], object.lastHealthSync);
   writer.writeObjectList<MaintenanceDefinition>(
-    offsets[22],
+    offsets[23],
     allOffsets,
     MaintenanceDefinitionSchema.serialize,
     object.maintenanceDefinitions,
   );
-  writer.writeString(offsets[23], object.name);
-  writer.writeDouble(offsets[24], object.offCourseThresholdM);
-  writer.writeString(offsets[25], object.preferredUnit);
-  writer.writeLong(offsets[26], object.restingHeartRate);
-  writer.writeDouble(offsets[27], object.sensitivityAdjustment);
-  writer.writeDouble(offsets[28], object.sleepHours);
-  writer.writeLong(offsets[29], object.thermalSensitivity);
-  writer.writeDateTime(offsets[30], object.updatedAt);
-  writer.writeLongList(offsets[31], object.veryColdKit);
-  writer.writeLongList(offsets[32], object.warmKit);
-  writer.writeDouble(offsets[33], object.warmThreshold);
-  writer.writeDouble(offsets[34], object.weight);
+  writer.writeString(offsets[24], object.name);
+  writer.writeDouble(offsets[25], object.offCourseThresholdM);
+  writer.writeString(offsets[26], object.preferredUnit);
+  writer.writeLong(offsets[27], object.restingHeartRate);
+  writer.writeDouble(offsets[28], object.sensitivityAdjustment);
+  writer.writeDouble(offsets[29], object.sleepHours);
+  writer.writeString(offsets[30], object.supabaseUserId);
+  writer.writeLong(offsets[31], object.thermalSensitivity);
+  writer.writeDateTime(offsets[32], object.updatedAt);
+  writer.writeLongList(offsets[33], object.veryColdKit);
+  writer.writeLongList(offsets[34], object.warmKit);
+  writer.writeDouble(offsets[35], object.warmThreshold);
+  writer.writeDouble(offsets[36], object.weight);
 }
 
 UserProfile _userProfileDeserialize(
@@ -366,26 +384,28 @@ UserProfile _userProfileDeserialize(
   object.hotThreshold = reader.readDouble(offsets[19]);
   object.hrv = reader.readLong(offsets[20]);
   object.id = id;
-  object.lastHealthSync = reader.readDateTimeOrNull(offsets[21]);
+  object.isCommunityMode = reader.readBool(offsets[21]);
+  object.lastHealthSync = reader.readDateTimeOrNull(offsets[22]);
   object.maintenanceDefinitions = reader.readObjectList<MaintenanceDefinition>(
-        offsets[22],
+        offsets[23],
         MaintenanceDefinitionSchema.deserialize,
         allOffsets,
         MaintenanceDefinition(),
       ) ??
       [];
-  object.name = reader.readStringOrNull(offsets[23]);
-  object.offCourseThresholdM = reader.readDouble(offsets[24]);
-  object.preferredUnit = reader.readString(offsets[25]);
-  object.restingHeartRate = reader.readLong(offsets[26]);
-  object.sensitivityAdjustment = reader.readDouble(offsets[27]);
-  object.sleepHours = reader.readDouble(offsets[28]);
-  object.thermalSensitivity = reader.readLong(offsets[29]);
-  object.updatedAt = reader.readDateTime(offsets[30]);
-  object.veryColdKit = reader.readLongList(offsets[31]) ?? [];
-  object.warmKit = reader.readLongList(offsets[32]) ?? [];
-  object.warmThreshold = reader.readDouble(offsets[33]);
-  object.weight = reader.readDouble(offsets[34]);
+  object.name = reader.readStringOrNull(offsets[24]);
+  object.offCourseThresholdM = reader.readDouble(offsets[25]);
+  object.preferredUnit = reader.readString(offsets[26]);
+  object.restingHeartRate = reader.readLong(offsets[27]);
+  object.sensitivityAdjustment = reader.readDouble(offsets[28]);
+  object.sleepHours = reader.readDouble(offsets[29]);
+  object.supabaseUserId = reader.readStringOrNull(offsets[30]);
+  object.thermalSensitivity = reader.readLong(offsets[31]);
+  object.updatedAt = reader.readDateTime(offsets[32]);
+  object.veryColdKit = reader.readLongList(offsets[33]) ?? [];
+  object.warmKit = reader.readLongList(offsets[34]) ?? [];
+  object.warmThreshold = reader.readDouble(offsets[35]);
+  object.weight = reader.readDouble(offsets[36]);
   return object;
 }
 
@@ -439,8 +459,10 @@ P _userProfileDeserializeProp<P>(
     case 20:
       return (reader.readLong(offset)) as P;
     case 21:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 22:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 23:
       return (reader.readObjectList<MaintenanceDefinition>(
             offset,
             MaintenanceDefinitionSchema.deserialize,
@@ -448,29 +470,31 @@ P _userProfileDeserializeProp<P>(
             MaintenanceDefinition(),
           ) ??
           []) as P;
-    case 23:
-      return (reader.readStringOrNull(offset)) as P;
     case 24:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 25:
-      return (reader.readString(offset)) as P;
-    case 26:
-      return (reader.readLong(offset)) as P;
-    case 27:
       return (reader.readDouble(offset)) as P;
+    case 26:
+      return (reader.readString(offset)) as P;
+    case 27:
+      return (reader.readLong(offset)) as P;
     case 28:
       return (reader.readDouble(offset)) as P;
     case 29:
-      return (reader.readLong(offset)) as P;
-    case 30:
-      return (reader.readDateTime(offset)) as P;
-    case 31:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 32:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 33:
       return (reader.readDouble(offset)) as P;
+    case 30:
+      return (reader.readStringOrNull(offset)) as P;
+    case 31:
+      return (reader.readLong(offset)) as P;
+    case 32:
+      return (reader.readDateTime(offset)) as P;
+    case 33:
+      return (reader.readLongList(offset) ?? []) as P;
     case 34:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 35:
+      return (reader.readDouble(offset)) as P;
+    case 36:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2631,6 +2655,16 @@ extension UserProfileQueryFilter
   }
 
   QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      isCommunityModeEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isCommunityMode',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
       lastHealthSyncIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3327,6 +3361,160 @@ extension UserProfileQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'supabaseUserId',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'supabaseUserId',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'supabaseUserId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'supabaseUserId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'supabaseUserId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supabaseUserId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      supabaseUserIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'supabaseUserId',
+        value: '',
       ));
     });
   }
@@ -4109,6 +4297,19 @@ extension UserProfileQuerySortBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByIsCommunityMode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCommunityMode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByIsCommunityModeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCommunityMode', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByLastHealthSync() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastHealthSync', Sort.asc);
@@ -4198,6 +4399,19 @@ extension UserProfileQuerySortBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortBySleepHoursDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sleepHours', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortBySupabaseUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortBySupabaseUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseUserId', Sort.desc);
     });
   }
 
@@ -4498,6 +4712,19 @@ extension UserProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByIsCommunityMode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCommunityMode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByIsCommunityModeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCommunityMode', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByLastHealthSync() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastHealthSync', Sort.asc);
@@ -4587,6 +4814,19 @@ extension UserProfileQuerySortThenBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenBySleepHoursDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sleepHours', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenBySupabaseUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenBySupabaseUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseUserId', Sort.desc);
     });
   }
 
@@ -4781,6 +5021,13 @@ extension UserProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QDistinct>
+      distinctByIsCommunityMode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isCommunityMode');
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByLastHealthSync() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastHealthSync');
@@ -4826,6 +5073,14 @@ extension UserProfileQueryWhereDistinct
   QueryBuilder<UserProfile, UserProfile, QDistinct> distinctBySleepHours() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sleepHours');
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctBySupabaseUserId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'supabaseUserId',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -5005,6 +5260,12 @@ extension UserProfileQueryProperty
     });
   }
 
+  QueryBuilder<UserProfile, bool, QQueryOperations> isCommunityModeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isCommunityMode');
+    });
+  }
+
   QueryBuilder<UserProfile, DateTime?, QQueryOperations>
       lastHealthSyncProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -5054,6 +5315,13 @@ extension UserProfileQueryProperty
   QueryBuilder<UserProfile, double, QQueryOperations> sleepHoursProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sleepHours');
+    });
+  }
+
+  QueryBuilder<UserProfile, String?, QQueryOperations>
+      supabaseUserIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'supabaseUserId');
     });
   }
 

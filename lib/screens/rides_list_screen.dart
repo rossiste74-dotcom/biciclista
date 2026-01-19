@@ -5,6 +5,7 @@ import '../models/planned_ride.dart';
 import '../services/database_service.dart';
 import 'route_detail_screen.dart';
 import 'gpx_import_screen.dart';
+import 'tracks_library_screen.dart';
 import 'package:isar/isar.dart';
 
 class RidesListScreen extends StatefulWidget {
@@ -60,12 +61,13 @@ class _RidesListScreenState extends State<RidesListScreen> {
     final completedRides = _rides.where((r) => r.isCompleted).toList();
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 0, // Hide main toolbar as it's often in a nested navigation
+          title: const Text('Attività'),
           bottom: const TabBar(
             tabs: [
+              Tab(text: 'Le Mie Tracce', icon: Icon(Icons.folder_open)),
               Tab(text: 'Pianificati', icon: Icon(Icons.calendar_today_outlined)),
               Tab(text: 'Effettuati', icon: Icon(Icons.history_outlined)),
             ],
@@ -73,6 +75,7 @@ class _RidesListScreenState extends State<RidesListScreen> {
         ),
         body: TabBarView(
           children: [
+            const TracksLibraryScreen(),
             _buildRideList(plannedRides, 'Nessun giro pianificato'),
             _buildRideList(completedRides, 'Nessuna attività completata'),
           ],
@@ -99,21 +102,6 @@ class _RidesListScreenState extends State<RidesListScreen> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-            if (emptyMessage.contains('pianificato')) ...[
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GpxImportScreen()),
-                  );
-                  if (result != null) {
-                    _loadRides();
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Importa GPX'),
-              ),
-            ],
           ],
         ),
       );

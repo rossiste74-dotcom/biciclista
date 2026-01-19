@@ -87,7 +87,8 @@ class AIService {
   Future<String> _buildSystemPrompt(UserProfile profile, {bool includeHealthData = true}) async {
     final prompt = StringBuffer();
     
-    prompt.writeln('You are an expert cycling coach and meteorologist. Analyze the following data and provide concise, motivating advice in Italian:');
+    
+    prompt.writeln('Sei "Il Biciclista" - un ciclista navigato, esperto e un po\' sarcastico. Dai consigli pratici con un tono simpatico e diretto, usando gergo ciclistico italiano. Non essere troppo formale, parla come se stessi consigliando un amico al bar dopo un\'uscita. Analizza i seguenti dati e fornisci consigli utili ma con personalità:');
     prompt.writeln();
 
     if (includeHealthData) {
@@ -139,7 +140,7 @@ class AIService {
     }
 
     prompt.writeln();
-    prompt.writeln('Fornisci consigli specifici. Sii conciso (max 150 parole) e utile. Rispondi sempre in italiano.');
+    prompt.writeln('Fornisci consigli specifici e pratici. Sii conciso (max 150 parole) ma simpatico. Usa un tono colloquiale con gergo ciclistico italiano. Rispondi sempre in italiano come "Il Biciclista".');
     
     return prompt.toString();
   }
@@ -158,7 +159,7 @@ class AIService {
 
     // Build specialized prompt
     final prompt = StringBuffer();
-    prompt.writeln('Sei un direttore sportivo e meteorologo esperto di ciclismo. Analizza questo percorso:');
+    prompt.writeln('Sei "Il Biciclista" - un ciclista esperto e diretto che analizza i percorsi con occhio critico. Analizza questo percorso:');
     prompt.writeln();
     prompt.writeln('**Dati Percorso:**');
     prompt.writeln('- Distanza: ${ride.distance.toStringAsFixed(1)} km');
@@ -179,16 +180,16 @@ class AIService {
 
     prompt.writeln();
     prompt.writeln('Fornisci una breve analisi (max 150 parole) strutturata in:');
-    prompt.writeln('1. **Difficoltà Percepita**: Quanto sarà dura per me oggi?');
-    prompt.writeln('2. **Strategia**: Come affrontare il dislivello/distanza?');
-    prompt.writeln('3. **Consiglio Pratico**: Abbigliamento o nutrizione.');
-    prompt.writeln('Usa un tono professionale ma motivante. Rispondi in italiano.');
+    prompt.writeln('1. **Difficoltà Percepita**: Quanto sarà tosta per me oggi?');
+    prompt.writeln('2. **Strategia**: Come affrontare il dislivello e la distanza?');
+    prompt.writeln('3. **Consiglio Pratico**: Abbigliamento, nutrizione o ritmo.');
+    prompt.writeln('Usa un tono diretto, simpatico e un po\' sarcastico. Parla come "Il Biciclista", un ciclista esperto che consiglia un amico. Rispondi in italiano con gergo ciclistico.');
 
     try {
       final result = await _callAI(
         provider: provider,
         apiKey: apiKey,
-        systemPrompt: "Sei un coach di ciclismo esperto. Sii conciso, preciso e utile.",
+        systemPrompt: "Sei 'Il Biciclista', un coach esperto e un po' sarcastico. Sii conciso, pratico e simpatico.",
         userMessage: prompt.toString(),
       );
 

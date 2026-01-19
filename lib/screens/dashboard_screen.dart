@@ -14,6 +14,11 @@ import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
 import '../widgets/metric_sparkline_chart.dart';
 import '../widgets/ai_coach_card.dart';
+import '../widgets/biciclista_wisdom.dart';
+import '../widgets/biciclista_stats.dart';
+import '../widgets/biciclista_maintenance.dart';
+import '../widgets/biciclista_weather.dart';
+import '../widgets/biciclista_challenge.dart';
 import 'gpx_import_screen.dart';
 import 'route_detail_screen.dart';
 import 'route_planner_screen.dart';
@@ -137,11 +142,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showNewRideOptions,
-        label: const Text('Nuovo Giro'),
-        icon: const Icon(Icons.add_location_alt),
-      ),
       body: SafeArea(
         child: _isLoading 
           ? const Center(child: CircularProgressIndicator())
@@ -153,6 +153,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(16),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
+                        // Show BiciclistaWisdom first if no ride is planned
+                        if (_nextRide == null) ...[
+                          const BiciclistaWisdom(),
+                          const SizedBox(height: 24),
+                        ],
                         _buildStatsSection(),
                         const SizedBox(height: 24),
                         _buildBiometricStatsSection(),
@@ -166,6 +171,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildTotalReadinessTrend(),
                         const SizedBox(height: 24),
                         _buildTrendsSection(),
+                        const SizedBox(height: 24),
+                        // Il Biciclista widgets at the bottom
+                        BiciclistaStats(
+                          weeklyKm: _weeklyKm,
+                          weeklyRides: _totalRides, // Using total for now, could filter weekly
+                        ),
+                        const SizedBox(height: 24),
+                        _buildWeatherWidget(),
+                        const SizedBox(height: 24),
+                        _buildMaintenanceWidget(),
+                        const SizedBox(height: 24),
+                        BiciclistaChallenge(
+                          challengeTitle: '100 km questa settimana',
+                          targetValue: 100,
+                          currentValue: _weeklyKm,
+                        ),
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -337,12 +358,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return NextRidePreviewCard(
       ride: _nextRide,
       outfit: _outfitSuggestion,
-      onImportPressed: () async {
-        final result = await Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const GpxImportScreen()),
-        );
-        if (result != null) _loadAllData();
-      },
       onTap: () async {
         if (_nextRide != null) {
           final result = await Navigator.of(context).push(
@@ -464,45 +479,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showNewRideOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.upload_file, size: 28),
-              title: const Text('Importa GPX'),
-              subtitle: const Text('Carica un file esistente'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const GpxImportScreen()),
-                );
-                if (result != null) _loadAllData();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.draw, size: 28),
-              title: const Text('Disegna Percorso'),
-              subtitle: const Text('Crea traccia su mappa con Snap-to-Road'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final result = await Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (_) => const RoutePlannerScreen())
-                );
-                if (result == true) _loadAllData();
-              },
-            ),
-          ],
-        ),
-      ),
+  Widget _buildWeatherWidget() {
+    // Use outfit suggestion weather data if available, otherwise defaults
+    final temp = _outfitSuggestion?.temperature ?? 15.0;
+    final windSpeed = _outfitSuggestion?.windSpeed ?? 0.0;
+    
+    return BiciclistaWeather(
+      temperature: temp,
+      isRaining: false, // Could be enhanced with weather service
+      windSpeed: windSpeed,
+    );
+  }
+
+  Widget _buildMaintenanceWidget() {
+    // Check if there are any bikes with components near limit
+    // For now, show "all OK" - this could be enhanced to check actual bike data
+    return const BiciclistaMaintenance(
+      allOk: true,
     );
   }
 }

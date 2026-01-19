@@ -186,50 +186,50 @@ class OutfitService {
   }) {
     final reasons = <String>[];
 
-    // Temperature reasoning
+    // Temperature reasoning with sarcastic tone
     if (weather.temperature != adjustedTemp) {
       final diff = (weather.temperature - adjustedTemp).abs();
       if (thermalSensitivity > 3) {
         reasons.add(
-          'Percepisci più freddo della media, ho abbassato la temperatura di riferimento di ${diff.toStringAsFixed(1)}°C',
+          'Vedo che sei freddoloso, eh? Ho abbassato i gradi di ${diff.toStringAsFixed(1)}°C per non farti congelare',
         );
       } else if (thermalSensitivity < 3) {
         reasons.add(
-          'Tolleri bene il freddo, ho alzato la temperatura di riferimento di ${diff.toStringAsFixed(1)}°C',
+          'Si vede che sei tosto col freddo! Ho alzato di ${diff.toStringAsFixed(1)}°C, tanto tu esci anche in canottiera',
         );
       }
     }
 
-    // Base temperature reasoning
+    // Base temperature reasoning with cycling jargon
     if (adjustedTemp > hotThreshold) {
-      reasons.add('Condizioni calde - kit estivo ideale');
+      reasons.add('Fa caldo, mica poco! Kit estivo d\'obbligo, sennò ti sciogli come un gelato al sole');
     } else if (adjustedTemp >= warmThreshold) {
-      reasons.add('Temperature gradevoli - kit estivo consigliato');
+      reasons.add('Temperature da ciclista felice - kit estivo e via, che tanto dopo 10 minuti stai sudando');
     } else if (adjustedTemp >= coolThreshold) {
-      reasons.add('Fresco - consigliate le maniche lunghe');
+      reasons.add('Freschetto oggi - maniche lunghe e magari i manicotti, che poi in salita li togli');
     } else if (adjustedTemp >= coldThreshold) {
-      reasons.add('Freddo - necessaria giacca termica e gambali');
+      reasons.add('Fa freddo sul serio - giacca termica e gambali, mica siamo dei kamikaze');
     } else {
-      reasons.add('Molto freddo - abbigliamento invernale completo essenziale');
+      reasons.add('Fa un freddo cane! Abbigliamento invernale completo o te lo scordi di tornare con tutte le dita');
     }
 
-    // Wind reasoning
+    // Wind reasoning with personality
     if (weather.isVeryWindy) {
-      reasons.add('Vento forte (${weather.windSpeed.toStringAsFixed(0)}km/h) - antivento essenziale');
+      reasons.add('Vento forte da ${weather.windSpeed.toStringAsFixed(0)}km/h - antivento obbligatorio, sennò ti ritrovi a pedalare all\'indietro');
     } else if (weather.isWindy) {
-      reasons.add('Vento moderato (${weather.windSpeed.toStringAsFixed(0)}km/h) - gilet raccomandato');
+      reasons.add('C\'è venticello (${weather.windSpeed.toStringAsFixed(0)}km/h) - metti il gilet, che in discesa ti geli');
     }
 
     // Elevation reasoning
     if (elevationGain != null && elevationGain > 500) {
       reasons.add(
-        'Dislivello significativo (${elevationGain.toStringAsFixed(0)}m) - antivento per le discese',
+        'Con ${elevationGain.toStringAsFixed(0)}m di dislivello l\'antivento te lo metti nello zaino - in salita lo maledici, in discesa lo benedici',
       );
     }
 
     // Rain reasoning
     if (weather.isRainy) {
-      reasons.add('Pioggia prevista - protezione impermeabile inclusa');
+      reasons.add('Pioggia in arrivo - impermeabile essenziale, a meno che non ti piaccia sembrare un topo annegato');
     }
 
     return '${reasons.join('. ')}.';

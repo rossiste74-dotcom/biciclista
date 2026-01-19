@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:biciclistico/screens/splash_screen.dart'; // Import SplashScreen
+import 'package:biciclistico/services/supabase_config.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-void main() {
+void main() async {
   // minimal binding
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase if configured
+  if (SupabaseConfig.isConfigured) {
+    try {
+      await SupabaseConfig.initialize();
+      debugPrint('Supabase initialized successfully');
+    } catch (e) {
+      debugPrint('Supabase initialization failed: $e');
+    }
+  }
+  
   // Date formatting can be awaited here or in splash, but usually fast enough.
   // We'll keep it here but without awaiting DB/Services.
   initializeDateFormatting('it_IT', null).then((_) {

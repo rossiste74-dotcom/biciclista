@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../models/planned_ride.dart';
+import '../models/track.dart';
 import '../models/health_snapshot.dart';
 import '../models/alert_rule.dart';
 
@@ -32,6 +33,7 @@ class DatabaseService {
         UserProfileSchema,
         BicycleSchema,
         PlannedRideSchema,
+        TrackSchema,
         HealthSnapshotSchema,
         AlertRuleSchema,
       ],

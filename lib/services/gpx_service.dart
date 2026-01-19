@@ -6,8 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../models/route_coordinates.dart';
 import '../models/planned_ride.dart';
+import '../models/track.dart';
 import '../models/climb.dart';
 import 'database_service.dart';
+import 'track_service.dart';
 
 /// Service for importing and parsing GPX files
 class GpxService {
@@ -63,7 +65,11 @@ class GpxService {
     // Convert all waypoints to LatLng for map display
     final allPoints = waypoints
         .where((wpt) => wpt.lat != null && wpt.lon != null)
-        .map((wpt) => {'lat': wpt.lat!, 'lng': wpt.lon!})
+        .map((wpt) => {
+          'lat': wpt.lat!, 
+          'lng': wpt.lon!,
+          'ele': wpt.ele ?? 0.0,
+        })
         .toList();
 
     final elevationProfile = _getElevationProfile(waypoints);
@@ -401,6 +407,52 @@ class GpxService {
       return plannedRide;
     } catch (e) {
       // Re-throw with more context
+      throw Exception('Failed to process GPX file: $e');
+    }
+  }
+
+  /// Create Track only (no scheduling)
+  ///
+  /// Returns the created Track or null if cancelled/failed
+  Future<Track?> createTrackFromGpx() async {
+    // Step 1: Import GPX file
+    final gpxFile = await importGpxFile();
+    if (gpxFile == null) {
+      return null; // User cancelled
+    }
+
+    try {
+      final gpxData = await parseGpxFile(gpxFile);
+
+      // Step 2: Save GPX file locally
+      final localPath = await saveGpxLocally(gpxFile);
+      final trackName = path.basenameWithoutExtension(localPath);
+
+      // Step 3: Detect terrain type (basic heuristic)
+      final distance = gpxData['distance'] as double;
+      final elevation = gpxData['elevation'] as double;
+      final elevationRatio = distance > 0 ? elevation / (distance * 1000) : 0;
+      
+      String terrainType = 'road';
+      if (elevationRatio > 0.02) {
+        terrainType = 'mtb'; // High elevation ratio suggests MTB
+      } else if (trackName.toLowerCase().contains('gravel')) {
+        terrainType = 'gravel';
+      }
+
+      // Step 4: Create Track using TrackService
+      final trackService = TrackService();
+      final track = await trackService.createTrack(
+        name: trackName,
+        gpxFilePath: localPath,
+        distance: distance,
+        elevation: elevation,
+        terrainType: terrainType,
+        source: 'manual',
+      );
+
+      return track;
+    } catch (e) {
       throw Exception('Failed to process GPX file: $e');
     }
   }

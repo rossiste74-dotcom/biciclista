@@ -5,9 +5,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gpx/gpx.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import '../services/route_planning_service.dart';
 import '../services/database_service.dart';
+import '../services/track_service.dart';
 import '../models/planned_ride.dart';
+import '../models/track.dart';
 
 class RoutePlannerScreen extends StatefulWidget {
   const RoutePlannerScreen({super.key});
@@ -36,6 +39,10 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   String? _graphHopperKey;
   
   bool _isLoading = false;
+  
+  // Schedule toggle
+  bool _scheduleNow = false;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
 
   @override
   void initState() {
@@ -220,68 +227,190 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
      // Helper ...
   }
   
+  void _showSaveDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Salva Percorso'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_totalDistanceKm.toStringAsFixed(1)} km • ${_totalElevationM.toStringAsFixed(0)} m',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Divider(height: 24),
+              
+              // Schedule toggle
+              SwitchListTile(
+                value: _scheduleNow,
+                onChanged: (value) {
+                  setDialogState(() => _scheduleNow = value);
+                },
+                title: const Text('Pianifica subito'),
+                subtitle: const Text('Assegna una data a questa traccia'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              
+              // Date picker (conditional)
+              if (_scheduleNow) ...[
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.event),
+                  title: const Text('Data Uscita'),
+                  subtitle: Text(
+                    DateFormat('EEEE, d MMMM y', 'it_IT').format(_selectedDate),
+                  ),
+                  trailing: const Icon(Icons.edit),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setDialogState(() => _selectedDate = date);
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _saveGpx();
+              },
+              child: const Text('Salva'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   Future<void> _saveGpx() async {
     if (_allPoints.length < 2) return;
     
-    // 1. Create GPX content
-    final gpx = Gpx();
-    final trk = Trk(name: 'Percorso Disegnato ${DateTime.now().day}/${DateTime.now().month}');
-    final seg = Trkseg();
+    setState(() => _isLoading = true);
     
-    for (final p in _allPoints) {
-      seg.trkpts.add(Wpt(lat: p.latitude, lon: p.longitude, ele: 0));
-    }
-    
-    trk.trksegs.add(seg);
-    gpx.trks.add(trk);
-    gpx.creator = 'Biciclista App';
-    
-    final gpxString = GpxWriter().asString(gpx, pretty: true);
-    
-    // 2. Save to file
-    final dir = await getApplicationDocumentsDirectory();
-    final gpxDir = Directory('${dir.path}/gpx_files');
-    if (!await gpxDir.exists()) {
-      await gpxDir.create(recursive: true);
-    }
-    
-    final fileName = 'route_${DateTime.now().millisecondsSinceEpoch}.gpx';
-    final file = File('${gpxDir.path}/$fileName');
-    await file.writeAsString(gpxString);
-    
-    // 3. Create PlannedRide in Database
     try {
-      final db = DatabaseService(); // Can optimize by creating in initState
-      // Calculate simple bbox center for lat/lng
+      // 1. Create GPX content
+      final gpx = Gpx();
+      final trk = Trk(name: 'Percorso Disegnato ${DateTime.now().day}/${DateTime.now().month}');
+      final seg = Trkseg();
+      
+      for (final p in _allPoints) {
+        seg.trkpts.add(Wpt(lat: p.latitude, lon: p.longitude, ele: 0));
+      }
+      
+      trk.trksegs.add(seg);
+      gpx.trks.add(trk);
+      gpx.creator = 'Biciclista App';
+      
+      final gpxString = GpxWriter().asString(gpx, pretty: true);
+      
+      // 2. Save to file
+      final dir = await getApplicationDocumentsDirectory();
+      final gpxDir = Directory('${dir.path}/gpx_files');
+      if (!await gpxDir.exists()) {
+        await gpxDir.create(recursive: true);
+      }
+      
+      final fileName = 'route_${DateTime.now().millisecondsSinceEpoch}.gpx';
+      final file = File('${gpxDir.path}/$fileName');
+      await file.writeAsString(gpxString);
+      
+      // 3. Detect terrain from profile
+      String terrainType = 'road';
+      if (_selectedProfile == RouteProfile.gravel) terrainType = 'gravel';
+      if (_selectedProfile == RouteProfile.mtb) terrainType = 'mtb';
+      
+      // 4. Calculate center for lat/lng
       double sumLat = 0;
       double sumLng = 0;
       for (var p in _allPoints) {
         sumLat += p.latitude;
         sumLng += p.longitude;
       }
+      final centerLat = sumLat / _allPoints.length;
+      final centerLng = sumLng / _allPoints.length;
       
-      final plannedRide = PlannedRide()
-        ..rideDate = DateTime.now().add(const Duration(days: 1)) // Default tomorrow
-        ..rideName = 'Giro Disegnato'
-        ..gpxFilePath = file.path
-        ..distance = _totalDistanceKm
-        ..elevation = _totalElevationM
-        ..latitude = sumLat / _allPoints.length
-        ..longitude = sumLng / _allPoints.length;
-        
-      await db.createPlannedRide(plannedRide);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Percorso salvato e aggiunto ai Giri Pianificati!'))
+      if (_scheduleNow) {
+        // Create Track + PlannedRide
+        final trackService = TrackService();
+        final track = await trackService.createTrack(
+          name: 'Percorso Disegnato',
+          gpxFilePath: file.path,
+          distance: _totalDistanceKm,
+          elevation: _totalElevationM,
+          terrainType: terrainType,
+          source: 'manual',
         );
-        Navigator.pop(context, true); // Return success
+        
+        final db = DatabaseService();
+        final plannedRide = PlannedRide()
+          ..trackId = track.id
+          ..rideDate = _selectedDate
+          ..rideName = 'Giro Disegnato'
+          ..distance = _totalDistanceKm
+          ..elevation = _totalElevationM
+          ..latitude = centerLat
+          ..longitude = centerLng
+          ..gpxFilePath = file.path;
+        
+        plannedRide.track.value = track;
+        await db.createPlannedRide(plannedRide);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Uscita pianificata e salvata!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        // Create Track only
+        final trackService = TrackService();
+        await trackService.createTrack(
+          name: 'Percorso Disegnato',
+          gpxFilePath: file.path,
+          distance: _totalDistanceKm,
+          elevation: _totalElevationM,
+          terrainType: terrainType,
+          source: 'manual',
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Traccia salvata in "Le Mie Tracce"!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore salvataggio DB: $e'))
+          SnackBar(content: Text('Errore salvataggio: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -306,7 +435,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
 
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: _segments.isEmpty ? null : _saveGpx,
+            onPressed: _segments.isEmpty ? null : () => _showSaveDialog(),
           )
         ],
       ),

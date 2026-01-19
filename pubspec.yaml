@@ -81,6 +81,10 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_appauth: ^11.0.0
   flutter_secure_storage: ^10.0.0
+  
+  # Cloud Persistence
+  supabase_flutter: ^2.8.0
+
 
 dev_dependencies:
   flutter_test:

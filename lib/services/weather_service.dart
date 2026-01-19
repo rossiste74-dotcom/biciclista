@@ -63,4 +63,83 @@ class WeatherService {
       throw Exception('Error fetching weather: $e');
     }
   }
+
+  /// Fetch hourly forecast for the next few days
+  /// 
+  /// Returns a list of hourly data points
+  Future<List<Map<String, dynamic>>> getHourlyForecast(double lat, double lng) async {
+    final url = Uri.parse(
+      '$_baseUrl?latitude=$lat&longitude=$lng&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code&timezone=auto&forecast_days=7',
+    );
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final hourly = data['hourly'];
+        final times = hourly['time'] as List;
+        
+        final List<Map<String, dynamic>> result = [];
+        
+        for (int i = 0; i < times.length; i++) {
+          result.add({
+            'dt': DateTime.parse(times[i]).millisecondsSinceEpoch ~/ 1000,
+            'main': {
+              'temp': (hourly['temperature_2m'][i] as num).toDouble(),
+            },
+            'wind': {
+              'speed': (hourly['wind_speed_10m'][i] as num).toDouble(),
+              'deg': (hourly['wind_direction_10m'][i] as num).toDouble(),
+            },
+            'weather': [
+              {
+                'id': (hourly['weather_code'][i] as num).toInt(),
+                'main': _getWeatherMain((hourly['weather_code'][i] as num).toInt()),
+                'icon': _getWeatherIcon((hourly['weather_code'][i] as num).toInt()),
+              }
+            ],
+            'precipitation': (hourly['precipitation'][i] as num).toDouble(),
+          });
+        }
+        
+        return result;
+      } else {
+        throw Exception('Failed to load weather data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching hourly forecast: $e');
+      return [];
+    }
+  }
+
+  String _getWeatherMain(int code) {
+    if (code == 0) return 'Clear';
+    if (code >= 1 && code <= 3) return 'Clouds';
+    if (code >= 45 && code <= 48) return 'Fog';
+    if (code >= 51 && code <= 67) return 'Rain';
+    if (code >= 71 && code <= 77) return 'Snow';
+    if (code >= 80 && code <= 82) return 'Rain';
+    if (code >= 85 && code <= 86) return 'Snow';
+    if (code >= 95 && code <= 99) return 'Thunderstorm';
+    return 'Unknown';
+  }
+
+  String _getWeatherIcon(int code) {
+    // Mapping WMO codes to OpenWeatherMap icons for compatibility
+    if (code == 0) return '01d';
+    if (code == 1) return '02d'; // Mainly clear
+    if (code == 2) return '03d'; // Partly cloudy
+    if (code == 3) return '04d'; // Overcast
+    if (code >= 45 && code <= 48) return '50d'; // Fog
+    if (code >= 51 && code <= 55) return '09d'; // Drizzle
+    if (code >= 56 && code <= 57) return '09d'; // Freezing Drizzle
+    if (code >= 61 && code <= 65) return '10d'; // Rain
+    if (code >= 66 && code <= 67) return '13d'; // Freezing Rain
+    if (code >= 71 && code <= 77) return '13d'; // Snow
+    if (code >= 80 && code <= 82) return '09d'; // Showers
+    if (code >= 85 && code <= 86) return '13d'; // Snow showers
+    if (code >= 95 && code <= 99) return '11d'; // Thunderstorm
+    return '01d';
+  }
 }

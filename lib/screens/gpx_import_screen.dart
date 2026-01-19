@@ -17,6 +17,7 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
   final _gpxService = GpxService();
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
+  bool _scheduleNow = false; // NEW: Toggle for scheduling
   String? _errorMessage;
   Map<String, dynamic>? _gpxPreview;
   
@@ -59,37 +60,52 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
     });
 
     try {
-      final plannedRide = await _gpxService.createPlannedRideFromGpx(
-        rideDate: _selectedDate,
-      );
+      if (_scheduleNow) {
+        // Create Track + PlannedRide
+        final plannedRide = await _gpxService.createPlannedRideFromGpx(
+          rideDate: _selectedDate,
+        );
 
-      if (plannedRide != null) {
-        // AI Analysis Step
-        final aiService = AIService(); // Import AIService at top of file
-        if (await aiService.isConfigured() && mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Generazione analisi AI in corso...'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-          
-          final analysis = await aiService.analyzeRide(plannedRide);
-          plannedRide.aiAnalysis = analysis;
-          
-          // Update ride with analysis
-          final db = DatabaseService();
-          await db.updatePlannedRide(plannedRide);
+        if (plannedRide != null) {
+          // AI Analysis
+          final aiService = AIService();
+          if (await aiService.isConfigured() && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Generazione analisi AI in corso...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            
+            final analysis = await aiService.analyzeRide(plannedRide);
+            plannedRide.aiAnalysis = analysis;
+            
+            final db = DatabaseService();
+            await db.updatePlannedRide(plannedRide);
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Uscita pianificata e salvata!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.of(context).pop(plannedRide);
+          }
         }
-
-        if (mounted) {
+      } else {
+        // Create Track only (no scheduling)
+        final track = await _gpxService.createTrackFromGpx();
+        
+        if (track != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Percorso importato e analizzato!'),
+              content: Text('Traccia salvata in "Le Mie Tracce"!'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(plannedRide);
+          Navigator.of(context).pop(true); // Return success
         }
       }
     } catch (e) {
@@ -151,18 +167,34 @@ class _GpxImportScreenState extends State<GpxImportScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Date picker
+                  // Schedule toggle (NEW)
                   Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.calendar_today),
-                      title: const Text('Data e Ora Inizio'),
-                      subtitle: Text(
-                        DateFormat('EEEE, d MMMM y - HH:mm', 'it_IT').format(_selectedDate),
-                      ),
-                      trailing: const Icon(Icons.edit),
-                      onTap: _selectDateTime,
+                    child: SwitchListTile(
+                      value: _scheduleNow,
+                      onChanged: (value) {
+                        setState(() => _scheduleNow = value);
+                      },
+                      title: const Text('Pianifica subito'),
+                      subtitle: const Text('Assegna una data a questa traccia'),
+                      secondary: const Icon(Icons.calendar_today),
                     ),
                   ),
+                  
+                  // Date picker (shown only if scheduling)
+                  if (_scheduleNow) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.event),
+                        title: const Text('Data e Ora Uscita'),
+                        subtitle: Text(
+                          DateFormat('EEEE, d MMMM y - HH:mm', 'it_IT').format(_selectedDate),
+                        ),
+                        trailing: const Icon(Icons.edit),
+                        onTap: _selectDateTime,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
 
