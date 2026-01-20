@@ -9,7 +9,7 @@ class SupabaseConfig {
   static const String supabaseUrl = 'https://fiukytfosrjppbmnrlmp.supabase.co';
   
   // TODO: Replace with your Supabase public anon key
-  static const String supabaseAnonKey = 'sb_publishable_a7S_GYwXBhfIst_SIpMAkA_Lhmfm5AK';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpdWt5dGZvc3JqcHBibW5ybG1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MjgwNDAsImV4cCI6MjA4NDQwNDA0MH0.5zoH3CnaE89PSalsBTKWChbaYgXaIDOkkv4Q9Bv1DTE';
   
   /// Initialize Supabase client
   static Future<void> initialize() async {

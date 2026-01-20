@@ -114,6 +114,8 @@ class APIKeyGuideScreen extends StatelessWidget {
         return Icons.psychology;
       case AIProvider.claude:
         return Icons.smart_toy;
+      case AIProvider.deepseek:
+        return Icons.rocket_launch;
     }
   }
 
@@ -125,6 +127,8 @@ class APIKeyGuideScreen extends StatelessWidget {
         return 'Popolare - Da \$0.15 per 1M token';
       case AIProvider.claude:
         return 'Potente - Da \$3 per 1M token';
+      case AIProvider.deepseek:
+        return 'ECONOMICO - Performance elevate a bassissimo costo';
     }
   }
 
@@ -189,6 +193,23 @@ class APIKeyGuideScreen extends StatelessWidget {
           _buildStepDescription(context, 'La chiave inizia con "sk-ant-...".'),
           const SizedBox(height: 16),
           _buildCostCard(context, '💰 Claude Sonnet: circa \$3 per 1M token (~500 consigli con \$5)'),
+        ];
+      
+      case AIProvider.deepseek:
+        return [
+          _buildStepTitle(context, '1️⃣ Vai su DeepSeek Platform'),
+          _buildLink(context, 'platform.deepseek.com'),
+          const SizedBox(height: 12),
+          _buildStepTitle(context, '2️⃣ Registrati'),
+          _buildStepDescription(context, 'Crea un account (spesso serve numero di telefono).'),
+          const SizedBox(height: 12),
+          _buildStepTitle(context, '3️⃣ Crea API Key'),
+          _buildStepDescription(context, 'Vai nella sezione "API Keys" e clicca "Create API Key".'),
+          const SizedBox(height: 12),
+          _buildStepTitle(context, '4️⃣ Copia e Salva'),
+          _buildStepDescription(context, 'Copia la chiave (sk-...) e incollala in BICICLISTICO.'),
+          const SizedBox(height: 16),
+          _buildCostCard(context, '💰 DeepSeek Chat: Estremamente economico (~100x meno di GPT-4)'),
         ];
     }
   }

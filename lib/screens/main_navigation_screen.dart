@@ -29,18 +29,25 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const RidesListScreen(),
-    const GarageScreen(),
-    const CrewScreen(),
-  ];
+  final _crewRefreshNotifier = ValueNotifier<int>(0);
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _screens = [
+      const DashboardScreen(),
+      const RidesListScreen(),
+      const GarageScreen(),
+      CrewScreen(refreshNotifier: _crewRefreshNotifier),
+    ];
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
+  }
+  
+  @override
+  void dispose() {
+    _crewRefreshNotifier.dispose();
+    super.dispose();
   }
 
   Future<void> _checkExternalActivities() async {
@@ -449,6 +456,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           setState(() {
             _selectedIndex = index;
           });
+          if (index == 3) {
+             _crewRefreshNotifier.value++;
+          }
         },
         destinations: const [
           NavigationDestination(

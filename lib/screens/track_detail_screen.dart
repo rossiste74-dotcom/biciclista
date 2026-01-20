@@ -11,6 +11,8 @@ import '../models/route_coordinates.dart';
 import '../services/database_service.dart';
 import '../services/gpx_service.dart';
 import '../widgets/route_map_widget.dart';
+import '../services/ai_service.dart';
+import '../services/track_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Track Detail Screen - Shows full track information (library view)
@@ -29,8 +31,11 @@ class TrackDetailScreen extends StatefulWidget {
 class _TrackDetailScreenState extends State<TrackDetailScreen> {
   final _db = DatabaseService();
   final _gpxService = GpxService();
+  final _aiService = AIService();
+  final _trackService = TrackService();
   
   bool _isLoading = true;
+  bool _isAnalyzing = false;
   Map<String, dynamic>? _routeData;
   bool _isMapExpanded = false;
 
@@ -159,6 +164,17 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                           _buildClimbsList(),
                           const SizedBox(height: 24),
                         ],
+
+                        // AI Analysis Card
+                        Text(
+                          'Analisi Butler AI',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildAIAnalysisCard(),
+                        const SizedBox(height: 24),
+                        
+                        // Track Metadata
                         
                         // Track Metadata
                         Text(
@@ -364,8 +380,113 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     );
   }
 
+  Widget _buildAIAnalysisCard() {
+    final hasAnalysis = widget.track.description != null && widget.track.description!.isNotEmpty;
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.rocket_launch, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hasAnalysis ? 'Strategia "Il Biciclista"' : 'Ottieni consigli strategici',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                if (hasAnalysis && !_isAnalyzing)
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _generateAnalysis,
+                    tooltip: 'Rigenera analisi',
+                  ),
+              ],
+            ),
+            const Divider(),
+            if (_isAnalyzing)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Analisi del percorso in corso...'),
+                    Text('Sto studiando altimetria e terreno 🚵'),
+                  ],
+                ),
+              ),
+            )
+            else if (hasAnalysis)
+              Text(
+                widget.track.description!,
+                style: const TextStyle(fontSize: 15, height: 1.4),
+              )
+            else
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Vuoi consigli su ritmo, nutrizione e difficoltà?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _generateAnalysis,
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text('✨ Analizza con Butler'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generateAnalysis() async {
+    setState(() => _isAnalyzing = true);
+    
+    try {
+      final analysis = await _aiService.analyzeTrack(widget.track);
+      
+      setState(() {
+        widget.track.description = analysis;
+        _isAnalyzing = false;
+      });
+      
+      await _trackService.updateTrack(widget.track);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Analisi completata e salvata! 🚴')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isAnalyzing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore analisi: $e')),
+        );
+      }
+    }
+  }
+
   void _showScheduleDialog() {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
     bool isGroupRide = false;
     String? customName;
     
@@ -409,6 +530,24 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                     );
                     if (date != null) {
                       setDialogState(() => selectedDate = date);
+                    }
+                  },
+                ),
+
+                // Time picker
+                ListTile(
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Ora'),
+                  subtitle: Text(selectedTime.format(context)),
+                  trailing: const Icon(Icons.edit),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+                    if (time != null) {
+                      setDialogState(() => selectedTime = time);
                     }
                   },
                 ),
@@ -508,6 +647,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 Navigator.pop(context);
                 await _scheduleRide(
                   selectedDate,
+                  selectedTime,
                   isGroupRide,
                   customName,
                   difficulty,
@@ -525,6 +665,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
   Future<void> _scheduleRide(
     DateTime date,
+    TimeOfDay time,
     bool isGroupRide,
     String? customName,
     String difficulty,
@@ -542,8 +683,18 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         centerLng = coords.middle.longitude;
       }
       
+      
+      // Combine date and time
+      final rideDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+      
       final ride = PlannedRide()
-        ..rideDate = date
+        ..rideDate = rideDateTime
         ..rideName = customName ?? widget.track.name
         ..trackId = widget.track.id
         ..isGroupRide = isGroupRide

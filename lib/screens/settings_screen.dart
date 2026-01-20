@@ -8,7 +8,7 @@ import 'maintenance_settings_screen.dart';
 import 'navigation_settings_screen.dart';
 import 'ai_settings_screen.dart';
 import 'user_guide_screen.dart';
-import 'data_profile_screen.dart';
+
 
 import 'integration_settings_screen.dart';
 
@@ -100,15 +100,7 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('Ripristina il database da un file JSON'),
             onTap: () => _confirmImport(context, backupService),
           ),
-          ListTile(
-            leading: const Icon(Icons.cloud_outlined),
-            title: const Text('Il Tuo Profilo Dati'),
-            subtitle: const Text('Modalità Autonoma o Community'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DataProfileScreen()),
-            ),
-          ),
+
           _buildHeader(context, 'Integrazioni'),
           ListTile(
             leading: const Icon(Icons.sync_alt),

@@ -23,6 +23,7 @@ import '../services/outfit_service.dart';
 import '../services/database_service.dart';
 import '../services/qr_service.dart';
 import '../services/notification_service.dart';
+import '../services/ai_service.dart'; // Added
 import '../widgets/route_map_widget.dart';
 import 'active_navigation_screen.dart';
 
@@ -45,6 +46,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   final _gpxService = GpxService();
   final _weatherService = WeatherService();
   final _outfitService = OutfitService();
+  final _aiService = AIService(); // Added
   final _db = DatabaseService();
   
   final _notesController = TextEditingController();
@@ -400,6 +402,31 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Note salvate')),
       );
+    }
+  }
+
+  Future<void> _generateAnalysis() async {
+    setState(() => _isLoading = true);
+    try {
+      final analysis = await _aiService.analyzeRide(widget.plannedRide);
+      
+      setState(() {
+        widget.plannedRide.aiAnalysis = analysis;
+        _isLoading = false;
+      });
+      
+      await _db.updatePlannedRide(widget.plannedRide);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Analisi completata! 🤖')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -864,7 +891,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                         ),
                                     ],
                                   ),
-                                  if (widget.plannedRide.aiAnalysis != null) ...[
+                                  if (widget.plannedRide.aiAnalysis != null && widget.plannedRide.aiAnalysis!.isNotEmpty) ...[
                                     const SizedBox(height: 24),
                                     Card(
                                       color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
@@ -901,6 +928,16 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 24),
+                                  ] else ...[
+                                     const SizedBox(height: 24),
+                                     Center(
+                                       child: FilledButton.icon(
+                                         onPressed: _generateAnalysis,
+                                         icon: const Icon(Icons.psychology),
+                                         label: const Text('Genera Analisi con Butler AI'),
+                                       ),
+                                     ),
+                                     const SizedBox(height: 24),
                                   ],
     
                                 // Weather Timeline

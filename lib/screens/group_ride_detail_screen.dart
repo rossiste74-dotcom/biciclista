@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -8,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/group_ride.dart';
+import '../models/planned_ride.dart'; // Added
 import '../models/climb.dart';
 import '../models/route_coordinates.dart';
 import '../models/clothing_item.dart';
@@ -18,6 +20,7 @@ import '../services/gpx_service.dart';
 import '../services/weather_service.dart';
 import '../services/ai_service.dart';
 import '../services/outfit_service.dart';
+import '../services/data_mode_service.dart'; // Added
 import '../widgets/route_map_widget.dart';
 
 class GroupRideDetailScreen extends StatefulWidget {
@@ -38,6 +41,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   final _weatherService = WeatherService();
   final _aiService = AIService();
   final _outfitService = OutfitService();
+  final _dataModeService = DataModeService();
   final _supabase = Supabase.instance.client;
   
   final _notesController = TextEditingController();
@@ -175,10 +179,153 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
             }
          }
       }
+
+      // 3. Ensure Creator is in Participants List
+      final creatorInList = widget.groupRide.participants.any((p) => p.userId == widget.groupRide.creatorId);
+      if (!creatorInList) {
+         try {
+            final response = await _supabase
+              .from('public_profiles')
+              .select('display_name')
+              .eq('user_id', widget.groupRide.creatorId) // user_id not id in public_profiles?
+              .maybeSingle();
+              
+            String creatorName = 'Organizzatore';
+            if (response != null && response['display_name'] != null) {
+              creatorName = response['display_name'];
+            }
+              final creatorPart = GroupRideParticipant(
+                 id: 'creator_${widget.groupRide.creatorId}', 
+                 userId: widget.groupRide.creatorId, 
+                 displayName: creatorName, 
+                 joinedAt: widget.groupRide.createdAt,
+                 isCreator: true,
+                 status: 'confirmed',
+              );
+              
+              if (mounted) {
+                 setState(() {
+                    // Add to top
+                    widget.groupRide.participants.insert(0, creatorPart);
+                 });
+              }
+           } catch (e) {
+           debugPrint('Error fetching creator profile: $e');
+         }
+      }
+      
+      // 4. Hydrate Participant Details (Fetch names)
+      _fetchParticipantDetails();
+
     } catch (e) {
       debugPrint('Error initializing group ride data: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchWeatherAndAnalyze() async {
+    if (widget.groupRide.meetingLatitude == null || widget.groupRide.meetingLongitude == null) return;
+
+    setState(() => _isLoading = true);
+    
+    try {
+      // 1. Fetch live weather
+      final lat = widget.groupRide.meetingLatitude!;
+      final lon = widget.groupRide.meetingLongitude!;
+      final forecast = await _weatherService.getHourlyForecast(lat, lon);
+      
+      String? weatherJson; 
+
+      if (forecast.isNotEmpty) {
+         final rideStart = widget.groupRide.meetingTime;
+         final rideEnd = rideStart.add(const Duration(hours: 3));
+         
+         final points = forecast.where((p) {
+            final t = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
+            return t.isAfter(rideStart.subtract(const Duration(hours: 1))) && 
+                   t.isBefore(rideEnd.add(const Duration(minutes: 30)));
+         }).toList();
+         
+         if (points.isNotEmpty) {
+           setState(() => _weatherPoints = points); // Update UI too
+           
+           // Prepare simple weather object for AI
+           final first = points.first;
+           final w = {
+             'temperature': (first['main']['temp'] as num).toDouble(),
+             'windSpeed': (first['wind']['speed'] as num).toDouble(),
+             'condition': (first['weather'][0]['main'] as String),
+           };
+           weatherJson = jsonEncode(w);
+         }
+      }
+
+      // 2. Wrap in PlannedRide for AI Service
+      final dummyRide = PlannedRide()
+        ..rideDate = widget.groupRide.meetingTime
+        ..distance = widget.groupRide.distance ?? 0.0
+        ..elevation = widget.groupRide.elevation ?? 0.0
+        ..forecastWeather = weatherJson
+        ..rideName = widget.groupRide.rideName;
+        
+      // 3. Call AI
+      final analysis = await _aiService.analyzeRide(dummyRide);
+      
+      setState(() {
+        _aiAnalysis = analysis;
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Meteo aggiornato e analisi completata! 🤖')),
+        );
+      }
+      
+    } catch (e) {
+      debugPrint('Error analyzing ride: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+  
+
+
+  Future<void> _fetchParticipantDetails() async {
+    final userIds = widget.groupRide.participants.map((p) => p.userId).toSet().toList();
+    if (userIds.isEmpty) return;
+
+    try {
+      final response = await _supabase
+          .from('public_profiles')
+          .select('user_id, display_name, profile_image_url')
+          .inFilter('user_id', userIds);
+
+      if (mounted) {
+        setState(() {
+          final List<GroupRideParticipant> updatedParticipants = [];
+          
+          for (var p in widget.groupRide.participants) {
+            final profile = (response as List<dynamic>).firstWhere(
+              (json) => json['user_id'] == p.userId,
+              orElse: () => <String, dynamic>{}, // Provide an empty map if not found
+            );
+            
+            if (profile.isNotEmpty) { // Check if profile was actually found
+              updatedParticipants.add(p.copyWith(
+                displayName: profile['display_name'] ?? p.displayName,
+                profileImageUrl: profile['profile_image_url'],
+              ));
+            } else {
+              updatedParticipants.add(p);
+            }
+          }
+          
+          widget.groupRide.participants = updatedParticipants;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error hydrating participants: $e');
     }
   }
   
@@ -257,6 +404,42 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                            Text('Consiglio Abbigliamento', style: Theme.of(context).textTheme.titleLarge),
                            const SizedBox(height: 16),
                            _buildClothingCard(),
+                           const SizedBox(height: 24),
+                        ],
+
+
+                        
+                        // 7a. AI Strategic Analysis
+                        if (_aiAnalysis != null) ...[
+                          Text('Analisi Strategica (Live)', style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 16),
+                          Card(
+                            elevation: 2,
+                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Row(children: [
+                                    const Icon(Icons.psychology), 
+                                    const SizedBox(width: 8), 
+                                    Expanded(child: Text("Il Coach Consiglia:", style: Theme.of(context).textTheme.titleMedium))
+                                  ]),
+                                  const Divider(),
+                                  Text(_aiAnalysis!),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ] else ...[
+                           Center(
+                             child: FilledButton.icon(
+                               onPressed: _fetchWeatherAndAnalyze,
+                               icon: const Icon(Icons.refresh),
+                               label: const Text('Aggiorna Meteo & Analizza'),
+                             ),
+                           ),
                            const SizedBox(height: 24),
                         ],
 
@@ -472,7 +655,8 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
            children: [
              Text('Partecipanti', style: Theme.of(context).textTheme.titleLarge),
              Chip(
-               label: Text('${widget.groupRide.currentParticipants} / ${widget.groupRide.maxParticipants}'),
+               // Show participants count. If list empty but creator exists (fetched above), size is correct.
+               label: Text('${widget.groupRide.participants.length} / ${widget.groupRide.maxParticipants}'),
                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
              ),
            ],
@@ -594,17 +778,50 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         if (confirm != true) return;
         
         await _crewService.leaveGroupRide(widget.groupRide.id);
+
+        
+        final userId = _supabase.auth.currentUser!.id;
+        
         setState(() {
           _isParticipating = false;
+          // Remove from local list
+          widget.groupRide.participants.removeWhere((p) => p.userId == userId);
         });
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hai lasciato l\'uscita')));
       } else {
+        final user = _supabase.auth.currentUser!;
+        
+        // Ensure public profile exists before joining (fixes "Ciclista" name issue)
+        // If the user hasn't synced profile, we create a default one now.
+        await _dataModeService.ensurePublicProfile(user);
+
+        // Interact after profile check
         await _crewService.joinGroupRide(widget.groupRide.id);
-        setState(() => _isParticipating = true);
+
+        
+        // Add to local list
+        // Best effort: Get name from metadata or email (matching default logic)
+        String displayName = user.userMetadata?['name'] ?? user.email?.split('@')[0] ?? 'Ciclista';
+        
+        final newPart = GroupRideParticipant(
+           id: 'temp_${user.id}',
+           userId: user.id,
+           displayName: displayName,
+           joinedAt: DateTime.now(),
+           status: 'confirmed',
+        );
+
+        setState(() {
+           _isParticipating = true;
+           widget.groupRide.participants.add(newPart);
+        });
+
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ti sei unito all\'uscita!')));
       }
       
-      Navigator.pop(context, true); 
+
+      
+      // Do NOT pop, stay on screen to show update
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
     }

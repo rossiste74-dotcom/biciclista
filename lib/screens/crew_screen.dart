@@ -7,7 +7,12 @@ import 'package:intl/intl.dart';
 
 /// Main Crew screen showing group rides
 class CrewScreen extends StatefulWidget {
-  const CrewScreen({super.key});
+  final ValueNotifier<int>? refreshNotifier;
+  
+  const CrewScreen({
+    super.key,
+    this.refreshNotifier,
+  });
 
   @override
   State<CrewScreen> createState() => _CrewScreenState();
@@ -23,6 +28,13 @@ class _CrewScreenState extends State<CrewScreen> {
   void initState() {
     super.initState();
     _loadRides();
+    widget.refreshNotifier?.addListener(_loadRides);
+  }
+  
+  @override
+  void dispose() {
+    widget.refreshNotifier?.removeListener(_loadRides);
+    super.dispose();
   }
 
   Future<void> _loadRides() async {

@@ -14,7 +14,7 @@ class CrewService {
     try {
       var query = _supabase
           .from('group_rides')
-          .select()
+          .select('*, group_ride_participants(*)')
           .eq('is_public', true);
 
       if (status != null) {
@@ -43,7 +43,7 @@ class CrewService {
 
       final response = await _supabase
           .from('group_rides')
-          .select()
+          .select('*, group_ride_participants(*)')
           .eq('creator_id', user.id)
           .order('meeting_time', ascending: false);
 
@@ -76,7 +76,7 @@ class CrewService {
 
       final response = await _supabase
           .from('group_rides')
-          .select()
+          .select('*, group_ride_participants(*)')
           .inFilter('id', rideIds)
           .order('meeting_time', ascending: true);
 
@@ -132,7 +132,27 @@ class CrewService {
           .select()
           .single();
 
-      return GroupRide.fromJson(response);
+      final rideId = response['id'];
+      
+      // Auto-join creator
+      await _supabase.from('group_ride_participants').insert({
+        'group_ride_id': rideId,
+        'user_id': user.id,
+        'status': 'confirmed',
+      });
+      // Is 'is_creator' in DB schema for participants? 
+      // Checking schema... Schema: id, group_ride_id, user_id, status. NO is_creator.
+      // So remove is_creator.
+
+      
+      // Refetch with participants
+      final fullRide = await _supabase
+          .from('group_rides')
+          .select('*, group_ride_participants(*)')
+          .eq('id', rideId)
+          .single();
+
+      return GroupRide.fromJson(fullRide);
     } catch (e) {
       throw Exception('Error creating group ride: $e');
     }

@@ -11,6 +11,7 @@ import '../services/database_service.dart';
 import '../services/track_service.dart';
 import '../models/planned_ride.dart';
 import '../models/track.dart';
+import '../services/ai_service.dart';
 
 class RoutePlannerScreen extends StatefulWidget {
   const RoutePlannerScreen({super.key});
@@ -369,6 +370,26 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
           ..gpxFilePath = file.path;
         
         plannedRide.track.value = track;
+        
+        // Generate AI Analysis
+        final aiService = AIService();
+        if (await aiService.isConfigured() && mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(
+               content: Text('Generazione analisi AI in corso...'),
+               duration: Duration(seconds: 2),
+             ),
+           );
+           
+           try {
+             final analysis = await aiService.analyzeRide(plannedRide);
+             plannedRide.aiAnalysis = analysis;
+           } catch (e) {
+             debugPrint('AI Analysis failed: $e');
+             // Continue saving
+           }
+        }
+        
         await db.createPlannedRide(plannedRide);
         
         if (mounted) {

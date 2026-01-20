@@ -154,9 +154,26 @@ class DataModeService {
     };
     
     // Upsert (insert or update)
-    await _supabase
-        .from('profiles')
-        .upsert(data, onConflict: 'user_id');
+    // Upsert to private 'profiles' (using raw_data JSONB column to avoid schema rigidity)
+    try {
+      await _supabase.from('profiles').upsert({
+        'user_id': userId,
+        'updated_at': DateTime.now().toIso8601String(),
+        'raw_data': data, // Store all private fields as JSON
+      }, onConflict: 'user_id');
+    } catch (e) {
+      print('Profiles table sync error: $e');
+    }
+
+    // Upsert to 'public_profiles' for Crew visibility
+    final publicData = {
+      'user_id': userId,
+      'display_name': profile.name,
+      'is_private': !profile.isCommunityMode,
+      'age': profile.age, // Added via SQL script
+      // Add other public fields if available in profile
+    };
+    await _supabase.from('public_profiles').upsert(publicData, onConflict: 'user_id');
   }
   
   /// Sync bicycle to Supabase
@@ -296,6 +313,30 @@ class DataModeService {
     await disableCommunityMode();
   }
   
+  /// Ensure public profile exists for the user (called on Join)
+  Future<void> ensurePublicProfile(User user) async {
+    try {
+      // Check if exists
+      final exists = await _supabase
+          .from('public_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (exists == null) {
+        // Create default
+        final name = user.userMetadata?['name'] as String? ?? user.email?.split('@')[0] ?? 'Ciclista';
+        await _supabase.from('public_profiles').insert({
+          'user_id': user.id,
+          'display_name': name,
+          'is_private': false, // Implicitly public if joining public logic
+        });
+      }
+    } catch (e) {
+      print('Error ensuring public profile: $e');
+    }
+  }
+
   /// Get current user
   User? getCurrentUser() {
     return _supabase.auth.currentUser;

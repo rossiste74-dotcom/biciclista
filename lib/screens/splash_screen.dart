@@ -88,17 +88,6 @@ class _SplashScreenState extends State<SplashScreen> {
                ),
              ),
              const SizedBox(height: 40),
-
-             // App Title
-             Text(
-               'biciclistico',
-               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                 fontWeight: FontWeight.bold,
-                 color: Theme.of(context).colorScheme.onSurface,
-                 letterSpacing: 1.5,
-               ),
-             ),
-             const SizedBox(height: 16),
               
              // Random Funny Quote
              Padding(

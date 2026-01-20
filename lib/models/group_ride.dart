@@ -29,6 +29,25 @@ class GroupRideParticipant {
       joinedAt: DateTime.parse(json['joined_at'] as String),
     );
   }
+  GroupRideParticipant copyWith({
+    String? id,
+    String? userId,
+    String? displayName,
+    String? profileImageUrl,
+    String? status,
+    bool? isCreator,
+    DateTime? joinedAt,
+  }) {
+    return GroupRideParticipant(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      displayName: displayName ?? this.displayName,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      status: status ?? this.status,
+      isCreator: isCreator ?? this.isCreator,
+      joinedAt: joinedAt ?? this.joinedAt,
+    );
+  }
 }
 
 /// Model for group rides (uscite di gruppo)
@@ -57,7 +76,7 @@ class GroupRide {
   // Participants
   final int maxParticipants;
   final int currentParticipants;
-  final List<GroupRideParticipant> participants;
+  List<GroupRideParticipant> participants;
   
   // Visibility
   final bool isPublic;
@@ -95,8 +114,12 @@ class GroupRide {
 
   factory GroupRide.fromJson(Map<String, dynamic> json) {
     var participantsList = <GroupRideParticipant>[];
-    if (json['participants'] != null) {
-      participantsList = (json['participants'] as List)
+
+    // Check both aliased and raw key
+    final rawParticipants = json['participants'] ?? json['group_ride_participants'];
+    
+    if (rawParticipants != null) {
+      participantsList = (rawParticipants as List)
           .map((p) => GroupRideParticipant.fromJson(p))
           .toList();
     }

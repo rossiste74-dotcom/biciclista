@@ -10,6 +10,7 @@ import '../services/biometric_service.dart';
 import '../services/outfit_service.dart';
 import '../services/weather_service.dart';
 import '../services/health_sync_service.dart';
+import '../services/crew_service.dart';
 import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
 import '../widgets/metric_sparkline_chart.dart';
@@ -37,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _outfitService = OutfitService();
   final _weatherService = WeatherService();
   final _healthSyncService = HealthSyncService();
+  final _crewService = CrewService();
 
   StreamSubscription? _profileSubscription;
   StreamSubscription? _ridesSubscription;
@@ -93,10 +95,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _weeklyKm = await _db.getWeeklyCompletedKm();
       _totalRides = await _db.getTotalCompletedRidesCount();
 
-      // 4. Load Next Ride
-      final upcoming = await _db.getUpcomingRides();
-      if (upcoming.isNotEmpty) {
-        _nextRide = upcoming.first;
+      // 4. Load Next Ride (prioritize group rides)
+      final upcomingPersonal = await _db.getUpcomingRides();
+      List<dynamic> allUpcoming = [...upcomingPersonal];
+      
+      // Fetch group rides from Crew
+      try {
+        final groupRides = await _crewService.getMyGroupRides();
+        // Filter only future rides
+        final futureGroupRides = groupRides.where((gr) => gr.meetingTime.isAfter(DateTime.now())).toList();
+        allUpcoming.addAll(futureGroupRides);
+      } catch (e) {
+        debugPrint('Error fetching group rides: $e');
+      }
+      
+      // Sort by date and pick the closest
+      if (allUpcoming.isNotEmpty) {
+        allUpcoming.sort((a, b) {
+          final dateA = a is PlannedRide ? a.rideDate : (a as dynamic).meetingTime;
+          final dateB = b is PlannedRide ? b.rideDate : (b as dynamic).meetingTime;
+          return dateA.compareTo(dateB);
+        });
+        
+        final nextActivity = allUpcoming.first;
+        
+        // Convert GroupRide to PlannedRide for display compatibility
+        if (nextActivity is! PlannedRide) {
+          final gr = nextActivity as dynamic; // GroupRide
+          _nextRide = PlannedRide()
+            ..rideDate = gr.meetingTime
+            ..rideName = gr.rideName
+            ..distance = gr.distance ?? 0.0
+            ..elevation = gr.elevation ?? 0.0
+            ..latitude = gr.meetingLatitude
+            ..longitude = gr.meetingLongitude
+            ..isGroupRide = true;
+        } else {
+          _nextRide = nextActivity;
+        }
         
         // 5. Fetch Weather & Suggestions
         if (_profile != null) {

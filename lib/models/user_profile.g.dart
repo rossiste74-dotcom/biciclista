@@ -42,164 +42,169 @@ const UserProfileSchema = CollectionSchema(
       name: r'alertType',
       type: IsarType.long,
     ),
-    r'coldKit': PropertySchema(
+    r'coachPersonality': PropertySchema(
       id: 5,
+      name: r'coachPersonality',
+      type: IsarType.string,
+    ),
+    r'coldKit': PropertySchema(
+      id: 6,
       name: r'coldKit',
       type: IsarType.longList,
     ),
     r'coldThreshold': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'coldThreshold',
       type: IsarType.double,
     ),
     r'coolKit': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'coolKit',
       type: IsarType.longList,
     ),
     r'coolThreshold': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'coolThreshold',
       type: IsarType.double,
     ),
     r'createdAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'difficultyDistanceWeight': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'difficultyDistanceWeight',
       type: IsarType.double,
     ),
     r'difficultyElevationWeight': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'difficultyElevationWeight',
       type: IsarType.double,
     ),
     r'enableVoiceAlerts': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'enableVoiceAlerts',
       type: IsarType.bool,
     ),
     r'energySavingMode': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'energySavingMode',
       type: IsarType.bool,
     ),
     r'functionalThresholdPower': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'functionalThresholdPower',
       type: IsarType.long,
     ),
     r'gender': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'gender',
       type: IsarType.string,
     ),
     r'healthHistory': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'healthHistory',
       type: IsarType.string,
     ),
     r'height': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'height',
       type: IsarType.double,
     ),
     r'hotKit': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'hotKit',
       type: IsarType.longList,
     ),
     r'hotThreshold': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'hotThreshold',
       type: IsarType.double,
     ),
     r'hrv': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'hrv',
       type: IsarType.long,
     ),
     r'isCommunityMode': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'isCommunityMode',
       type: IsarType.bool,
     ),
     r'lastHealthSync': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'lastHealthSync',
       type: IsarType.dateTime,
     ),
     r'maintenanceDefinitions': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'maintenanceDefinitions',
       type: IsarType.objectList,
       target: r'MaintenanceDefinition',
     ),
     r'name': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'name',
       type: IsarType.string,
     ),
     r'offCourseThresholdM': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'offCourseThresholdM',
       type: IsarType.double,
     ),
     r'preferredUnit': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'preferredUnit',
       type: IsarType.string,
     ),
     r'restingHeartRate': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'restingHeartRate',
       type: IsarType.long,
     ),
     r'sensitivityAdjustment': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'sensitivityAdjustment',
       type: IsarType.double,
     ),
     r'sleepHours': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'sleepHours',
       type: IsarType.double,
     ),
     r'supabaseUserId': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'supabaseUserId',
       type: IsarType.string,
     ),
     r'thermalSensitivity': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'thermalSensitivity',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'veryColdKit': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'veryColdKit',
       type: IsarType.longList,
     ),
     r'warmKit': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'warmKit',
       type: IsarType.longList,
     ),
     r'warmThreshold': PropertySchema(
-      id: 35,
+      id: 36,
       name: r'warmThreshold',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 36,
+      id: 37,
       name: r'weight',
       type: IsarType.double,
     )
@@ -263,6 +268,12 @@ int _userProfileEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.coachPersonality;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.coldKit.length * 8;
   bytesCount += 3 + object.coolKit.length * 8;
   {
@@ -316,43 +327,44 @@ void _userProfileSerialize(
   writer.writeString(offsets[2], object.aiModel);
   writer.writeByte(offsets[3], object.aiProviderIndex);
   writer.writeLong(offsets[4], object.alertType);
-  writer.writeLongList(offsets[5], object.coldKit);
-  writer.writeDouble(offsets[6], object.coldThreshold);
-  writer.writeLongList(offsets[7], object.coolKit);
-  writer.writeDouble(offsets[8], object.coolThreshold);
-  writer.writeDateTime(offsets[9], object.createdAt);
-  writer.writeDouble(offsets[10], object.difficultyDistanceWeight);
-  writer.writeDouble(offsets[11], object.difficultyElevationWeight);
-  writer.writeBool(offsets[12], object.enableVoiceAlerts);
-  writer.writeBool(offsets[13], object.energySavingMode);
-  writer.writeLong(offsets[14], object.functionalThresholdPower);
-  writer.writeString(offsets[15], object.gender);
-  writer.writeString(offsets[16], object.healthHistory);
-  writer.writeDouble(offsets[17], object.height);
-  writer.writeLongList(offsets[18], object.hotKit);
-  writer.writeDouble(offsets[19], object.hotThreshold);
-  writer.writeLong(offsets[20], object.hrv);
-  writer.writeBool(offsets[21], object.isCommunityMode);
-  writer.writeDateTime(offsets[22], object.lastHealthSync);
+  writer.writeString(offsets[5], object.coachPersonality);
+  writer.writeLongList(offsets[6], object.coldKit);
+  writer.writeDouble(offsets[7], object.coldThreshold);
+  writer.writeLongList(offsets[8], object.coolKit);
+  writer.writeDouble(offsets[9], object.coolThreshold);
+  writer.writeDateTime(offsets[10], object.createdAt);
+  writer.writeDouble(offsets[11], object.difficultyDistanceWeight);
+  writer.writeDouble(offsets[12], object.difficultyElevationWeight);
+  writer.writeBool(offsets[13], object.enableVoiceAlerts);
+  writer.writeBool(offsets[14], object.energySavingMode);
+  writer.writeLong(offsets[15], object.functionalThresholdPower);
+  writer.writeString(offsets[16], object.gender);
+  writer.writeString(offsets[17], object.healthHistory);
+  writer.writeDouble(offsets[18], object.height);
+  writer.writeLongList(offsets[19], object.hotKit);
+  writer.writeDouble(offsets[20], object.hotThreshold);
+  writer.writeLong(offsets[21], object.hrv);
+  writer.writeBool(offsets[22], object.isCommunityMode);
+  writer.writeDateTime(offsets[23], object.lastHealthSync);
   writer.writeObjectList<MaintenanceDefinition>(
-    offsets[23],
+    offsets[24],
     allOffsets,
     MaintenanceDefinitionSchema.serialize,
     object.maintenanceDefinitions,
   );
-  writer.writeString(offsets[24], object.name);
-  writer.writeDouble(offsets[25], object.offCourseThresholdM);
-  writer.writeString(offsets[26], object.preferredUnit);
-  writer.writeLong(offsets[27], object.restingHeartRate);
-  writer.writeDouble(offsets[28], object.sensitivityAdjustment);
-  writer.writeDouble(offsets[29], object.sleepHours);
-  writer.writeString(offsets[30], object.supabaseUserId);
-  writer.writeLong(offsets[31], object.thermalSensitivity);
-  writer.writeDateTime(offsets[32], object.updatedAt);
-  writer.writeLongList(offsets[33], object.veryColdKit);
-  writer.writeLongList(offsets[34], object.warmKit);
-  writer.writeDouble(offsets[35], object.warmThreshold);
-  writer.writeDouble(offsets[36], object.weight);
+  writer.writeString(offsets[25], object.name);
+  writer.writeDouble(offsets[26], object.offCourseThresholdM);
+  writer.writeString(offsets[27], object.preferredUnit);
+  writer.writeLong(offsets[28], object.restingHeartRate);
+  writer.writeDouble(offsets[29], object.sensitivityAdjustment);
+  writer.writeDouble(offsets[30], object.sleepHours);
+  writer.writeString(offsets[31], object.supabaseUserId);
+  writer.writeLong(offsets[32], object.thermalSensitivity);
+  writer.writeDateTime(offsets[33], object.updatedAt);
+  writer.writeLongList(offsets[34], object.veryColdKit);
+  writer.writeLongList(offsets[35], object.warmKit);
+  writer.writeDouble(offsets[36], object.warmThreshold);
+  writer.writeDouble(offsets[37], object.weight);
 }
 
 UserProfile _userProfileDeserialize(
@@ -367,45 +379,46 @@ UserProfile _userProfileDeserialize(
   object.aiModel = reader.readStringOrNull(offsets[2]);
   object.aiProviderIndex = reader.readByte(offsets[3]);
   object.alertType = reader.readLong(offsets[4]);
-  object.coldKit = reader.readLongList(offsets[5]) ?? [];
-  object.coldThreshold = reader.readDouble(offsets[6]);
-  object.coolKit = reader.readLongList(offsets[7]) ?? [];
-  object.coolThreshold = reader.readDouble(offsets[8]);
-  object.createdAt = reader.readDateTime(offsets[9]);
-  object.difficultyDistanceWeight = reader.readDouble(offsets[10]);
-  object.difficultyElevationWeight = reader.readDouble(offsets[11]);
-  object.enableVoiceAlerts = reader.readBool(offsets[12]);
-  object.energySavingMode = reader.readBool(offsets[13]);
-  object.functionalThresholdPower = reader.readLong(offsets[14]);
-  object.gender = reader.readStringOrNull(offsets[15]);
-  object.healthHistory = reader.readStringOrNull(offsets[16]);
-  object.height = reader.readDoubleOrNull(offsets[17]);
-  object.hotKit = reader.readLongList(offsets[18]) ?? [];
-  object.hotThreshold = reader.readDouble(offsets[19]);
-  object.hrv = reader.readLong(offsets[20]);
+  object.coachPersonality = reader.readStringOrNull(offsets[5]);
+  object.coldKit = reader.readLongList(offsets[6]) ?? [];
+  object.coldThreshold = reader.readDouble(offsets[7]);
+  object.coolKit = reader.readLongList(offsets[8]) ?? [];
+  object.coolThreshold = reader.readDouble(offsets[9]);
+  object.createdAt = reader.readDateTime(offsets[10]);
+  object.difficultyDistanceWeight = reader.readDouble(offsets[11]);
+  object.difficultyElevationWeight = reader.readDouble(offsets[12]);
+  object.enableVoiceAlerts = reader.readBool(offsets[13]);
+  object.energySavingMode = reader.readBool(offsets[14]);
+  object.functionalThresholdPower = reader.readLong(offsets[15]);
+  object.gender = reader.readStringOrNull(offsets[16]);
+  object.healthHistory = reader.readStringOrNull(offsets[17]);
+  object.height = reader.readDoubleOrNull(offsets[18]);
+  object.hotKit = reader.readLongList(offsets[19]) ?? [];
+  object.hotThreshold = reader.readDouble(offsets[20]);
+  object.hrv = reader.readLong(offsets[21]);
   object.id = id;
-  object.isCommunityMode = reader.readBool(offsets[21]);
-  object.lastHealthSync = reader.readDateTimeOrNull(offsets[22]);
+  object.isCommunityMode = reader.readBool(offsets[22]);
+  object.lastHealthSync = reader.readDateTimeOrNull(offsets[23]);
   object.maintenanceDefinitions = reader.readObjectList<MaintenanceDefinition>(
-        offsets[23],
+        offsets[24],
         MaintenanceDefinitionSchema.deserialize,
         allOffsets,
         MaintenanceDefinition(),
       ) ??
       [];
-  object.name = reader.readStringOrNull(offsets[24]);
-  object.offCourseThresholdM = reader.readDouble(offsets[25]);
-  object.preferredUnit = reader.readString(offsets[26]);
-  object.restingHeartRate = reader.readLong(offsets[27]);
-  object.sensitivityAdjustment = reader.readDouble(offsets[28]);
-  object.sleepHours = reader.readDouble(offsets[29]);
-  object.supabaseUserId = reader.readStringOrNull(offsets[30]);
-  object.thermalSensitivity = reader.readLong(offsets[31]);
-  object.updatedAt = reader.readDateTime(offsets[32]);
-  object.veryColdKit = reader.readLongList(offsets[33]) ?? [];
-  object.warmKit = reader.readLongList(offsets[34]) ?? [];
-  object.warmThreshold = reader.readDouble(offsets[35]);
-  object.weight = reader.readDouble(offsets[36]);
+  object.name = reader.readStringOrNull(offsets[25]);
+  object.offCourseThresholdM = reader.readDouble(offsets[26]);
+  object.preferredUnit = reader.readString(offsets[27]);
+  object.restingHeartRate = reader.readLong(offsets[28]);
+  object.sensitivityAdjustment = reader.readDouble(offsets[29]);
+  object.sleepHours = reader.readDouble(offsets[30]);
+  object.supabaseUserId = reader.readStringOrNull(offsets[31]);
+  object.thermalSensitivity = reader.readLong(offsets[32]);
+  object.updatedAt = reader.readDateTime(offsets[33]);
+  object.veryColdKit = reader.readLongList(offsets[34]) ?? [];
+  object.warmKit = reader.readLongList(offsets[35]) ?? [];
+  object.warmThreshold = reader.readDouble(offsets[36]);
+  object.weight = reader.readDouble(offsets[37]);
   return object;
 }
 
@@ -427,42 +440,44 @@ P _userProfileDeserializeProp<P>(
     case 4:
       return (reader.readLong(offset)) as P;
     case 5:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readDouble(offset)) as P;
-    case 7:
       return (reader.readLongList(offset) ?? []) as P;
+    case 7:
+      return (reader.readDouble(offset)) as P;
     case 8:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
-    case 10:
       return (reader.readDouble(offset)) as P;
+    case 10:
+      return (reader.readDateTime(offset)) as P;
     case 11:
       return (reader.readDouble(offset)) as P;
     case 12:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 13:
       return (reader.readBool(offset)) as P;
     case 14:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 19:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 20:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 21:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 22:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 23:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 24:
       return (reader.readObjectList<MaintenanceDefinition>(
             offset,
             MaintenanceDefinitionSchema.deserialize,
@@ -470,31 +485,31 @@ P _userProfileDeserializeProp<P>(
             MaintenanceDefinition(),
           ) ??
           []) as P;
-    case 24:
-      return (reader.readStringOrNull(offset)) as P;
     case 25:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 26:
-      return (reader.readString(offset)) as P;
-    case 27:
-      return (reader.readLong(offset)) as P;
-    case 28:
       return (reader.readDouble(offset)) as P;
+    case 27:
+      return (reader.readString(offset)) as P;
+    case 28:
+      return (reader.readLong(offset)) as P;
     case 29:
       return (reader.readDouble(offset)) as P;
     case 30:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 31:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 32:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 33:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readDateTime(offset)) as P;
     case 34:
       return (reader.readLongList(offset) ?? []) as P;
     case 35:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 36:
+      return (reader.readDouble(offset)) as P;
+    case 37:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1262,6 +1277,160 @@ extension UserProfileQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'coachPersonality',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'coachPersonality',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'coachPersonality',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'coachPersonality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'coachPersonality',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coachPersonality',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      coachPersonalityIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'coachPersonality',
+        value: '',
       ));
     });
   }
@@ -4127,6 +4296,20 @@ extension UserProfileQuerySortBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByCoachPersonality() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coachPersonality', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByCoachPersonalityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coachPersonality', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByColdThreshold() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'coldThreshold', Sort.asc);
@@ -4530,6 +4713,20 @@ extension UserProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByCoachPersonality() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coachPersonality', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByCoachPersonalityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coachPersonality', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByColdThreshold() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'coldThreshold', Sort.asc);
@@ -4917,6 +5114,14 @@ extension UserProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByCoachPersonality(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'coachPersonality',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByColdKit() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'coldKit');
@@ -5157,6 +5362,13 @@ extension UserProfileQueryProperty
   QueryBuilder<UserProfile, int, QQueryOperations> alertTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'alertType');
+    });
+  }
+
+  QueryBuilder<UserProfile, String?, QQueryOperations>
+      coachPersonalityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'coachPersonality');
     });
   }
 

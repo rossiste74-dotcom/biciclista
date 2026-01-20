@@ -5,6 +5,7 @@ import '../services/community_tracks_service.dart';
 import '../models/planned_ride.dart';
 import '../models/saved_track.dart';
 import 'explore_community_screen.dart';
+import 'group_ride_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 /// Screen to create a new group ride
@@ -89,7 +90,7 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
         _meetingTime.minute,
       );
 
-      await _crewService.createGroupRide(
+      final newRide = await _crewService.createGroupRide(
         rideName: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty 
             ? null 
@@ -106,7 +107,19 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
       );
 
       if (mounted) {
-        Navigator.pop(context, true);
+        // Redirect directly to detail screen
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (_) => GroupRideDetailScreen(groupRide: newRide)),
+        ).then((_) {
+           // If we pop back from detail, we might want to return true to previous screen?
+           // But pushReplacement replaces this screen. 
+           // Implementation nuance: pushReplacement returns a Future for the pushed route.
+           // However, if the caller of CreateScreen wanted a result, they won't get it easily if we replace.
+           // But 'Pop' only goes back.
+           // Better UX: Create -> Detail -> (Back) -> List.
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Uscita creata con successo!')),
         );

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/planned_ride.dart';
 import '../models/bicycle.dart';
 import '../services/database_service.dart';
+import '../services/ai_service.dart';
 
 class ManualRideScreen extends StatefulWidget {
   const ManualRideScreen({super.key});
@@ -123,6 +124,25 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       // Update bicycle total distance
       _selectedBicycle!.totalKilometers += ride.distance;
       await _db.updateBicycle(_selectedBicycle!);
+    }
+
+    // Generate AI Analysis
+    final aiService = AIService();
+    if (await aiService.isConfigured() && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Generazione analisi AI in corso...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      try {
+        final analysis = await aiService.analyzeRide(ride);
+        ride.aiAnalysis = analysis;
+      } catch (e) {
+        debugPrint('AI Analysis failed: $e');
+        // Continue saving even if AI fails
+      }
     }
 
     await _db.createPlannedRide(ride);

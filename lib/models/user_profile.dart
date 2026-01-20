@@ -116,6 +116,9 @@ class UserProfile {
   /// API key for the selected AI provider (stored locally, not synced)
   String? aiApiKey;
 
+  /// Coach Personality (e.g. 'friendly', 'sergeant', 'zen', 'analytical')
+  String? coachPersonality;
+
   /// Specific model ID (e.g. gemini-1.5-flash)
   String? aiModel;
 
