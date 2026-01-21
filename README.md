@@ -1,121 +1,103 @@
-# Biciclistico 🚴‍♂️
+# 🚴 Biciclistico
 
-**Biciclistico** è il tuo assistente digitale personale per il ciclismo. Non un semplice tracker, ma un vero **Biciclista** che si prende cura della tua esperienza in sella, dalla manutenzione della bici ai consigli sull'abbigliamento, potenziato dall'Intelligenza Artificiale.
+**Biciclistico** è l'applicazione compagna definitiva per i ciclisti, progettata per gestire ogni aspetto della vita su due ruote: dalla pianificazione dei percorsi alla manutenzione del garage, fino alle uscite di gruppo con la community.
 
-![App Icon](assets/icon/icon.png)
+> **Stato**: In Sviluppo Attivo 🚧
 
-## ✨ Funzionalità Principali
+---
 
-### 🧠 AI Coach "Biciclista" (BYOK)
-Il cuore pulsante dell'app. Configura la tua chiave API personale (OpenAI, Claude o Gemini) e lascia che il Biciclista analizzi i tuoi dati:
-*   **Analisi Biometrica**: Incrocia HRV, sonno e recupero per dirti quanto spingere.
-*   **Consigli Meteo**: Suggerisce l'outfit perfetto in base a temperatura e vento.
-*   **Analisi Percorsi**: Valuta la difficoltà di un percorso importato in relazione alla tua forma attuale.
-*   **Meccanico Virtuale**: Chiedi consigli su come riparare o mantenere componenti specifici direttamente dal Garage.
+## 🌟 Funzionalità Principali
 
-### 🔧 Garage & Manutenzione Avanzata
-Gestisci la tua flotta di biciclette con precisione millimetrica:
-*   **Componenti Personalizzabili**: Definisci tu cosa tracciare (Catena, Copertoni, Pastiglie, Forcella, ecc.).
-*   **Soglie su Misura**: Imposta i km limite per ogni componente.
-*   **Tracking Automatico**: Ogni km percorso viene scalato automaticamente da tutti i componenti della bici usata.
-*   **Dashboard Garage**: Visualizza lo stato di salute di ogni bici a colpo d'occhio con barre di usura colorate.
+### 📊 Dashboard
+Una panoramica completa delle tue attività e del tuo stato fisico.
+- **Metriche**: Monitoraggio distanza settimanale, peso e HRV (Heart Rate Variability).
+- **Meteo**: Integrazione per previsioni meteo sulle uscite.
 
-### 🗺️ Gestione Attività & Percorsi
-Pianifica e analizza le tue uscite:
-*   **Importazione GPX**: Carica tracce da altre app o dispositivi.
-*   **Analisi Altimetrica**: Grafici interattivi di elevazione e lista delle "Salite Impegnative".
-*   **Timeline Meteo**: Previsioni dettagliate punto per punto lungo il percorso (Partenza, Metà, Vetta, Arrivo).
-*   **QR Sharing**: Condividi i tuoi percorsi con altri ciclisti tramite QR Code generato al volo.
+### 🗺️ Percorsi (Routes Library)
+Il cuore dell'esplorazione. Gestisci le tue tracce GPX e scopri nuovi sentieri.
+- **I Miei Percorsi**:
+  - Importazione file **GPX**.
+  - Sincronizzazione **Cloud** (Supabase) automatica per non perdere mai una traccia.
+  - Creazione percorsi disegnando direttamente su mappa (**Route Planner**).
+  - Condivisione rapida via **QR Code**.
+- **Community**:
+  - Catalogo globale di percorsi condivisi da altri utenti.
+  - **Pubblica** le tue tracce migliori con un click.
+  - **Salva** le tracce della community nella tua libreria personale.
+  - Visualizzazione dettagli: difficoltà, terreno, regione e autore ("di [Nome]").
 
-### 👤 Profilo & Salute
-*   **Biometria Completa**: Peso, Altezza, FTP, HRV, Sonno.
-*   **Health Sync**: Sincronizzazione automatica con Apple Health / Health Connect per avere sempre dati aggiornati.
-*   **Trend**: Visualizza l'andamento del tuo stato di forma nella Dashboard.
+### � Garage Digitale
+Tieni traccia dell'usura delle tue biciclette e dei componenti.
+- **Gestione Bici**: Aggiungi le tue bici (Strada, MTB, Gravel, ecc.).
+- **Manutenzione Intelligente**: Monitoraggio chilometrico dei componenti (catena, copertoni).
+- **Avvisi**: Notifiche automatiche quando un componente raggiunge il limite di usura.
 
-## 🚀 Per Iniziare
+### � Agenda & Social
+Organizza e partecipa alle uscite.
+- **Uscite di Gruppo**: Crea eventi per pedalare insieme.
+- **Partecipazione**: Segna la tua presenza e vedi chi altro partecipa.
 
-### Requisiti
-*   Smartphone Android o iOS.
-*   Chiave API (opzionale ma consigliata) per OpenAI, Anthropic o Google Gemini.
+---
 
-### Configurazione Iniziale
-1.  **Profilo**: Inserisci i tuoi dati biometrici per calibrare i consigli.
-2.  **Garage**: Aggiungi le tue bici e configura i componenti che vuoi monitorare.
-3.  **AI (Opzionale)**: Vai in Impostazioni > AI Coach e inserisci la tua API Key.
+## �️ Tecnologie Utilizzate
 
-## 📦 Installazione e Sviluppo
+Il progetto è costruito con tecnologie moderne per garantire prestazioni, offline-first experience e scalabilità.
 
-### Requisiti di Sistema
-*   **Flutter SDK**: Versione 3.10.4 o superiore.
-*   **Dart SDK**: Incluso in Flutter.
-*   **Android Studio** (per Android) o **Xcode** (per iOS/macOS).
-*   **Dispositivo Fisico**: Consigliato per testare GPS e sensori (Emulatore supportato ma limitato).
+- **Frontend**: [Flutter](https://flutter.dev) (Dart)
+- **Database Locale**: [Isar](https://isar.dev) (NoSQL, ultra-veloce, offline-first)
+- **Backend & Cloud**: [Supabase](https://supabase.com)
+  - **PostgreSQL**: Database relazionale per dati condivisi e sync.
+  - **Auth**: Gestione utenti.
+  - **Storage**: Salvataggio file GPX nel cloud.
+  - **Realtime**: Aggiornamenti live per le uscite di gruppo.
+- **Mappe**: `flutter_map` basato su OpenStreetMap.
+- **Parsers**: Gestione nativa file `.gpx`.
 
-### 🏃 Esecuzione in Ambiente di Sviluppo (Agility/Locale)
-Per avviare l'app nel tuo ambiente di sviluppo o IDE preferito:
+---
 
-1.  **Clona il Repository**:
+## 🚀 Installazione
+
+Per eseguire il progetto in locale:
+
+1.  **Prerequisiti**:
+    - Flutter SDK installato (`flutter doctor` per verificare).
+    - Un account Supabase configurato.
+
+2.  **Clona la repository**:
     ```bash
-    git clone https://github.com/stefanorossi/biciclista.git
-    cd biciclista
+    git clone https://github.com/tuo-user/biciclistico.git
+    cd biciclistico
     ```
-2.  **Installa le Dipendenze**:
+
+3.  **Installa le dipendenze**:
     ```bash
     flutter pub get
     ```
-3.  **Avvia l'Applicazione**:
-    Collega il telefono via USB (o avvia un emulatore) ed esegui:
+
+4.  **Generazione Codice (Isar/Json)**:
+    ```bash
+    dart run build_runner build --delete-conflicting-outputs
+    ```
+
+5.  **Configurazione Supabase**:
+    - Assicurati che `lib/services/supabase_config.dart` contenga URL e Anonym Key del tuo progetto Supabase.
+    - Esegui gli script SQL presenti nella cartella `supabase/` per creare le tabelle necessarie (`schema.sql`, `community_catalog_schema.sql`, ecc.).
+
+6.  **Avvio**:
     ```bash
     flutter run
     ```
 
-### 📱 Generazione APK (Installazione Manuale)
-Se vuoi generare un file `.apk` da inviare e installare manualmente su un dispositivo Android:
+---
 
-#### Opzione A: APK Debug Ottimizzato (CONSIGLIATO)
-Build veloce, funzionante e ottimizzata per test e distribuzione informale:
+## 📂 Struttura Cartelle
 
-1.  **Compila**:
-    ```bash
-    flutter build apk --debug --shrink --obfuscate --split-debug-info=build/app/outputs/symbols
-    ```
-2.  **Trova il File**:
-    `build/app/outputs/flutter-apk/app-debug.apk`
-3.  **Installa**:
-    Invia il file al telefono e installalo (autorizza "Sorgenti Sconosciute" se richiesto).
-
-#### Opzione B: APK Release (Richiede configurazione avanzata)
-Per una build di produzione ottimizzata:
-
-1.  **Compila**:
-    ```bash
-    flutter build apk --release
-    ```
-2.  **Trova il File**:
-    `build/app/outputs/flutter-apk/app-release.apk`
-
-> **Nota**: La build release potrebbe richiedere configurazione di firma e chiavi. Per uso personale, l'APK debug ottimizzato è sufficiente.
-
-### 🤖 Automazione con GitHub Actions
-Questo repository include un workflow pre-configurato per compilare automaticamente l'APK nel cloud.
-
-1.  **Carica il Codice**: Fai push delle modifiche sul branch `main`.
-2.  **Monitora la Build**:
-    *   Vai sulla tab **Actions** del repository GitHub.
-    *   Clicca sull'ultimo workflow "Build Android APK".
-3.  **Scarica l'APK**:
-    *   A build terminata (icona verde ✅), scorri in basso nella sezione **Artifacts**.
-    *   Clicca su `app-release` per scaricare lo zip contenente l'APK.
+- `lib/screens`: Tutte le schermate dell'app (Dashboard, Garage, Percorsi, ecc.).
+- `lib/models`: Modelli dati (Track, Bicycle, GroupRide) e collezioni Isar.
+- `lib/services`: Logica di business (Sync, Database, GPX, Community).
+- `lib/utils`: Helper per ottimizzazione GPX, formattazione, ecc.
+- `supabase`: Script SQL per la configurazione del backend.
 
 ---
 
-## 🛠️ Stack Tecnologico
-
-Sviluppato con ❤️ usando **Flutter**.
-*   **Database**: [Isar](https://isar.dev/) (NoSQL locale ultra-veloce).
-*   **Mappe**: [Flutter Map](https://pub.dev/packages/flutter_map) & OpenStreetMap.
-*   **Grafici**: [Fl Chart](https://pub.dev/packages/fl_chart).
-*   **AI**: Integrazioni HTTP dirette per massima privacy (nessun server intermedio).
-
----
-*Ride safe. Ride smart.*
+Realizzato con ❤️ e tanti Watt.

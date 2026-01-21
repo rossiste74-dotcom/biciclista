@@ -28,7 +28,6 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
   DateTime _meetingDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _meetingTime = const TimeOfDay(hour: 9, minute: 0);
   String _difficulty = 'medium';
-  int _maxParticipants = 10;
   bool _isPublic = true;
   bool _isLoading = false;
   
@@ -98,7 +97,6 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
         meetingPoint: _meetingPointController.text.trim(),
         meetingTime: meetingDateTime,
         difficultyLevel: _difficulty,
-        maxParticipants: _maxParticipants,
         isPublic: _isPublic,
         // Add GPX data from selected route with explicit double conversion
         distance: _selectedRoute?.distance.toDouble(),
@@ -301,32 +299,6 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
                       selected: {_difficulty},
                       onSelectionChanged: (Set<String> selected) {
                         setState(() => _difficulty = selected.first);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Max partecipanti
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Max Partecipanti: $_maxParticipants',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Slider(
-                      value: _maxParticipants.toDouble(),
-                      min: 2,
-                      max: 50,
-                      divisions: 48,
-                      onChanged: (value) {
-                        setState(() => _maxParticipants = value.toInt());
                       },
                     ),
                   ],

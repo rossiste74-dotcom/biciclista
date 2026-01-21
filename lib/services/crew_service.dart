@@ -88,6 +88,125 @@ class CrewService {
     }
   }
 
+  /// Get unified activity agenda (created + joined)
+  /// Returns all activities where user is creator OR participant, sorted chronologically
+  Future<List<GroupRide>> getUnifiedActivityAgenda() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // Fetch rides where user is creator
+      final createdRides = await _supabase
+          .from('group_rides')
+          .select('*, group_ride_participants(*)')
+          .eq('creator_id', user.id)
+          .order('meeting_time', ascending: true);
+
+      // Fetch rides where user is participant (but not creator)
+      final participations = await _supabase
+          .from('group_ride_participants')
+          .select('group_ride_id')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed');
+
+      final participantRideIds = (participations as List)
+          .map((p) => p['group_ride_id'] as String)
+          .toList();
+
+      List<dynamic> joinedRides = [];
+      if (participantRideIds.isNotEmpty) {
+        joinedRides = await _supabase
+            .from('group_rides')
+            .select('*, group_ride_participants(*)')
+            .inFilter('id', participantRideIds)
+            .neq('creator_id', user.id) // Exclude rides where user is also creator
+            .order('meeting_time', ascending: true);
+      }
+
+      // Combine all rides
+      final allRidesData = [...createdRides, ...joinedRides];
+      
+      // Collect all unique user IDs from participants
+      final Set<String> userIds = {};
+      for (final rideData in allRidesData) {
+        final participants = rideData['group_ride_participants'] as List?;
+        if (participants != null) {
+          for (final p in participants) {
+            userIds.add(p['user_id'] as String);
+          }
+        }
+      }
+
+      // Fetch all profiles in one query
+      Map<String, Map<String, dynamic>> profilesMap = {};
+      if (userIds.isNotEmpty) {
+        final profiles = await _supabase
+            .from('public_profiles')
+            .select('user_id, display_name, profile_image_url')
+            .inFilter('user_id', userIds.toList());
+        
+        for (final profile in profiles as List) {
+          profilesMap[profile['user_id'] as String] = profile;
+        }
+      }
+
+      // Merge profile data into participants
+      for (final rideData in allRidesData) {
+        final participants = rideData['group_ride_participants'] as List?;
+        if (participants != null) {
+          for (final p in participants) {
+            final userId = p['user_id'] as String;
+            final profile = profilesMap[userId];
+            if (profile != null) {
+              p['display_name'] = profile['display_name'];
+              p['profile_image_url'] = profile['profile_image_url'];
+            }
+          }
+        }
+      }
+
+      // Convert to GroupRide objects
+      final allRides = allRidesData
+          .map((json) => GroupRide.fromJson(json))
+          .toList();
+
+      // Sort by meeting time
+      allRides.sort((a, b) => a.meetingTime.compareTo(b.meetingTime));
+
+      return allRides;
+    } catch (e) {
+      throw Exception('Error fetching unified agenda: $e');
+    }
+  }
+
+  /// Get all public activities for discovery (global)
+  Future<List<GroupRide>> getPublicActivitiesForDiscovery({
+    int limit = 50,
+    DateTime? afterDate,
+  }) async {
+    try {
+      var query = _supabase
+          .from('group_rides')
+          .select('*, group_ride_participants(*)')
+          .eq('is_public', true)
+          .eq('status', 'planned');
+
+      if (afterDate != null) {
+        query = query.gte('meeting_time', afterDate.toIso8601String());
+      }
+
+      final response = await query
+          .order('meeting_time', ascending: true)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => GroupRide.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw Exception('Error fetching discovery activities: $e');
+    }
+  }
+
   /// Create a new group ride
   Future<GroupRide> createGroupRide({
     required String rideName,
@@ -229,6 +348,19 @@ class CrewService {
         .eq('is_public', true)
         .order('meeting_time')
         .map((data) => data.map((json) => GroupRide.fromJson(json)).toList());
+  }
+
+  /// Subscribe to realtime updates for a specific activity
+  /// Returns a stream that emits the updated participant count
+  Stream<int> subscribeToActivityUpdates(String rideId) {
+    return _supabase
+        .from('group_ride_participants')
+        .stream(primaryKey: ['id'])
+        .map((data) => data
+            .where((p) => 
+                p['group_ride_id'] == rideId && 
+                p['status'] == 'confirmed')
+            .length);
   }
 
   /// Delete a group ride (only creator)

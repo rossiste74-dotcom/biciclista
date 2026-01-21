@@ -32,6 +32,12 @@ class Track {
   late DateTime createdAt;
   late DateTime updatedAt;
   
+  // Sync
+  @Index()
+  String? supabaseId;
+  String? gpxUrl;
+  DateTime? lastSyncedAt;
+  
   Track();
 
   // Helper getters

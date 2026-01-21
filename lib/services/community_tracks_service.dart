@@ -104,7 +104,7 @@ class CommunityTracksService {
     try {
       final response = await _supabase
           .from('community_tracks')
-          .select()
+          .select('*, profiles(name)')
           .eq('is_public', true)
           .order('usage_count', ascending: false)
           .limit(limit);
@@ -122,7 +122,7 @@ class CommunityTracksService {
     try {
       final response = await _supabase
           .from('community_tracks')
-          .select()
+          .select('*, profiles(name)')
           .eq('is_public', true)
           .gt('total_ratings', 0)
           .order('avg_rating', ascending: false)
@@ -141,7 +141,7 @@ class CommunityTracksService {
     try {
       final response = await _supabase
           .from('community_tracks')
-          .select()
+          .select('*, profiles(name)')
           .eq('is_public', true)
           .order('created_at', ascending: false)
           .limit(limit);
@@ -165,7 +165,7 @@ class CommunityTracksService {
       // Get all public tracks with coordinates
       final response = await _supabase
           .from('community_tracks')
-          .select()
+          .select('*, profiles(name)')
           .eq('is_public', true)
           .not('start_latitude', 'is', null)
           .not('start_longitude', 'is', null);
@@ -224,7 +224,7 @@ class CommunityTracksService {
     try {
       var queryBuilder = _supabase
           .from('community_tracks')
-          .select()
+          .select('*, profiles(name)')
           .eq('is_public', true);
 
       if (query != null && query.isNotEmpty) {

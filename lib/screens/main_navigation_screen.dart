@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:gpx/gpx.dart';
 import 'dashboard_screen.dart';
-import 'rides_list_screen.dart';
+import 'routes_library_screen.dart';
 import 'settings_screen.dart';
-import 'crew_screen.dart';
+import 'unified_agenda_screen.dart';
+import 'discovery_screen.dart';
 import 'package:biciclistico/screens/gpx_import_screen.dart';
 
 import 'manual_ride_screen.dart';
@@ -37,9 +38,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _screens = [
       const DashboardScreen(),
-      const RidesListScreen(),
+      const RoutesLibraryScreen(),
       const GarageScreen(),
-      CrewScreen(refreshNotifier: _crewRefreshNotifier),
+      const UnifiedAgendaScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
   }
@@ -405,13 +406,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
+  Widget _buildAppBarTitle() {
+    switch (_selectedIndex) {
+      case 0:
+        return Text('biciclistico', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold));
+      case 1:
+        return const Text('Percorsi');
+      case 2:
+        return const Text('Garage');
+      case 3:
+        return const Text('Agenda');
+      default:
+        return const Text('biciclistico');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _selectedIndex == 0 
-           ? Text('biciclistico', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))
-           : const Text('Le Mie Attività'),
+        title: _buildAppBarTitle(),
         actions: [
           IconButton(
             icon: CircleAvatar(
@@ -469,7 +483,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           NavigationDestination(
             icon: Icon(Icons.directions_bike_outlined),
             selectedIcon: Icon(Icons.directions_bike),
-            label: 'Attività',
+            label: 'Percorsi',
           ),
           NavigationDestination(
             icon: Icon(Icons.garage_outlined),
@@ -479,16 +493,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           NavigationDestination(
             icon: Icon(Icons.group_outlined),
             selectedIcon: Icon(Icons.group),
-            label: 'Crew',
+            label: 'Agenda',
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 1 
-          ? FloatingActionButton(
-              onPressed: _showAddMenu,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton: _selectedIndex == 3
+              ? FloatingActionButton.extended(
+                  heroTag: 'main_discovery_fab',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DiscoveryScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.explore),
+                  label: const Text('Esplora'),
+                )
+              : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

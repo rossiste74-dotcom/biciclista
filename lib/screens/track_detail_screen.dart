@@ -13,7 +13,11 @@ import '../services/gpx_service.dart';
 import '../widgets/route_map_widget.dart';
 import '../services/ai_service.dart';
 import '../services/track_service.dart';
+import '../services/crew_service.dart';
+import '../services/crew_service.dart';
+import '../services/community_tracks_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gpx/gpx.dart';
 
 /// Track Detail Screen - Shows full track information (library view)
 class TrackDetailScreen extends StatefulWidget {
@@ -33,6 +37,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   final _gpxService = GpxService();
   final _aiService = AIService();
   final _trackService = TrackService();
+  final _communityService = CommunityTracksService();
   
   bool _isLoading = true;
   bool _isAnalyzing = false;
@@ -78,6 +83,11 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 const SnackBar(content: Text('Modifica traccia in arrivo...')),
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.public),
+            tooltip: 'Pubblica in Community',
+            onPressed: _showPublishDialog,
           ),
         ],
       ),
@@ -487,20 +497,19 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   void _showScheduleDialog() {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
     TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
-    bool isGroupRide = false;
     String? customName;
     
-    // Group ride fields
+    // Always group ride (Social-First)
     String difficulty = 'medium';
     String meetingPoint = '';
-    bool isPublic = true;
+    bool isPublic = true; // Default pubblico
     final meetingPointController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Pianifica Uscita'),
+          title: const Text('Proponi alla Crew'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -552,21 +561,8 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   },
                 ),
 
-                // Group ride toggle
-                SwitchListTile(
-                  title: const Text('Uscita di Gruppo'),
-                  subtitle: const Text('Condividi con la community'),
-                  value: isGroupRide,
-                  contentPadding: EdgeInsets.zero,
-                  onChanged: (value) {
-                    setDialogState(() => isGroupRide = value);
-                  },
-                ),
-
-                // Conditional group ride fields
-                if (isGroupRide) ...[
-                  const Divider(),
-                  const SizedBox(height: 8),
+                const Divider(height: 24),
+                const SizedBox(height: 8),
                   
                   // Difficulty selector
                   DropdownButtonFormField<String>(
@@ -614,7 +610,6 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   ),
                   
                   const SizedBox(height: 8),
-                ],
 
                 // Custom name (optional)
                 TextField(
@@ -637,7 +632,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
             FilledButton(
               onPressed: () async {
                 // Validation
-                if (isGroupRide && meetingPoint.isEmpty) {
+                if (meetingPoint.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Inserisci un punto di ritrovo per le uscite di gruppo')),
                   );
@@ -648,14 +643,13 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 await _scheduleRide(
                   selectedDate,
                   selectedTime,
-                  isGroupRide,
                   customName,
                   difficulty,
                   meetingPoint,
                   isPublic,
                 );
               },
-              child: const Text('Pianifica'),
+              child: const Text('Proponi'),
             ),
           ],
         ),
@@ -666,7 +660,6 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   Future<void> _scheduleRide(
     DateTime date,
     TimeOfDay time,
-    bool isGroupRide,
     String? customName,
     String difficulty,
     String meetingPoint,
@@ -697,7 +690,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         ..rideDate = rideDateTime
         ..rideName = customName ?? widget.track.name
         ..trackId = widget.track.id
-        ..isGroupRide = isGroupRide
+        ..isGroupRide = true // Always group ride (Social-First)
         ..distance = widget.track.distance
         ..elevation = widget.track.elevation
         ..latitude = centerLat
@@ -707,24 +700,18 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       ride.track.value = widget.track;
       await _db.createPlannedRide(ride);
 
-      // Sync to Supabase if group ride
-      if (isGroupRide) {
-        await _syncGroupRideToSupabase(
-          ride: ride,
-          difficulty: difficulty,
-          meetingPoint: meetingPoint,
-          isPublic: isPublic,
-        );
-      }
+      // Always sync to Supabase (Social-First)
+      await _syncGroupRideToSupabase(
+        ride: ride,
+        difficulty: difficulty,
+        meetingPoint: meetingPoint,
+        isPublic: isPublic,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isGroupRide
-                  ? 'Uscita di gruppo pianificata e condivisa!'
-                  : 'Uscita personale pianificata!',
-            ),
+          const SnackBar(
+            content: Text('Uscita proposta alla Crew! 🚴‍♂️👥'),
           ),
         );
         
@@ -759,29 +746,25 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       if (_routeData != null) {
         gpxDataForDb = {
           'allPoints': _routeData!['allPoints'],
-          // We can add other processed data if needed, but points are key for valid map reconstruction
-          // Elevation profile can be recalculated or stored if desired
           'elevationProfile': _routeData!['elevationProfile'], 
         };
       }
 
-      // Map fields to match crew_schema.sql
-      await supabase.from('group_rides').insert({
-        'creator_id': user.id,
-        'ride_name': ride.rideName ?? widget.track.name,
-        'description': ride.track.value?.description,
-        'gpx_data': gpxDataForDb, 
-        'distance': ride.distance,
-        'elevation': ride.elevation,
-        'meeting_point': meetingPoint,
-        'meeting_latitude': ride.latitude,
-        'meeting_longitude': ride.longitude,
-        'meeting_time': ride.rideDate.toIso8601String(),
-        'difficulty_level': difficulty,
-        'max_participants': 20,
-        'is_public': isPublic,
-        'status': 'planned',
-      });
+      // Use CrewService to create group ride (auto-joins creator as participant)
+      final crewService = CrewService();
+      await crewService.createGroupRide(
+        rideName: ride.rideName ?? widget.track.name,
+        description: ride.track.value?.description,
+        gpxData: gpxDataForDb,
+        distance: ride.distance,
+        elevation: ride.elevation,
+        meetingPoint: meetingPoint,
+        meetingLatitude: ride.latitude,
+        meetingLongitude: ride.longitude,
+        meetingTime: ride.rideDate,
+        difficultyLevel: difficulty,
+        isPublic: isPublic,
+      );
       
       // Mark as synced
       ride.supabaseEventId = 'synced_${DateTime.now().millisecondsSinceEpoch}';
@@ -791,6 +774,166 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     } catch (e) {
       debugPrint('Error syncing group ride to Supabase: $e');
       // Non bloccare l'utente se sync fallisce
+    }
+  }
+
+
+  void _showPublishDialog() {
+    if (widget.track.gpxFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossibile pubblicare: nessun file GPX associato')),
+      );
+      return;
+    }
+
+    String difficulty = 'medium';
+    String region = widget.track.region ?? '';
+    String trackType = widget.track.terrainType;
+    String description = widget.track.description ?? '';
+    bool isPublic = true;
+    final regionController = TextEditingController(text: region);
+    final descController = TextEditingController(text: description);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Pubblica in Community'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Condividi "${widget.track.name}" con gli altri ciclisti!',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                
+                DropdownButtonFormField<String>(
+                  value: difficulty,
+                  decoration: const InputDecoration(
+                    labelText: 'Difficoltà',
+                    prefixIcon: Icon(Icons.speed),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'easy', child: Text('🟢 Facile')),
+                    DropdownMenuItem(value: 'medium', child: Text('🟡 Media')),
+                    DropdownMenuItem(value: 'hard', child: Text('🔴 Difficile')),
+                    DropdownMenuItem(value: 'expert', child: Text('🟣 Expert')),
+                  ],
+                  onChanged: (value) => setDialogState(() => difficulty = value!),
+                ),
+                const SizedBox(height: 8),
+
+                DropdownButtonFormField<String>(
+                  value: trackType,
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo Terreno',
+                    prefixIcon: Icon(Icons.terrain),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'road', child: Text('Strada')),
+                    DropdownMenuItem(value: 'gravel', child: Text('Gravel')),
+                    DropdownMenuItem(value: 'mtb', child: Text('MTB')),
+                    DropdownMenuItem(value: 'mixed', child: Text('Misto')),
+                  ],
+                  onChanged: (value) => setDialogState(() => trackType = value!),
+                ),
+                const SizedBox(height: 8),
+
+                TextField(
+                  controller: regionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Regione / Zona',
+                    prefixIcon: Icon(Icons.map),
+                    hintText: 'es. Toscana, Chianti',
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                TextField(
+                  controller: descController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrizione (opzionale)',
+                    hintText: 'Racconta qualcosa su questo percorso...',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
+            FilledButton.icon(
+              icon: const Icon(Icons.public),
+              label: const Text('Pubblica'),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _publishTrack(
+                  difficulty,
+                  trackType,
+                  regionController.text,
+                  descController.text,
+                  isPublic,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _publishTrack(
+    String difficulty,
+    String trackType,
+    String? region,
+    String? description,
+    bool isPublic,
+  ) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // Parse local GPX
+      final file = File(widget.track.gpxFilePath!);
+      if (!await file.exists()) throw Exception('File GPX non trovato');
+      
+      final gpxString = await file.readAsString();
+      final gpx = GpxReader().fromString(gpxString);
+      
+      await _communityService.publishTrack(
+        trackName: widget.track.name,
+        description: description,
+        gpx: gpx,
+        distance: widget.track.distance,
+        elevation: widget.track.elevation,
+        duration: widget.track.duration,
+        difficultyLevel: difficulty,
+        region: region,
+        trackType: trackType,
+        isPublic: isPublic,
+      );
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Traccia pubblicata con successo! 🌍'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore pubblicazione: $e')),
+        );
+      }
     }
   }
 }
