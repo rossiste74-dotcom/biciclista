@@ -497,21 +497,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 3
-              ? FloatingActionButton.extended(
-                  heroTag: 'main_discovery_fab',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DiscoveryScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.explore),
-                  label: const Text('Esplora'),
-                )
-              : null,
+      floatingActionButton: null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

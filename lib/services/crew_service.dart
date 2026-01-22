@@ -123,12 +123,35 @@ class CrewService {
             .order('meeting_time', ascending: true);
       }
 
+      // Fetch public rides (discovery) - Only future ones to avoid clutter
+      final publicRides = await _supabase
+          .from('group_rides')
+          .select('*, group_ride_participants(*)')
+          .eq('is_public', true)
+          .neq('creator_id', user.id) // Exclude my own
+          .gte('meeting_time', DateTime.now().toIso8601String()) // Future only
+          .order('meeting_time', ascending: true);
+
       // Combine all rides
-      final allRidesData = [...createdRides, ...joinedRides];
+      final allRidesData = [...createdRides, ...joinedRides, ...publicRides];
       
-      // Collect all unique user IDs from participants
+      // Deduplicate by ID (Public rides might already be in joinedRides)
+      final uniqueRidesMap = <String, dynamic>{};
+      for (var ride in allRidesData) {
+        uniqueRidesMap[ride['id']] = ride;
+      }
+      final uniqueRidesList = uniqueRidesMap.values.toList();
+      
+      // Re-sort by date
+      uniqueRidesList.sort((a, b) {
+        final dateA = DateTime.parse(a['meeting_time']);
+        final dateB = DateTime.parse(b['meeting_time']);
+        return dateA.compareTo(dateB);
+      });
+
+      // Collect all unique user IDs from participants (using deduplicated list)
       final Set<String> userIds = {};
-      for (final rideData in allRidesData) {
+      for (final rideData in uniqueRidesList) {
         final participants = rideData['group_ride_participants'] as List?;
         if (participants != null) {
           for (final p in participants) {
@@ -151,7 +174,7 @@ class CrewService {
       }
 
       // Merge profile data into participants
-      for (final rideData in allRidesData) {
+      for (final rideData in uniqueRidesList) {
         final participants = rideData['group_ride_participants'] as List?;
         if (participants != null) {
           for (final p in participants) {
@@ -167,11 +190,12 @@ class CrewService {
       }
 
       // Convert to GroupRide objects
-      final allRides = allRidesData
+      final allRides = uniqueRidesList
           .map((json) => GroupRide.fromJson(json))
           .toList();
 
-      // Sort by meeting time
+      // Sort by meeting time (already sorted but safe to re-sort or rely on DB order if needed)
+      // Since we merged multiple lists, explicit sort is good.
       allRides.sort((a, b) => a.meetingTime.compareTo(b.meetingTime));
 
       return allRides;

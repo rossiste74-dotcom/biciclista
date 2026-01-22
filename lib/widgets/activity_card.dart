@@ -212,26 +212,13 @@ class _ActivityCardState extends State<ActivityCard> {
                           (p) => p.userId == widget.activity.creatorId,
                           orElse: () => widget.activity.participants.first,
                         );
-                        final avatarConfig = creator.avatarData != null
-                            ? UserAvatarConfig.fromJsonString(creator.avatarData!)
-                            : null;
-                            
-                        if (avatarConfig != null) {
-                          return ClipOval(
-                            child: Container(
-                               color: Theme.of(context).colorScheme.primaryContainer,
-                               child: AvatarPreview(config: avatarConfig, size: 32),
-                            ),
-                          );
-                        }
-                        
-                        return CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          child: Text(
-                            creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?',
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                          ),
+                        return _buildAvatar(
+                           context, 
+                           displayName: creator.displayName,
+                           avatarData: creator.avatarData,
+                           profileImageUrl: creator.profileImageUrl,
+                           size: 32,
+                           isHighlight: true,
                         );
                       }
                     ),
@@ -267,38 +254,18 @@ class _ActivityCardState extends State<ActivityCard> {
                     itemCount: widget.activity.participants.length,
                     itemBuilder: (context, index) {
                       final participant = widget.activity.participants[index];
-                      final avatarConfig = participant.avatarData != null
-                          ? UserAvatarConfig.fromJsonString(participant.avatarData!)
-                          : null;
-                      
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: Tooltip(
                           message: participant.displayName,
-                          child: avatarConfig != null
-                              ? ClipOval(
-                                  child: Container(
-                                    width: 40,
-                                    height: 40,
-                                    color: Theme.of(context).colorScheme.primaryContainer,
-                                    child: AvatarPreview(config: avatarConfig, size: 40),
-                                  ),
-                                )
-                              : CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: participant.userId == widget.activity.creatorId
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.grey[300],
-                                  child: Text(
-                                    participant.displayName.isNotEmpty ? participant.displayName[0].toUpperCase() : '?',
-                                    style: TextStyle(
-                                      color: participant.userId == widget.activity.creatorId
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                          child: _buildAvatar(
+                             context,
+                             displayName: participant.displayName,
+                             avatarData: participant.avatarData,
+                             profileImageUrl: participant.profileImageUrl,
+                             size: 40,
+                             isHighlight: participant.userId == widget.activity.creatorId,
+                          ),
                         ),
                       );
                     },
@@ -344,5 +311,53 @@ class _ActivityCardState extends State<ActivityCard> {
       default:
         return DifficultyRating.moderate;
     }
+  }
+
+  Widget _buildAvatar(BuildContext context, {
+    required String displayName, 
+    String? avatarData, 
+    String? profileImageUrl, 
+    double size = 32,
+    bool isHighlight = false, // For creator or self
+  }) {
+    // 1. SVG Avatar
+    if (avatarData != null) {
+      final config = UserAvatarConfig.fromJsonString(avatarData);
+      if (config != null) {
+        return ClipOval(
+          child: Container(
+            width: size,
+            height: size,
+            color: Theme.of(context).colorScheme.primaryContainer,
+            child: AvatarPreview(config: config, size: size),
+          ),
+        );
+      }
+    }
+
+    // 2. Raster Image (URL)
+    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: size / 2,
+        backgroundImage: NetworkImage(profileImageUrl),
+        backgroundColor: Colors.transparent,
+      );
+    }
+
+    // 3. Initials Fallback
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: isHighlight 
+          ? Theme.of(context).colorScheme.primary 
+          : Colors.grey[300],
+      child: Text(
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+        style: TextStyle(
+          color: isHighlight ? Colors.white : Colors.black87,
+          fontSize: size * 0.45,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 }

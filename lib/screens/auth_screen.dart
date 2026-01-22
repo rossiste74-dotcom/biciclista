@@ -42,7 +42,7 @@ class _AuthScreenState extends State<AuthScreen> {
           final data = await supabase
               .from('profiles')
               .select()
-              .eq('id', user.id)
+              .eq('user_id', user.id)
               .maybeSingle();
 
           if (mounted) {
