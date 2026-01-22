@@ -11,6 +11,10 @@ import 'user_guide_screen.dart';
 
 
 import 'integration_settings_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -71,6 +75,9 @@ class SettingsScreen extends StatelessWidget {
               }
             },
           ),
+          const Divider(),
+          _buildHeader(context, 'Routing \u0026 Mappe'),
+
           const Divider(),
           _buildHeader(context, 'Gestione Dati'),
           ListTile(
@@ -138,6 +145,20 @@ class SettingsScreen extends StatelessWidget {
             leading: Icon(Icons.code),
             title: Text('Sviluppato con'),
             trailing: Text('Isar & OpenStreetMap'),
+          ),
+          const SizedBox(height: 24),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Disconnetti', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
           const SizedBox(height: 32),
           Center(
@@ -223,3 +244,4 @@ class SettingsScreen extends StatelessWidget {
 
 
 }
+// End of file

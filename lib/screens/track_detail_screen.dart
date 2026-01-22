@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../utils/gpx_optimizer.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -11,11 +15,15 @@ import '../models/route_coordinates.dart';
 import '../services/database_service.dart';
 import '../services/gpx_service.dart';
 import '../widgets/route_map_widget.dart';
+import '../widgets/elevation_profile_widget.dart';
 import '../services/ai_service.dart';
 import '../services/track_service.dart';
 import '../services/crew_service.dart';
 import '../services/crew_service.dart';
 import '../services/community_tracks_service.dart';
+import '../widgets/terrain_breakdown_widget.dart';
+import '../widgets/difficulty_badge.dart';
+import '../models/terrain_analysis.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gpx/gpx.dart';
 
@@ -52,19 +60,96 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
   Future<void> _loadRouteData() async {
     try {
-      if (widget.track.gpxFilePath == null) {
+      File? gpxFile;
+
+      // 1. Try local file path from object
+      if (widget.track.gpxFilePath != null) {
+        final f = File(widget.track.gpxFilePath!);
+        if (await f.exists()) {
+          gpxFile = f;
+        }
+      }
+
+      // 2. If no local file, try to download from Cloud
+      if (gpxFile == null && widget.track.gpxUrl != null) {
+         try {
+           final url = await _trackService.getGpxUrl(widget.track);
+           if (url != null) {
+             // Download
+             final response = await http.get(Uri.parse(url));
+             if (response.statusCode == 200) {
+                // Save to temp
+                final dir = await getTemporaryDirectory();
+                // Simple sanitize filename
+                final filename = widget.track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
+                final file = File('${dir.path}/$filename');
+                await file.writeAsBytes(response.bodyBytes);
+                gpxFile = file;
+                widget.track.gpxFilePath = file.path; // Update local ref
+             }
+           }
+         } catch(e) {
+           debugPrint('Error downloading GPX: $e');
+         }
+      }
+
+      // 3. Fallback: Check for embedded JSON data (community tracks)
+      if (gpxFile == null && widget.track.communityGpxData != null) {
+        try {
+           debugPrint('Attempting to parse community GPX data...');
+           final dynamic parsedJson = jsonDecode(widget.track.communityGpxData!);
+           final gpx = GpxOptimizer.jsonToGpx(parsedJson);
+           
+           final dir = await getTemporaryDirectory();
+           final filename = 'community_${widget.track.id ?? "temp"}.gpx';
+           final file = File('${dir.path}/$filename');
+           
+           // Write XML string to file
+           final xmlString = GpxWriter().asString(gpx, pretty: true);
+           await file.writeAsString(xmlString);
+           
+           gpxFile = file;
+           debugPrint('Community GPX converted to file: ${file.path}');
+        } catch (e, stack) {
+           debugPrint('Error parsing community GPX data: $e');
+           debugPrint(stack.toString());
+           if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Dati traccia non validi: $e')),
+             );
+           }
+        }
+      } else if (gpxFile == null && widget.track.gpxUrl == null) {
+         debugPrint('No GPX file or URL found for track.');
+      }
+
+      if (gpxFile == null) {
         if (mounted) setState(() => _isLoading = false);
+        if (_routeData == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Mappa non trovata. (Files: ${widget.track.gpxFilePath ?? "no"}, URL: ${widget.track.gpxUrl ?? "no"}, Data: ${widget.track.communityGpxData != null ? "yes" : "no"})')),
+            // Debug info in snackbar to help user report issue
+          );
+        }
         return;
       }
-      final gpxFile = File(widget.track.gpxFilePath!);
+      
       _routeData = await _gpxService.parseGpxFile(gpxFile);
       
       if (mounted) {
         setState(() => _isLoading = false);
+        if (_routeData == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impossibile caricare la mappa della traccia.')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore caricamento traccia: $e')),
+        );
       }
     }
   }
@@ -88,6 +173,11 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
             icon: const Icon(Icons.public),
             tooltip: 'Pubblica in Community',
             onPressed: _showPublishDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            tooltip: 'Elimina traccia',
+            onPressed: _showDeleteConfirmation,
           ),
         ],
       ),
@@ -232,6 +322,29 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 _buildInfoRow(Icons.location_on, widget.track.region ?? 'N/A'),
               ],
             ),
+            // Terrain Breakdown (if available from BRouter)
+            if (widget.track.asphaltPercent != null) ...[
+              const Divider(height: 32),
+              TerrainBreakdownWidget(
+                terrain: TerrainBreakdown(
+                  asphaltPercent: widget.track.asphaltPercent!,
+                  gravelPercent: widget.track.gravelPercent!,
+                  pathPercent: widget.track.pathPercent!,
+                ),
+                compact: false,
+              ),
+            ],
+            // Difficulty Rating (if available from BRouter)
+            if (widget.track.difficultyLevel != null) ...[
+              const Divider(height: 32),
+              Center(
+                child: DifficultyBadge(
+                  difficulty: difficultyFromLevel(widget.track.difficultyLevel!),
+                  showLabel: true,
+                  showLevel: true,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -269,49 +382,12 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     final profile = _routeData!['elevationProfile'] as List<Map<String, double>>;
     if (profile.isEmpty) return const SizedBox();
 
-    final spots = profile.asMap().entries.map((entry) {
-      return FlSpot(
-        entry.value['distance']!,
-        entry.value['elevation']!,
-      );
-    }).toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          height: 200,
-          child: LineChart(
-            LineChartData(
-              gridData: FlGridData(show: true, drawVerticalLine: false),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 40),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 30),
-                ),
-                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  color: Theme.of(context).colorScheme.primary,
-                  barWidth: 3,
-                  dotData: FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    // Extract just elevation values for ElevationProfileWidget
+    final elevations = profile.map((p) => p['elevation']!).toList();
+    
+    return ElevationProfileWidget(
+      elevationProfile: elevations,
+      distanceKm: widget.track.distance,
     );
   }
 
@@ -360,6 +436,8 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
               const Divider(),
               _buildMetadataRow(Icons.cloud, 'ID Community', widget.track.communityTrackId!),
             ],
+            const Divider(),
+            _buildMetadataRow(Icons.fingerprint, 'ID Sistema', widget.track.id ?? 'N/A'),
           ],
         ),
       ),
@@ -697,7 +775,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         ..longitude = centerLng
         ..gpxFilePath = widget.track.gpxFilePath;
 
-      ride.track.value = widget.track;
+      ride.track = widget.track;
       await _db.createPlannedRide(ride);
 
       // Always sync to Supabase (Social-First)
@@ -754,7 +832,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       final crewService = CrewService();
       await crewService.createGroupRide(
         rideName: ride.rideName ?? widget.track.name,
-        description: ride.track.value?.description,
+        description: ride.track?.description,
         gpxData: gpxDataForDb,
         distance: ride.distance,
         elevation: ride.elevation,
@@ -933,6 +1011,100 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore pubblicazione: $e')),
         );
+      }
+    }
+  }
+  
+  Future<void> _showDeleteConfirmation() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina traccia'),
+        content: Text(
+          'Sei sicuro di voler eliminare "${widget.track.name}"?\n\n'
+          'Questa azione non può essere annullata.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      if (widget.track.id == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Errore: ID traccia non valido. Riprova più tardi.')),
+        );
+        return;
+      }
+
+      try {
+        await _trackService.deleteTrack(widget.track.id!);
+        
+        if (mounted) {
+          Navigator.pop(context); // Torna alla Routes Library
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Traccia eliminata')),
+          );
+        }
+      } catch (e) {
+        if (mounted && e.toString().contains('Impossibile eliminare')) {
+          // Show force delete dialog
+          final forceConfirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Traccia in uso'),
+              content: const Text(
+                'Questa traccia è usata in alcune uscite pianificate.\n'
+                'Vuoi eliminarla comunque? Le uscite verranno mantenute ma senza traccia associata.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Annulla'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Elimina Comunque'),
+                ),
+              ],
+            ),
+          );
+
+          if (forceConfirm == true && mounted) {
+            try {
+              if (widget.track.id != null) await _trackService.deleteTrackAndUnlink(widget.track.id!);
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Traccia eliminata')),
+                );
+              }
+            } catch (e2) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Errore eliminazione forzata: $e2')),
+                );
+              }
+            }
+          }
+        } else {
+          if (mounted) {
+            debugPrint('Delete error: $e');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Errore eliminazione: ${e.toString().replaceAll("Exception:", "")}')),
+            );
+          }
+        }
       }
     }
   }

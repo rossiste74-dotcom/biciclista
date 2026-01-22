@@ -1,18 +1,16 @@
-import 'package:isar/isar.dart';
 import 'dart:convert';
 import 'ai_provider.dart';
 
-part 'user_profile.g.dart';
-
-@embedded
 class MaintenanceDefinition {
   String? name;
   double? defaultInterval;
 }
 
-@collection
+/// User Profile model
+/// Mapped directly to Supabase 'profiles' table
 class UserProfile {
-  Id id = Isar.autoIncrement;
+  // Supabase UUID
+  String id = '';
 
   /// Maintenance definitions for all bikes
   List<MaintenanceDefinition> maintenanceDefinitions = [];
@@ -39,30 +37,21 @@ class UserProfile {
   late int functionalThresholdPower;
 
   /// Thermal sensitivity scale (1-5)
-  /// 1 = Very cold-resistant
-  /// 3 = Average
-  /// 5 = Very cold-sensitive
-  @Index()
   late int thermalSensitivity;
 
   /// User's preferred distance unit (km or miles)
   late String preferredUnit;
 
   /// Clothing thresholds (Celsius)
-  /// Temperature > hotThreshold: Summer kit
   late double hotThreshold;
-  /// Temperature 15-20: Summer kit + Vest
   late double warmThreshold;
-  /// Temperature 10-15: Long sleeves
   late double coolThreshold;
-  /// Temperature 5-10: Light jacket
   late double coldThreshold;
-  /// Temperature < 5: Winter gear
   
-  /// Adjustment factor for thermal sensitivity (degrees per level)
+  /// Adjustment factor for thermal sensitivity
   late double sensitivityAdjustment;
 
-  /// Clothing Kits (stored as lists of ClothingItem enum indexes)
+  /// Clothing Kits (indices)
   late List<int> hotKit;
   late List<int> warmKit;
   late List<int> coolKit;
@@ -74,89 +63,64 @@ class UserProfile {
   late double difficultyElevationWeight;
 
   // ==================== Navigation Settings ====================
-  /// Enable voice alerts for off-course warnings
   bool enableVoiceAlerts = true;
-  
-  /// Alert type: 0 = Both, 1 = Only Voice, 2 = Only Vibration
   int alertType = 0;
-  
-  /// Off-course distance threshold in meters
   double offCourseThresholdM = 30.0;
-  
-  /// Energy saving mode (allows screen to turn off)
   bool energySavingMode = false;
 
   // ==================== Health Tracking ====================
-  /// Heart Rate Variability (HRV) in milliseconds
   int hrv = 0;
-  
-  /// Daily sleep hours
   double sleepHours = 0.0;
-  
-  /// Health data history (JSON string with date/weight/hrv/sleep objects)
-  /// Format: [{"date": "2024-01-16", "weight": 75.0, "hrv": 45, "sleep": 7.5}, ...]
-  String? healthHistory;
-  
-  /// Timestamp of last health sync
+  String? healthHistory; // JSON
   DateTime? lastHealthSync;
 
-  // ==================== Community Mode & Cloud Sync ====================
-  /// Whether the user has enabled Community mode (Supabase sync)
-  bool isCommunityMode = false;
-  
-  /// Supabase user ID for cloud sync (null if in Autonomous mode)
+  // ==================== Cloud Sync ====================
+  // Legacy flag, now implicit
+  bool isCommunityMode = true; 
   String? supabaseUserId;
-
+  String? avatarData; // JSON
 
   // ==================== AI Configuration ====================
-  /// Selected AI provider for AI Coach feature (stored as byte index, 255 = not set)
-  @Index()
-  byte aiProviderIndex = 255;
-  
-  /// API key for the selected AI provider (stored locally, not synced)
+  // Stored as int index 0-255 in DB for efficiency or string? 
+  // Let's keep using int mapping for now to match logic.
+  int aiProviderIndex = 255;
   String? aiApiKey;
-
-  /// Coach Personality (e.g. 'friendly', 'sergeant', 'zen', 'analytical')
   String? coachPersonality;
-
-  /// Specific model ID (e.g. gemini-1.5-flash)
   String? aiModel;
 
-  /// Timestamp when the profile was created
   late DateTime createdAt;
-
-  /// Timestamp when the profile was last updated
   late DateTime updatedAt;
 
   UserProfile() {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
     
-    // Default thresholds
+    // Defaults
+    age = 30;
+    weight = 70.0;
+    restingHeartRate = 60;
+    functionalThresholdPower = 200;
+    thermalSensitivity = 3;
+    preferredUnit = 'km';
+    
     hotThreshold = 20.0;
     warmThreshold = 15.0;
     coolThreshold = 10.0;
     coldThreshold = 5.0;
-    sensitivityAdjustment = 3.0; // +/- 3 degrees based on sensitivity
+    sensitivityAdjustment = 3.0;
     
-    // Default Maintenance Definitions
     maintenanceDefinitions = [
       MaintenanceDefinition()..name = 'Catena'..defaultInterval = 3500.0,
       MaintenanceDefinition()..name = 'Copertoni'..defaultInterval = 5000.0,
       MaintenanceDefinition()..name = 'Freni'..defaultInterval = 2500.0,
     ];
 
-    // Default kits (using ClothingItem enum indexes)
-    // 0: summerKit, 1: vest, 2: armWarmers, 3: legWarmers, 4: longSleeveJersey
-    // 5: lightJacket, 6: winterJacket, 7: windbreaker, 8: baseLayer, 9: thermalGloves
-    // 10: shoeCovers, 11: neckWarmer
-    hotKit = [0]; // summerKit
-    warmKit = [0]; // summerKit (vest is added dynamically for wind)
-    coolKit = [0, 4, 2]; // summerKit, longSleeveJersey, armWarmers
-    coldKit = [8, 5, 3]; // baseLayer, lightJacket, legWarmers
-    veryColdKit = [8, 6, 3, 9, 10, 11]; // baseLayer, winterJacket, legWarmers, gloves, shoeCovers, neckWarmer
+    hotKit = [0]; 
+    warmKit = [0]; 
+    coolKit = [0, 4, 2];
+    coldKit = [8, 5, 3];
+    veryColdKit = [8, 6, 3, 9, 10, 11];
 
-    // Default difficulty weights
     difficultyDistanceWeight = 0.05;
     difficultyElevationWeight = 0.008;
   }
@@ -168,12 +132,10 @@ class UserProfile {
     int? hrv,
     double? sleepHours,
   }) {
-    // 1. Update summary fields if this is latest or has values
     if (weight != null && weight > 0) this.weight = weight;
     if (hrv != null && hrv > 0) this.hrv = hrv;
     if (sleepHours != null && sleepHours > 0) this.sleepHours = sleepHours;
     
-    // 2. Manage history JSON
     final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     List<dynamic> history = [];
     
@@ -185,7 +147,6 @@ class UserProfile {
       }
     }
 
-    // Find if entry for this date already exists
     int existingIndex = history.indexWhere((e) => e['date'] == dateStr);
     
     Map<String, dynamic> entry = existingIndex != -1 
@@ -202,7 +163,6 @@ class UserProfile {
       history.add(entry);
     }
 
-    // Sort by date and keep reasonable amount (e.g., last 30 days)
     history.sort((a, b) => a['date'].compareTo(b['date']));
     if (history.length > 30) {
       history = history.sublist(history.length - 30);
@@ -212,14 +172,15 @@ class UserProfile {
     updatedAt = DateTime.now();
   }
 
-  /// Get the AI provider from the stored byte index
   AIProvider? getAIProvider() {
     if (aiProviderIndex == 255) return null;
     return AIProvider.values[aiProviderIndex];
   }
 
-  /// Set the AI provider by storing its index
   void setAIProvider(AIProvider? provider) {
     aiProviderIndex = provider == null ? 255 : provider.index;
   }
+  
+  // TO_JSON / FROM_JSON could be useful for Supabase, 
+  // but we might handle that in service.
 }

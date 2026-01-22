@@ -16,6 +16,7 @@ class SavedTrack {
   final double? distance;
   final double? elevation;
   final String? difficultyLevel;
+  final String? gpxData; // Added for community tracks JSON data
 
   SavedTrack({
     required this.id,
@@ -28,6 +29,7 @@ class SavedTrack {
     this.distance,
     this.elevation,
     this.difficultyLevel,
+    this.gpxData,
   });
 
   factory SavedTrack.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class SavedTrack {
       distance: (json['distance'] as num?)?.toDouble(),
       elevation: (json['elevation'] as num?)?.toDouble(),
       difficultyLevel: json['difficulty_level'] as String?,
+      gpxData: json['gpx_data'] as String?,
     );
   }
 

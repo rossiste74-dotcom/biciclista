@@ -335,7 +335,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       // Check limits
       if (component.limitKm > 0 && component.currentKm >= component.limitKm * 0.9) {
           await notify.showMaintenanceAlert(
-            id: (bike.id * 1000) + bike.components.indexOf(component), 
+            id: ((bike.id?.hashCode ?? 0) % 100000) * 1000 + bike.components.indexOf(component), 
             title: '⚠️ Manutenzione necessaria su ${bike.name}',
             body: 'Il componente "${component.name}" ha raggiunto ${component.currentKm.toInt()} km. Verifica lo stato!',
           );

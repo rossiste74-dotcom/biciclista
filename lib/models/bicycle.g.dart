@@ -17,74 +17,89 @@ const BicycleSchema = CollectionSchema(
   name: r'Bicycle',
   id: 4348081153741485789,
   properties: {
-    r'bikeImagePath': PropertySchema(
+    r'assistanceLevel': PropertySchema(
       id: 0,
+      name: r'assistanceLevel',
+      type: IsarType.long,
+    ),
+    r'batteryCapacityWh': PropertySchema(
+      id: 1,
+      name: r'batteryCapacityWh',
+      type: IsarType.double,
+    ),
+    r'bikeImagePath': PropertySchema(
+      id: 2,
       name: r'bikeImagePath',
       type: IsarType.string,
     ),
+    r'bikeWeightKg': PropertySchema(
+      id: 3,
+      name: r'bikeWeightKg',
+      type: IsarType.double,
+    ),
     r'brakeLimitKm': PropertySchema(
-      id: 1,
+      id: 4,
       name: r'brakeLimitKm',
       type: IsarType.double,
     ),
     r'chainKms': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'chainKms',
       type: IsarType.double,
     ),
     r'chainLimitKm': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'chainLimitKm',
       type: IsarType.double,
     ),
     r'components': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'components',
       type: IsarType.objectList,
       target: r'BicycleComponent',
     ),
     r'createdAt': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'gearingSystem': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'gearingSystem',
       type: IsarType.string,
     ),
     r'lastMaintenance': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'lastMaintenance',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'name',
       type: IsarType.string,
     ),
     r'serviceIntervalKms': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'serviceIntervalKms',
       type: IsarType.double,
     ),
     r'totalKilometers': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'totalKilometers',
       type: IsarType.double,
     ),
     r'type': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'type',
       type: IsarType.string,
     ),
     r'tyreKms': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'tyreKms',
       type: IsarType.double,
     ),
     r'tyreLimitKm': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'tyreLimitKm',
       type: IsarType.double,
     )
@@ -150,25 +165,28 @@ void _bicycleSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.bikeImagePath);
-  writer.writeDouble(offsets[1], object.brakeLimitKm);
-  writer.writeDouble(offsets[2], object.chainKms);
-  writer.writeDouble(offsets[3], object.chainLimitKm);
+  writer.writeLong(offsets[0], object.assistanceLevel);
+  writer.writeDouble(offsets[1], object.batteryCapacityWh);
+  writer.writeString(offsets[2], object.bikeImagePath);
+  writer.writeDouble(offsets[3], object.bikeWeightKg);
+  writer.writeDouble(offsets[4], object.brakeLimitKm);
+  writer.writeDouble(offsets[5], object.chainKms);
+  writer.writeDouble(offsets[6], object.chainLimitKm);
   writer.writeObjectList<BicycleComponent>(
-    offsets[4],
+    offsets[7],
     allOffsets,
     BicycleComponentSchema.serialize,
     object.components,
   );
-  writer.writeDateTime(offsets[5], object.createdAt);
-  writer.writeString(offsets[6], object.gearingSystem);
-  writer.writeDateTime(offsets[7], object.lastMaintenance);
-  writer.writeString(offsets[8], object.name);
-  writer.writeDouble(offsets[9], object.serviceIntervalKms);
-  writer.writeDouble(offsets[10], object.totalKilometers);
-  writer.writeString(offsets[11], object.type);
-  writer.writeDouble(offsets[12], object.tyreKms);
-  writer.writeDouble(offsets[13], object.tyreLimitKm);
+  writer.writeDateTime(offsets[8], object.createdAt);
+  writer.writeString(offsets[9], object.gearingSystem);
+  writer.writeDateTime(offsets[10], object.lastMaintenance);
+  writer.writeString(offsets[11], object.name);
+  writer.writeDouble(offsets[12], object.serviceIntervalKms);
+  writer.writeDouble(offsets[13], object.totalKilometers);
+  writer.writeString(offsets[14], object.type);
+  writer.writeDouble(offsets[15], object.tyreKms);
+  writer.writeDouble(offsets[16], object.tyreLimitKm);
 }
 
 Bicycle _bicycleDeserialize(
@@ -178,27 +196,30 @@ Bicycle _bicycleDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Bicycle();
-  object.bikeImagePath = reader.readStringOrNull(offsets[0]);
-  object.brakeLimitKm = reader.readDouble(offsets[1]);
-  object.chainKms = reader.readDouble(offsets[2]);
-  object.chainLimitKm = reader.readDouble(offsets[3]);
+  object.assistanceLevel = reader.readLong(offsets[0]);
+  object.batteryCapacityWh = reader.readDoubleOrNull(offsets[1]);
+  object.bikeImagePath = reader.readStringOrNull(offsets[2]);
+  object.bikeWeightKg = reader.readDouble(offsets[3]);
+  object.brakeLimitKm = reader.readDouble(offsets[4]);
+  object.chainKms = reader.readDouble(offsets[5]);
+  object.chainLimitKm = reader.readDouble(offsets[6]);
   object.components = reader.readObjectList<BicycleComponent>(
-        offsets[4],
+        offsets[7],
         BicycleComponentSchema.deserialize,
         allOffsets,
         BicycleComponent(),
       ) ??
       [];
-  object.createdAt = reader.readDateTime(offsets[5]);
-  object.gearingSystem = reader.readString(offsets[6]);
+  object.createdAt = reader.readDateTime(offsets[8]);
+  object.gearingSystem = reader.readString(offsets[9]);
   object.id = id;
-  object.lastMaintenance = reader.readDateTime(offsets[7]);
-  object.name = reader.readString(offsets[8]);
-  object.serviceIntervalKms = reader.readDouble(offsets[9]);
-  object.totalKilometers = reader.readDouble(offsets[10]);
-  object.type = reader.readString(offsets[11]);
-  object.tyreKms = reader.readDouble(offsets[12]);
-  object.tyreLimitKm = reader.readDouble(offsets[13]);
+  object.lastMaintenance = reader.readDateTime(offsets[10]);
+  object.name = reader.readString(offsets[11]);
+  object.serviceIntervalKms = reader.readDouble(offsets[12]);
+  object.totalKilometers = reader.readDouble(offsets[13]);
+  object.type = reader.readString(offsets[14]);
+  object.tyreKms = reader.readDouble(offsets[15]);
+  object.tyreLimitKm = reader.readDouble(offsets[16]);
   return object;
 }
 
@@ -210,14 +231,20 @@ P _bicycleDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 1:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
       return (reader.readDouble(offset)) as P;
     case 4:
+      return (reader.readDouble(offset)) as P;
+    case 5:
+      return (reader.readDouble(offset)) as P;
+    case 6:
+      return (reader.readDouble(offset)) as P;
+    case 7:
       return (reader.readObjectList<BicycleComponent>(
             offset,
             BicycleComponentSchema.deserialize,
@@ -225,23 +252,23 @@ P _bicycleDeserializeProp<P>(
             BicycleComponent(),
           ) ??
           []) as P;
-    case 5:
-      return (reader.readDateTime(offset)) as P;
-    case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readDateTime(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 9:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
       return (reader.readDouble(offset)) as P;
     case 13:
+      return (reader.readDouble(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readDouble(offset)) as P;
+    case 16:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -381,6 +408,144 @@ extension BicycleQueryWhere on QueryBuilder<Bicycle, Bicycle, QWhereClause> {
 
 extension BicycleQueryFilter
     on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> assistanceLevelEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assistanceLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      assistanceLevelGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'assistanceLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> assistanceLevelLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'assistanceLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> assistanceLevelBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'assistanceLevel',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'batteryCapacityWh',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'batteryCapacityWh',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'batteryCapacityWh',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'batteryCapacityWh',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'batteryCapacityWh',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition>
+      batteryCapacityWhBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'batteryCapacityWh',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -526,6 +691,68 @@ extension BicycleQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'bikeImagePath',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeWeightKgEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'bikeWeightKg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeWeightKgGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'bikeWeightKg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeWeightKgLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'bikeWeightKg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeWeightKgBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'bikeWeightKg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -1621,6 +1848,30 @@ extension BicycleQueryLinks
     on QueryBuilder<Bicycle, Bicycle, QFilterCondition> {}
 
 extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByAssistanceLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assistanceLevel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByAssistanceLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assistanceLevel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBatteryCapacityWh() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'batteryCapacityWh', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBatteryCapacityWhDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'batteryCapacityWh', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bikeImagePath', Sort.asc);
@@ -1630,6 +1881,18 @@ extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bikeImagePath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeWeightKg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeWeightKg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeWeightKgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeWeightKg', Sort.desc);
     });
   }
 
@@ -1780,6 +2043,30 @@ extension BicycleQuerySortBy on QueryBuilder<Bicycle, Bicycle, QSortBy> {
 
 extension BicycleQuerySortThenBy
     on QueryBuilder<Bicycle, Bicycle, QSortThenBy> {
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByAssistanceLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assistanceLevel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByAssistanceLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assistanceLevel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBatteryCapacityWh() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'batteryCapacityWh', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBatteryCapacityWhDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'batteryCapacityWh', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bikeImagePath', Sort.asc);
@@ -1789,6 +2076,18 @@ extension BicycleQuerySortThenBy
   QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'bikeImagePath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeWeightKg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeWeightKg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeWeightKgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bikeWeightKg', Sort.desc);
     });
   }
 
@@ -1951,11 +2250,29 @@ extension BicycleQuerySortThenBy
 
 extension BicycleQueryWhereDistinct
     on QueryBuilder<Bicycle, Bicycle, QDistinct> {
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByAssistanceLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'assistanceLevel');
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBatteryCapacityWh() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'batteryCapacityWh');
+    });
+  }
+
   QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBikeImagePath(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'bikeImagePath',
           caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBikeWeightKg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'bikeWeightKg');
     });
   }
 
@@ -2044,9 +2361,27 @@ extension BicycleQueryProperty
     });
   }
 
+  QueryBuilder<Bicycle, int, QQueryOperations> assistanceLevelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'assistanceLevel');
+    });
+  }
+
+  QueryBuilder<Bicycle, double?, QQueryOperations> batteryCapacityWhProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'batteryCapacityWh');
+    });
+  }
+
   QueryBuilder<Bicycle, String?, QQueryOperations> bikeImagePathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'bikeImagePath');
+    });
+  }
+
+  QueryBuilder<Bicycle, double, QQueryOperations> bikeWeightKgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'bikeWeightKg');
     });
   }
 

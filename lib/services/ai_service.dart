@@ -93,11 +93,11 @@ class AIService {
     prompt.writeln('- HRV ultimi 7gg: ${profile.hrv} (Readiness: ${_calculateReadinessScore(profile)}/100)');
 
     prompt.writeln();
-    prompt.writeln('Fornisci una breve analisi (max 150 parole) strutturata in:');
-    prompt.writeln('1. **Difficoltà Percepita**: Quanto sarà tosta per me oggi?');
-    prompt.writeln('2. **Strategia**: Come affrontare il dislivello e la distanza?');
-    prompt.writeln('3. **Consiglio Pratico**: Abbigliamento, nutrizione o ritmo.');
-    prompt.writeln('Usa un tono diretto, simpatico e un po\' sarcastico. Parla come "Il Biciclista", un ciclista esperto che consiglia un amico. Rispondi in italiano con gergo ciclistico.');
+    prompt.writeln('Fornisci una analisi sintetica (max 100 parole) strutturata in:');
+    prompt.writeln('1. **Difficoltà**: Quanto sarà tosta?');
+    prompt.writeln('2. **Strategia**: Come gestirla?');
+    prompt.writeln('3. **Consiglio Flash**: Una dritta secca.');
+    prompt.writeln('Usa un tono diretto, simpatico e sarcastico. Sii breve.');
 
     // Determine personality
     final personality = profile.coachPersonality ?? 'friendly';
@@ -453,7 +453,7 @@ class AIService {
     }
 
     prompt.writeln();
-    prompt.writeln('Fornisci consigli specifici e pratici. Sii conciso (max 150 parole) ma simpatico. Usa un tono colloquiale con gergo ciclistico italiano. Rispondi sempre in italiano come "Il Biciclista".');
+    prompt.writeln('Fornisci consigli specifici e pratici. Sii MOLTO SINTETICO (max 80 parole) e diretto. Usa un tono colloquiale con gergo ciclistico italiano.');
     
     return prompt.toString();
   }

@@ -255,7 +255,9 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
     );
 
     if (confirm == true) {
-      await _db.deleteBicycle(bike.id);
+      if (bike.id != null) {
+        await _db.deleteBicycle(bike.id!);
+      }
       await _loadBicycles();
       
       if (mounted) {

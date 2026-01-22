@@ -4,6 +4,7 @@ class GroupRideParticipant {
   final String userId;
   final String displayName;
   final String? profileImageUrl;
+  final String? avatarData;
   final String status; // pending, confirmed, declined, left
   final bool isCreator;
   final DateTime joinedAt;
@@ -13,6 +14,7 @@ class GroupRideParticipant {
     required this.userId,
     required this.displayName,
     this.profileImageUrl,
+    this.avatarData,
     this.status = 'confirmed',
     this.isCreator = false,
     required this.joinedAt,
@@ -24,6 +26,7 @@ class GroupRideParticipant {
       userId: json['user_id'] as String,
       displayName: json['display_name'] as String? ?? 'Ciclista',
       profileImageUrl: json['profile_image_url'] as String?,
+      avatarData: json['avatar_data'] as String?,
       status: json['status'] as String? ?? 'confirmed',
       isCreator: json['is_creator'] as bool? ?? false,
       joinedAt: DateTime.parse(json['joined_at'] as String),
@@ -34,6 +37,7 @@ class GroupRideParticipant {
     String? userId,
     String? displayName,
     String? profileImageUrl,
+    String? avatarData,
     String? status,
     bool? isCreator,
     DateTime? joinedAt,
@@ -43,6 +47,7 @@ class GroupRideParticipant {
       userId: userId ?? this.userId,
       displayName: displayName ?? this.displayName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      avatarData: avatarData ?? this.avatarData,
       status: status ?? this.status,
       isCreator: isCreator ?? this.isCreator,
       joinedAt: joinedAt ?? this.joinedAt,

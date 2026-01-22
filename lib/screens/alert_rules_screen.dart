@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 import '../models/alert_rule.dart';
 import '../services/database_service.dart';
 
@@ -126,7 +125,7 @@ class _AlertRulesScreenState extends State<AlertRulesScreen> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _db.deleteAlertRule(rule.id);
+              if (rule.id != null) await _db.deleteAlertRule(rule.id!);
               _loadRules();
             },
             child: const Text('Elimina'),
@@ -148,7 +147,7 @@ class _AlertRulesScreenState extends State<AlertRulesScreen> {
   }
 
   void _showRuleDialog(AlertRule rule) {
-    final isNew = rule.id == Isar.autoIncrement;
+    final isNew = rule.id == null;
     int selectedEventIndex = rule.eventTypeIndex;
     int selectedActionIndex = rule.actionIndex;
     double? triggerValue = rule.triggerValue;

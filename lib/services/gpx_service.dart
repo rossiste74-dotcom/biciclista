@@ -364,7 +364,7 @@ class GpxService {
   Future<PlannedRide?> createPlannedRideFromGpx({
     required DateTime rideDate,
     String forecastWeather = '{}',
-    int? bicycleId,
+    String? bicycleId,
   }) async {
     // Step 1: Import GPX file
     final gpxFile = await importGpxFile();

@@ -1,5 +1,6 @@
-import 'package:isar/isar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
 import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../models/planned_ride.dart';
@@ -7,319 +8,404 @@ import '../models/track.dart';
 import '../models/health_snapshot.dart';
 import '../models/alert_rule.dart';
 
-/// Singleton service for managing Isar database operations
+/// Singleton service for Cloud-Only database operations via Supabase
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
   DatabaseService._internal();
+  
+  // Get Supabase client
+  SupabaseClient get _supabase => Supabase.instance.client;
 
-  Isar? _isar;
+  // No auth? 
+  String? get _userId => _supabase.auth.currentUser?.id;
 
-  /// Get the Isar instance
-  Isar get isar {
-    if (_isar == null) {
-      throw Exception('Database not initialized. Call init() first.');
-    }
-    return _isar!;
-  }
-
-  /// Initialize the Isar database
+  /// No-op for now, or ensure auth check
   Future<void> init() async {
-    if (_isar != null) return; // Already initialized
-
-    final dir = await getApplicationDocumentsDirectory();
-    _isar = await Isar.open(
-      [
-        UserProfileSchema,
-        BicycleSchema,
-        PlannedRideSchema,
-        TrackSchema,
-        HealthSnapshotSchema,
-        AlertRuleSchema,
-      ],
-      directory: dir.path,
-    );
+     // Isar init removed.
   }
 
-  /// Close the database
-  Future<void> close() async {
-    await _isar?.close();
-    _isar = null;
-  }
+  /// Close connection (no-op for Supabase REST)
+  Future<void> close() async {}
 
   // ==================== UserProfile CRUD ====================
 
-  /// Create or update user profile
-  Future<int> saveUserProfile(UserProfile profile) async {
-    profile.updatedAt = DateTime.now();
-    return await isar.writeTxn(() async {
-      return await isar.userProfiles.put(profile);
-    });
-  }
-
-  /// Get the user profile (assumes single user)
+  /// Get the user profile (cloud)
   Future<UserProfile?> getUserProfile() async {
-    return await isar.userProfiles.where().findFirst();
+    final uid = _userId;
+    if (uid == null) return null;
+
+    try {
+      final data = await _supabase.from('profiles').select().eq('user_id', uid).maybeSingle();
+      if (data == null) return null;
+      
+      final p = UserProfile();
+      p.id = uid; 
+      p.name = data['name'];
+      p.gender = data['gender'];
+      p.age = data['age'] ?? 30;
+      p.weight = (data['weight'] ?? 70.0).toDouble();
+      p.avatarData = data['avatar_data']; 
+      
+      return p;
+    } catch (e) {
+      print('Error fetching profile: $e');
+      return null;
+    }
   }
 
-  /// Update user profile
-  Future<void> updateUserProfile(UserProfile profile) async {
-    profile.updatedAt = DateTime.now();
-    await isar.writeTxn(() async {
-      await isar.userProfiles.put(profile);
-    });
+  /// Save or update user profile (Cloud)
+  Future<void> saveUserProfile(UserProfile profile, {bool syncToCloud = true}) async {
+    final uid = _userId;
+    if (uid == null) return;
+    
+    try {
+      await _supabase.from('profiles').upsert({
+        'user_id': uid,
+        'name': profile.name,
+        'age': profile.age,
+        'weight': profile.weight,
+        'avatar_data': profile.avatarData,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+    } catch (e) {
+      print('Error saving profile: $e');
+      rethrow;
+    }
   }
+
+  Future<void> updateUserProfile(UserProfile profile) async => saveUserProfile(profile);
 
   // ==================== Bicycle CRUD ====================
 
-  /// Create a new bicycle
-  Future<int> createBicycle(Bicycle bicycle) async {
-    return await isar.writeTxn(() async {
-      return await isar.bicycles.put(bicycle);
-    });
+  Future<String> createBicycle(Bicycle bicycle) async {
+    final uid = _userId;
+    if (uid == null) throw Exception('Not authenticated');
+
+    final data = {
+      'user_id': uid,
+      'name': bicycle.name,
+      'type': bicycle.type, 
+      'bike_type': bicycle.type, 
+      'total_kilometers': bicycle.totalKilometers,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    final res = await _supabase.from('bicycles').insert(data).select('id').single();
+    return res['id'] as String;
   }
 
-  /// Get all bicycles
   Future<List<Bicycle>> getAllBicycles() async {
-    return await isar.bicycles.where().findAll();
+    final uid = _userId;
+    if (uid == null) return [];
+
+    try {
+      final list = await _supabase.from('bicycles').select().eq('user_id', uid);
+      return (list as List).map((map) {
+        final b = Bicycle();
+        b.id = map['id']?.toString();
+        b.name = map['name'] ?? 'Bici';
+        b.type = map['bike_type'] ?? 'Road';
+        b.totalKilometers = (map['total_kilometers'] ?? 0).toDouble();
+        return b;
+      }).toList();
+    } catch (e) {
+      print('Error fetching bicycles: $e');
+      return [];
+    }
   }
 
-  /// Get a bicycle by ID
-  Future<Bicycle?> getBicycleById(int id) async {
-    return await isar.bicycles.get(id);
+  Future<Bicycle?> getBicycleById(String id) async {
+     final data = await _supabase.from('bicycles').select().eq('id', id).maybeSingle();
+     if (data == null) return null;
+     
+     final b = Bicycle();
+     b.id = data['id']?.toString();
+     b.name = data['name'];
+     b.type = data['bike_type'] ?? 'Road';
+     b.totalKilometers = (data['total_kilometers'] ?? 0).toDouble();
+     return b;
   }
 
-  /// Update a bicycle
   Future<void> updateBicycle(Bicycle bicycle) async {
-    await isar.writeTxn(() async {
-      await isar.bicycles.put(bicycle);
-    });
+    if (bicycle.id == null) return;
+    
+    await _supabase.from('bicycles').update({
+      'name': bicycle.name,
+      'bike_type': bicycle.type,
+      'total_kilometers': bicycle.totalKilometers,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', bicycle.id!);
   }
 
-  /// Delete a bicycle
-  Future<bool> deleteBicycle(int id) async {
-    return await isar.writeTxn(() async {
-      return await isar.bicycles.delete(id);
-    });
+  Future<bool> deleteBicycle(String id) async {
+    await _supabase.from('bicycles').delete().eq('id', id);
+    return true;
   }
 
   // ==================== PlannedRide CRUD ====================
 
-  /// Check if a ride already exists (duplicate detection by date)
   Future<bool> doesRideExist(DateTime date) async {
-    // Check for exact match or within small window (e.g. 1 minute)
-    // Strava dates are precise, but better be safe against conversion drifts
-    final start = date.subtract(const Duration(seconds: 60));
-    final end = date.add(const Duration(seconds: 60));
+    final uid = _userId;
+    if (uid == null) return false;
     
-    final count = await isar.plannedRides
-        .filter()
-        .rideDateBetween(start, end)
-        .count();
+    final start = date.subtract(const Duration(minutes: 1));
+    final end = date.add(const Duration(minutes: 1));
+    
+    final count = await _supabase
+        .from('planned_rides')
+        .count()
+        .eq('user_id', uid)
+        .gte('ride_date', start.toIso8601String())
+        .lte('ride_date', end.toIso8601String());
         
     return count > 0;
   }
 
-  /// Create a new planned ride
-  Future<int> createPlannedRide(PlannedRide ride) async {
-    return await isar.writeTxn(() async {
-      return await isar.plannedRides.put(ride);
-    });
+  Future<String> createPlannedRide(PlannedRide ride) async {
+    final uid = _userId;
+    if (uid == null) throw Exception('Not Auth');
+
+    final data = {
+      'user_id': uid,
+      'ride_name': ride.rideName,
+      'ride_date': ride.rideDate.toIso8601String(),
+      'distance': ride.distance,
+      'elevation': ride.elevation,
+      'track_id': ride.trackId, 
+      'bicycle_id': ride.bicycleId, 
+      'is_completed': ride.isCompleted,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    
+    final res = await _supabase.from('planned_rides').insert(data).select('id').single();
+    return res['id'] as String;
   }
 
-  /// Get all planned rides
   Future<List<PlannedRide>> getAllPlannedRides() async {
-    return await isar.plannedRides.where().sortByRideDate().findAll();
-  }
-
-  /// Get upcoming rides (future dates only)
-  Future<List<PlannedRide>> getUpcomingRides() async {
-    final now = DateTime.now();
-    return await isar.plannedRides
-        .where()
-        .filter()
-        .rideDateGreaterThan(now)
-        .sortByRideDate()
-        .findAll();
-  }
-
-  /// Get a planned ride by ID
-  Future<PlannedRide?> getPlannedRideById(int id) async {
-    return await isar.plannedRides.get(id);
-  }
-
-  /// Update a planned ride
-  Future<void> updatePlannedRide(PlannedRide ride) async {
-    await isar.writeTxn(() async {
-      await isar.plannedRides.put(ride);
-    });
-  }
-
-  /// Delete a planned ride
-  Future<bool> deletePlannedRide(int id) async {
-    return await isar.writeTxn(() async {
-      return await isar.plannedRides.delete(id);
-    });
-  }
-
-  /// Watch for changes in planned rides
-  Stream<void> watchPlannedRides() {
-    return isar.plannedRides.watchLazy();
-  }
-
-  /// Watch for changes in bicycles
-  Stream<void> watchBicycles() {
-    return isar.bicycles.watchLazy();
-  }
-
-  /// Watch for changes in user profile
-  Stream<void> watchUserProfile() {
-    return isar.userProfiles.watchLazy();
-  }
-
-  /// Get all completed rides
-  Future<List<PlannedRide>> getCompletedRides() async {
-    return await isar.plannedRides
-        .filter()
-        .isCompletedEqualTo(true)
-        .sortByRideDateDesc()
-        .findAll();
-  }
-
-  /// Get total km from all completed rides
-  Future<double> getTotalCompletedKm() async {
-    final completed = await getCompletedRides();
-    return completed.fold<double>(0.0, (sum, ride) => sum + ride.distance);
-  }
-
-  /// Get km completed this week
-  Future<double> getWeeklyCompletedKm() async {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final uid = _userId;
+    if (uid == null) return [];
     
-    final completed = await isar.plannedRides
-        .filter()
-        .isCompletedEqualTo(true)
-        .rideDateGreaterThan(startDate)
-        .findAll();
-    
-    return completed.fold<double>(0.0, (sum, ride) => sum + ride.distance);
-  }
-
-  /// Get total number of completed rides
-  Future<int> getTotalCompletedRidesCount() async {
-    return await isar.plannedRides
-        .filter()
-        .isCompletedEqualTo(true)
-        .count();
-  }
-
-  // ==================== HealthSnapshot CRUD ====================
-
-  /// Create a new health snapshot
-  Future<int> createHealthSnapshot(HealthSnapshot snapshot) async {
-    return await isar.writeTxn(() async {
-      return await isar.healthSnapshots.put(snapshot);
-    });
-  }
-
-  /// Get recent health snapshots (last N days)
-  Future<List<HealthSnapshot>> getRecentHealthSnapshots(int days) async {
-    final startDate = DateTime.now().subtract(Duration(days: days));
-    return await isar.healthSnapshots
-        .where()
-        .filter()
-        .dateGreaterThan(startDate)
-        .sortByDateDesc()
-        .findAll();
-  }
-
-  /// Get health snapshots within a date range
-  Future<List<HealthSnapshot>> getHealthSnapshotsByDateRange(
-    DateTime startDate,
-    DateTime endDate,
-  ) async {
-    return await isar.healthSnapshots
-        .where()
-        .filter()
-        .dateBetween(startDate, endDate)
-        .sortByDate()
-        .findAll();
-  }
-
-  /// Get health snapshot for a specific date
-  Future<HealthSnapshot?> getHealthSnapshotByDate(DateTime date) async {
-    // Normalize to start of day for comparison
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-    
-    final snapshots = await isar.healthSnapshots
-        .where()
-        .filter()
-        .dateBetween(startOfDay, endOfDay)
-        .findAll();
-    
-    return snapshots.isNotEmpty ? snapshots.first : null;
-  }
-
-  /// Create or update a health snapshot
-  Future<int> createOrUpdateHealthSnapshot(HealthSnapshot snapshot) async {
-    return await isar.writeTxn(() async {
-      return await isar.healthSnapshots.put(snapshot);
-    });
-  }
-
-  /// Delete a health snapshot
-  Future<bool> deleteHealthSnapshot(int id) async {
-    return await isar.writeTxn(() async {
-      return await isar.healthSnapshots.delete(id);
-    });
-  }
-
-  // ==================== AlertRule CRUD ====================
-
-  /// Get all alert rules, ordered by displayOrder
-  Future<List<AlertRule>> getAlertRules() async {
-    return await isar.alertRules.where().sortByDisplayOrder().findAll();
-  }
-
-  /// Get enabled alert rules only
-  Future<List<AlertRule>> getEnabledAlertRules() async {
-    return await isar.alertRules
-        .filter()
-        .isEnabledEqualTo(true)
-        .sortByDisplayOrder()
-        .findAll();
-  }
-
-  /// Save an alert rule
-  Future<int> saveAlertRule(AlertRule rule) async {
-    return await isar.writeTxn(() async {
-      return await isar.alertRules.put(rule);
-    });
-  }
-
-  /// Save multiple alert rules
-  Future<void> saveAlertRules(List<AlertRule> rules) async {
-    await isar.writeTxn(() async {
-      await isar.alertRules.putAll(rules);
-    });
-  }
-
-  /// Delete an alert rule
-  Future<bool> deleteAlertRule(int id) async {
-    return await isar.writeTxn(() async {
-      return await isar.alertRules.delete(id);
-    });
-  }
-
-  /// Initialize default alert rules if none exist
-  Future<void> initDefaultAlertRulesIfNeeded() async {
-    final existing = await getAlertRules();
-    if (existing.isEmpty) {
-      final defaults = AlertRule.createDefaultRules();
-      await saveAlertRules(defaults);
+    try {
+      final res = await _supabase.from('planned_rides')
+          .select('*, personal_tracks(*)') 
+          .eq('user_id', uid)
+          .order('ride_date', ascending: true);
+          
+      return (res as List).map((map) => _mapPlannedRide(map)).toList();
+    } catch (e) {
+      print('Error fetching rides: $e');
+      return [];
     }
   }
+
+  Future<List<PlannedRide>> getUpcomingRides() async {
+    final uid = _userId;
+    if (uid == null) return [];
+    final now = DateTime.now().toIso8601String();
+    
+    final res = await _supabase.from('planned_rides')
+        .select()
+        .eq('user_id', uid)
+        .gt('ride_date', now)
+        .order('ride_date', ascending: true);
+        
+    return (res as List).map((map) => _mapPlannedRide(map)).toList();
+  }
+  
+  PlannedRide _mapPlannedRide(Map<String, dynamic> map) {
+    final r = PlannedRide();
+    r.id = map['id']?.toString();
+    r.rideName = map['ride_name'];
+    r.rideDate = DateTime.parse(map['ride_date']);
+    r.distance = (map['distance'] ?? 0).toDouble();
+    r.elevation = (map['elevation'] ?? 0).toDouble();
+    r.isCompleted = map['is_completed'] ?? false;
+    r.trackId = map['track_id']?.toString();
+    r.bicycleId = map['bicycle_id']?.toString();
+    
+    if (map['personal_tracks'] != null) {
+       // Ideally manually map track if needed, but simplistic for now
+    }
+    return r;
+  }
+
+  Future<PlannedRide?> getPlannedRideById(String id) async {
+    final data = await _supabase.from('planned_rides').select().eq('id', id).maybeSingle();
+    if (data == null) return null;
+    return _mapPlannedRide(data);
+  }
+
+  Future<void> updatePlannedRide(PlannedRide ride) async {
+    if (ride.id == null) return;
+    await _supabase.from('planned_rides').update({
+       'ride_name': ride.rideName,
+       'ride_date': ride.rideDate.toIso8601String(),
+       'distance': ride.distance,
+       'is_completed': ride.isCompleted,
+       'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', ride.id!);
+  }
+
+  Future<bool> deletePlannedRide(String id) async {
+    await _supabase.from('planned_rides').delete().eq('id', id);
+    return true;
+  }
+  
+  // ==================== Health / Stats ====================
+  
+  Future<List<PlannedRide>> getCompletedRides() async {
+    final uid = _userId;
+    if (uid == null) return [];
+    
+    final res = await _supabase.from('planned_rides')
+       .select()
+       .eq('user_id', uid)
+       .eq('is_completed', true)
+       .order('ride_date', ascending: false);
+    return (res as List).map((m) => _mapPlannedRide(m)).toList();
+  }
+
+  Future<double> getWeeklyCompletedKm() async {
+    final rides = await getCompletedRides();
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    
+    double total = 0;
+    for (var r in rides) {
+       if (r.rideDate.isAfter(startOfWeek)) {
+         total += r.distance;
+       }
+    }
+    return total;
+  }
+  
+  Future<double> getTotalCompletedKm() async {
+     final rides = await getCompletedRides();
+     double total = 0;
+     for (var r in rides) {
+       total += r.distance;
+     }
+     return total;
+  }
+
+  Future<int> getTotalCompletedRidesCount() async {
+     final uid = _userId;
+     if (uid == null) return 0;
+     final count = await _supabase.from('planned_rides').count().eq('user_id', uid).eq('is_completed', true);
+     return count;
+  }
+  
+  // ==================== HealthSnapshot CRUD ====================
+
+  Future<int> createHealthSnapshot(HealthSnapshot snapshot) async {
+    // Assuming 'health_snapshots' table exists in Supabase
+    final uid = _userId;
+    if (uid == null) return 0;
+
+    final data = {
+      'user_id': uid,
+      'date': snapshot.date.toIso8601String(),
+      'hrv': snapshot.hrv,
+      'sleep_hours': snapshot.sleepHours,
+      'daily_weight': snapshot.dailyWeight,
+      'created_at': snapshot.createdAt.toIso8601String(),
+    };
+
+    try {
+      final res = await _supabase.from('health_snapshots').insert(data).select('id').single();
+      return res['id'] as int;
+    } catch (e) {
+      print('Error saving health snapshot: $e');
+      // Return 0 or rethrow? 0 usually means nothing happened in this app context
+      return 0;
+    }
+  }
+  
+  // ==================== AlertRule CRUD ====================
+  
+  Future<List<AlertRule>> getAlertRules() async {
+     // Assuming 'alert_rules' table
+     final uid = _userId;
+     if (uid == null) return AlertRule.createDefaultRules(); // Return defaults if offline/logged out?
+
+     try {
+       final res = await _supabase.from('alert_rules').select().eq('user_id', uid).order('display_order');
+       final remoteRules = (res as List).map((m) {
+          final r = AlertRule();
+          r.id = m['id'];
+          r.eventTypeIndex = m['event_type_index'];
+          r.actionIndex = m['action_index'];
+          r.triggerValue = (m['trigger_value'] as num?)?.toDouble();
+          r.voiceMessage = m['voice_message'];
+          r.isEnabled = m['is_enabled'] ?? true;
+          r.displayOrder = m['display_order'] ?? 0;
+          return r;
+       }).toList();
+       
+       if (remoteRules.isEmpty) {
+         return await initDefaultAlertRulesIfNeeded();
+       }
+       return remoteRules;
+     } catch (e) {
+       print('Error getting alert rules: $e');
+       return AlertRule.createDefaultRules();
+     }
+  }
+  
+  Future<List<AlertRule>> getEnabledAlertRules() async {
+     final rules = await getAlertRules();
+     return rules.where((r) => r.isEnabled).toList();
+  }
+  
+  Future<int> saveAlertRule(AlertRule rule) async {
+    final uid = _userId;
+    if (uid == null) return 0;
+    
+    final data = {
+      'user_id': uid,
+      'event_type_index': rule.eventTypeIndex,
+      'action_index': rule.actionIndex,
+      'trigger_value': rule.triggerValue,
+      'voice_message': rule.voiceMessage,
+      'is_enabled': rule.isEnabled,
+      'display_order': rule.displayOrder,
+    };
+    
+    if (rule.id != null) {
+      // Update
+      await _supabase.from('alert_rules').update(data).eq('id', rule.id!);
+      return rule.id!;
+    } else {
+      // Create
+      final res = await _supabase.from('alert_rules').insert(data).select('id').single();
+      return res['id'] as int;
+    }
+  }
+
+  Future<void> saveAlertRules(List<AlertRule> rules) async {
+    for (var r in rules) {
+      await saveAlertRule(r);
+    }
+  }
+
+  Future<bool> deleteAlertRule(int id) async {
+    await _supabase.from('alert_rules').delete().eq('id', id);
+    return true;
+  }
+  
+  Future<List<AlertRule>> initDefaultAlertRulesIfNeeded() async {
+     // If we are here, we probably found no rules.
+     // Create defaults in DB
+     final defaults = AlertRule.createDefaultRules();
+     await saveAlertRules(defaults);
+     return defaults;
+  }
+
+  // ==================== Streams ====================
+  Stream<void> watchPlannedRides() => const Stream.empty();
+  Stream<void> watchBicycles() => const Stream.empty();
+  Stream<void> watchUserProfile() => const Stream.empty();
 }

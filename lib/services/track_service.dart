@@ -1,25 +1,31 @@
-import 'package:isar/isar.dart';
 import '../models/track.dart';
 import '../models/community_track.dart';
+// import '../services/community_tracks_service.dart'; // Circular dependency if not careful, but needed for import
 import '../utils/gpx_optimizer.dart';
-import 'database_service.dart';
+// import 'database_service.dart'; // No longer needed if we access Supabase directly, or we can use DB service for shared logic
 import 'package:gpx/gpx.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service for managing Track CRUD operations
+/// Service for managing Track CRUD operations (Cloud Only)
 class TrackService {
-  final _db = DatabaseService();
+  // final _db = DatabaseService(); 
+  // We use direct Supabase client for flexibility, or could add methods to DatabaseService.
+  // Given Track complexity (GPX upload), keeping logic here is fine.
   final _supabase = Supabase.instance.client;
   final String _storageBucket = 'tracks';
   final String _table = 'personal_tracks';
+  
+  TrackService();
+  
+  String? get _userId => _supabase.auth.currentUser?.id;
 
   // ==================== CREATE ====================
 
-  /// Create a new track
+  /// Create a new track and upload GPX
   Future<Track> createTrack({
     required String name,
     String? description,
@@ -31,44 +37,96 @@ class TrackService {
     String? region,
     String source = 'manual',
     String? communityTrackId,
+    double? asphaltPercent,
+    double? gravelPercent,
+    double? pathPercent,
+    int? difficultyLevel,
   }) async {
-    final track = Track()
-      ..name = name
-      ..description = description
-      ..gpxFilePath = gpxFilePath
-      ..distance = distance
-      ..elevation = elevation
-      ..duration = duration
-      ..terrainType = terrainType
-      ..region = region
-      ..source = source
-      ..communityTrackId = communityTrackId
-      ..createdAt = DateTime.now()
-      ..updatedAt = DateTime.now();
+    final uid = _userId;
+    if (uid == null) throw Exception('User not logged in');
 
-    final id = await _db.isar.writeTxn(() async {
-      return await _db.isar.tracks.put(track);
-    });
-
-    track.id = id;
-    
-    // Trigger sync in background if online
-    if (source == 'manual' || source == 'community') {
-      _uploadTrack(track).catchError((e) {
-        debugPrint('Auto-sync failed for track $id: $e');
-      });
+    // 1. Upload GPX to Supabase Storage
+    String? gpxUrl;
+    final file = File(gpxFilePath);
+    if (await file.exists()) {
+       final fileName = '${uid}/${DateTime.now().millisecondsSinceEpoch}.gpx';
+       try {
+         await _supabase.storage.from(_storageBucket).upload(
+            fileName, 
+            file,
+            fileOptions: const FileOptions(upsert: true),
+         );
+         gpxUrl = fileName;
+       } catch (e) {
+         debugPrint('GPX Upload Error: $e');
+         // Proceed? Or fail? 
+         // If we can't store the file, the track is useless.
+         rethrow;
+       }
     }
 
-    return track;
+    // 2. Insert into DB
+    final trackData = {
+      'user_id': uid,
+      'name': name,
+      'description': description,
+      'gpx_file_url': gpxUrl,
+      'distance': distance,
+      'elevation': elevation,
+      'duration': duration,
+      'terrain_type': terrainType,
+      'region': region,
+      'source': source,
+      // 'community_track_id': communityTrackId, // Missing in DB
+      'difficulty_level': difficultyLevel,
+      'asphalt_percent': asphaltPercent,
+      'gravel_percent': gravelPercent,
+      'path_percent': pathPercent,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    
+    final res = await _supabase.from(_table).insert(trackData).select().single();
+    
+    return _mapTrack(res);
   }
 
   /// Import track from community catalog
   Future<Track> importFromCommunity(CommunityTrack communityTrack) async {
-    // TODO: Download and save GPX locally if needed
+    // 1. We need the GPX data. 
+    // If CommunityTrack has `gpxData` (JSON string), we convert to file and upload?
+    // Or we copy from community storage if available?
+    // Current CommunityTrack model has `gpxData` field string.
+    
+    final uid = _userId;
+    if (uid == null) throw Exception('User not logged in');
+    
+    String? gpxUrl;
+    
+    // Create a temp GPX file to upload to personal storage
+    if (communityTrack.gpxData != null) {
+       try {
+         final gpx = GpxOptimizer.jsonToGpx(communityTrack.gpxData!);
+         final gpxString = GpxWriter().asString(gpx, pretty: true);
+         final fileName = '${uid}/community_${communityTrack.id}_${DateTime.now().millisecondsSinceEpoch}.gpx';
+         
+         await _supabase.storage.from(_storageBucket).uploadBinary(
+           fileName, 
+           utf8.encode(gpxString),
+           fileOptions: const FileOptions(contentType: 'application/gpx+xml')
+         );
+         gpxUrl = fileName;
+       } catch (e) {
+         debugPrint('Error uploading community GPX: $e');
+       }
+    }
+    
     return await createTrack(
       name: communityTrack.trackName,
       description: communityTrack.description,
-      gpxFilePath: '', // TODO: Download GPX from gpxData
+      gpxFilePath: '', // Ignored since we handled upload above, but function requires it.
+      // Wait, createTrack handles upload from file. We should adjust createTrack or calling method.
+      // Let's call insert directly here to avoid double upload logic.
       distance: communityTrack.distance,
       elevation: communityTrack.elevation,
       duration: communityTrack.duration,
@@ -76,379 +134,209 @@ class TrackService {
       region: communityTrack.region,
       source: 'community',
       communityTrackId: communityTrack.id,
-    );
+    ).then((t) async {
+       // Patch the gpxUrl if we uploaded it differently
+       if (gpxUrl != null) {
+          await _supabase.from(_table).update({'gpx_file_url': gpxUrl}).eq('id', t.id!);
+          t.gpxUrl = gpxUrl;
+       }
+       return t;
+    });
   }
 
   // ==================== READ ====================
 
-  /// Get all tracks
+  /// Get all tracks (Cloud)
   Future<List<Track>> getAllTracks() async {
-    return await _db.isar.tracks
-        .where()
-        .sortByCreatedAtDesc()
-        .findAll();
+    final uid = _userId;
+    if (uid == null) return [];
+    
+    final res = await _supabase.from(_table)
+        .select()
+        .eq('user_id', uid)
+        .order('created_at', ascending: false);
+        
+    return (res as List).map((m) => _mapTrack(m)).toList();
   }
 
   /// Get track by ID
-  Future<Track?> getTrackById(int id) async {
-    return await _db.isar.tracks.get(id);
+  Future<Track?> getTrackById(String id) async {
+     final data = await _supabase.from(_table).select().eq('id', id).maybeSingle();
+     if (data == null) return null;
+     return _mapTrack(data);
+  }
+  
+  Track _mapTrack(Map<String, dynamic> map) {
+    final t = Track();
+    t.id = map['id']?.toString();
+    
+    if (t.id == null) {
+      debugPrint('CRITICAL: Track has no ID. Raw map keys: ${map.keys}');
+    }
+
+    t.userId = map['user_id'];
+    t.name = map['name'] ?? 'Senza Nome';
+    t.description = map['description'];
+    t.gpxUrl = map['gpx_file_url'];
+    
+    // Safely parse doubles
+    t.distance = _parseDouble(map['distance']);
+    t.elevation = _parseDouble(map['elevation']);
+    
+    // Safely parse duration (int)
+    if (map['duration'] is int) {
+      t.duration = map['duration'];
+    } else if (map['duration'] is String) {
+      t.duration = int.tryParse(map['duration']);
+    } else if (map['duration'] is double) {
+      t.duration = (map['duration'] as double).toInt();
+    }
+
+    t.terrainType = map['terrain_type'] ?? 'road';
+    t.region = map['region'];
+    t.source = map['source'] ?? 'manual';
+    
+    t.communityTrackId = map['community_track_id']?.toString();
+    t.difficultyLevel = map['difficulty_level'];
+    t.asphaltPercent = _parseDouble(map['asphalt_percent']);
+    t.gravelPercent = _parseDouble(map['gravel_percent']);
+    t.pathPercent = _parseDouble(map['path_percent']);
+    
+    try {
+      t.createdAt = DateTime.parse(map['created_at']);
+      t.updatedAt = DateTime.parse(map['updated_at']);
+    } catch (e) {
+      t.createdAt = DateTime.now();
+      t.updatedAt = DateTime.now();
+    }
+    
+    return t;
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   /// Get tracks by terrain type
   Future<List<Track>> getTracksByTerrain(String terrainType) async {
-    return await _db.isar.tracks
-        .filter()
-        .terrainTypeEqualTo(terrainType)
-        .sortByCreatedAtDesc()
-        .findAll();
-  }
-
-  /// Get tracks by source
-  Future<List<Track>> getTracksBySource(String source) async {
-    return await _db.isar.tracks
-        .filter()
-        .sourceEqualTo(source)
-        .sortByCreatedAtDesc()
-        .findAll();
-  }
-
-  /// Get community-imported tracks
-  Future<List<Track>> getCommunityTracks() async {
-    return await getTracksBySource('community');
-  }
-
-  /// Search tracks by name
-  Future<List<Track>> searchTracks(String query) async {
-    if (query.isEmpty) return getAllTracks();
-
-    return await _db.isar.tracks
-        .filter()
-        .nameContains(query, caseSensitive: false)
-        .or()
-        .descriptionContains(query, caseSensitive: false)
-        .sortByCreatedAtDesc()
-        .findAll();
+    final uid = _userId;
+    if (uid == null) return [];
+    final res = await _supabase.from(_table).select().eq('user_id', uid).eq('terrain_type', terrainType);
+    return (res as List).map((m) => _mapTrack(m)).toList();
   }
 
   // ==================== UPDATE ====================
 
   /// Update track
   Future<void> updateTrack(Track track) async {
-    track.updatedAt = DateTime.now();
-    await _db.isar.writeTxn(() async {
-      await _db.isar.tracks.put(track);
-    });
+    if (track.id == null) return;
+    
+    await _supabase.from(_table).update({
+      'name': track.name,
+      'description': track.description,
+      'terrain_type': track.terrainType,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', track.id!);
   }
 
   // ==================== DELETE ====================
 
   /// Delete track
-  /// Warning: Check for PlannedRide references before deleting!
-  Future<bool> deleteTrack(int trackId) async {
-    // Check if track is used by any PlannedRides
-    final allRides = await _db.getAllPlannedRides();
-    final usedCount = allRides.where((r) => r.trackId == trackId).length;
-
-    if (usedCount > 0) {
-      throw Exception(
-        'Impossibile eliminare: traccia usata da $usedCount uscit${usedCount == 1 ? 'a' : 'e'}',
-      );
+  Future<bool> deleteTrack(String trackId) async {
+    // Check usages
+    // We need to check PlannedRides usage.
+    // DatabaseService handles planned rides. 
+    // We can query Supabase directly for planned_rides usage.
+    
+    try {
+      final count = await _supabase
+          .from('planned_rides')
+          .select()
+          .eq('track_id', trackId)
+          .count(CountOption.exact);
+          
+      if (count.count > 0) {
+        throw Exception('Impossibile eliminare: traccia usata da ${count.count} uscit${count.count == 1 ? 'a' : 'e'}');
+      }
+    } catch (e) {
+      if (e.toString().contains('Impossibile eliminare')) rethrow;
+      // If count fails, maybe proceed or log? Let's proceed carefully but log.
+      debugPrint('Warning: Could not check usages: $e');
     }
 
-    return await _db.isar.writeTxn(() async {
-      return await _db.isar.tracks.delete(trackId);
-    });
+    // Get track info to delete storage file
+    final track = await getTrackById(trackId);
+    if (track?.gpxUrl != null) {
+       try {
+         await _supabase.storage.from(_storageBucket).remove([track!.gpxUrl!]);
+       } catch (e) {
+         debugPrint('Error deleting GPX file: $e');
+         // Continue to delete record even if file deletion fails
+       }
+    }
+
+    await _supabase.from(_table).delete().eq('id', trackId);
+    return true;
   }
-
-  /// Force delete track and unlink from PlannedRides
-  Future<void> deleteTrackAndUnlink(int trackId) async {
-    await _db.isar.writeTxn(() async {
-      // Get linked rides
-      final allRides = await _db.getAllPlannedRides();
-      final linkedRides = allRides.where((r) => r.trackId == trackId).toList();
-
-      // Unlink from planned rides
-      for (final ride in linkedRides) {
-        ride.trackId = null;
-        ride.track.value = null;
-        await _db.updatePlannedRide(ride);
-      }
-
-      // Delete track
-      await _db.isar.tracks.delete(trackId);
-    });
+  
+  Future<void> deleteTrackAndUnlink(String trackId) async {
+     // Unlink
+     await _supabase.from('planned_rides').update({'track_id': null}).eq('track_id', trackId);
+     
+     // Delete file
+     final track = await getTrackById(trackId);
+     if (track?.gpxUrl != null) {
+        await _supabase.storage.from(_storageBucket).remove([track!.gpxUrl!]);
+     }
+     
+     // Delete record
+     await _supabase.from(_table).delete().eq('id', trackId);
   }
 
   // ==================== STATS ====================
 
-  /// Get total number of tracks
   Future<int> getTotalTracksCount() async {
-    return await _db.isar.tracks.count();
+    final uid = _userId;
+    if (uid == null) return 0;
+    return await _supabase.from(_table).count().eq('user_id', uid);
   }
 
-  /// Get total distance of all tracks
   Future<double> getTotalTracksDistance() async {
-    final tracks = await getAllTracks();
-    return tracks.fold<double>(0.0, (sum, track) => sum + track.distance);
+     // Use getAllTracks or RPC
+     final tracks = await getAllTracks();
+     return tracks.fold<double>(0.0, (sum, t) => sum + t.distance);
   }
 
-  /// Get stats by terrain type
   Future<Map<String, int>> getTrackCountByTerrain() async {
     final tracks = await getAllTracks();
     final stats = <String, int>{};
-
     for (final track in tracks) {
       stats[track.terrainType] = (stats[track.terrainType] ?? 0) + 1;
     }
-
     return stats;
   }
 
-  // ==================== WATCH ====================
-
-  /// Watch for changes in tracks
-  Stream<void> watchTracks() {
-    return _db.isar.tracks.watchLazy();
-  }
-
   // ==================== SYNC ====================
-
-  /// Synchronize tracks (Bidirectional)
-  Future<void> syncTracks() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
+  // No longer needed
+  Future<void> syncTracks() async {}
+  
+  // ==================== WATCH ====================
+  Stream<void> watchTracks() => const Stream.empty();
+  
+  // ==================== Helper ====================
+  
+  /// Get downloadable URL for GPX
+  Future<String?> getGpxUrl(Track track) async {
+    if (track.gpxUrl == null) return null;
     try {
-      // 1. Upload local tracks that haven't been synced
-      final unsyncedTracks = await _db.isar.tracks
-          .filter()
-          .supabaseIdIsNull()
-          .findAll();
-
-      for (final track in unsyncedTracks) {
-        if (track.source == 'manual' || track.source == 'community') {
-          await _uploadTrack(track);
-        }
-      }
-
-      // 2. Download remote tracks that aren't local
-      final remoteTracksResponse = await _supabase
-          .from(_table)
-          .select()
-          .eq('user_id', user.id);
-      
-      final List<dynamic> remoteTracks = remoteTracksResponse as List<dynamic>;
-      
-      for (final remote in remoteTracks) {
-        final String remoteId = remote['id'];
-        
-        // Check if exists locally
-        final existing = await _db.isar.tracks
-            .filter()
-            .supabaseIdEqualTo(remoteId)
-            .findFirst();
-
-        if (existing == null) {
-          await _downloadAndCreateTrack(remote);
-        }
-      }
-
-      // 3. Import "Saved Tracks" (Bookmarks) from Community
-      await _importSavedCommunityTracks();
-      
+      return await _supabase.storage.from(_storageBucket).createSignedUrl(track.gpxUrl!, 60 * 60);
     } catch (e) {
-      debugPrint('Sync failed: $e');
-      rethrow;
-    }
-  }
-
-  /// Import tracks from 'saved_tracks' table (Community bookmarks)
-  Future<void> _importSavedCommunityTracks() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final response = await _supabase
-          .from('saved_tracks')
-          .select('''
-            *,
-            community_tracks (
-              track_name,
-              description,
-              gpx_data,
-              distance,
-              elevation,
-              duration,
-              difficulty_level,
-              region,
-              track_type
-            )
-          ''')
-          .eq('user_id', user.id);
-
-      final List<dynamic> savedTracks = response as List<dynamic>;
-
-      for (final saved in savedTracks) {
-        final String communityTrackId = saved['track_id'];
-        
-        // Check if already imported locally
-        final existing = await _db.isar.tracks
-            .filter()
-            .communityTrackIdEqualTo(communityTrackId)
-            .findFirst();
-
-        if (existing == null) {
-          final communityParams = saved['community_tracks'];
-          if (communityParams == null) continue; // Track might be deleted
-
-          // Convert JSON GPX to File
-          final gpxData = communityParams['gpx_data'];
-          if (gpxData == null) continue;
-
-          final gpx = GpxOptimizer.jsonToGpx(gpxData);
-          final gpxString = GpxWriter().asString(gpx, pretty: true);
-          
-          final dir = await getApplicationDocumentsDirectory();
-          final filename = 'community_${communityTrackId}.gpx';
-          final localFile = File('${dir.path}/tracks/$filename');
-          
-          if (!await localFile.parent.exists()) {
-            await localFile.parent.create(recursive: true);
-          }
-          await localFile.writeAsString(gpxString);
-
-          // Create local Track
-          final track = Track()
-            ..name = saved['custom_name'] ?? communityParams['track_name']
-            ..description = saved['notes'] ?? communityParams['description']
-            ..gpxFilePath = localFile.path
-            ..distance = (communityParams['distance'] as num).toDouble()
-            ..elevation = (communityParams['elevation'] as num).toDouble()
-            ..duration = communityParams['duration']
-            ..terrainType = communityParams['track_type'] ?? 'road'
-            ..region = communityParams['region']
-            ..source = 'community'
-            ..communityTrackId = communityTrackId
-            ..createdAt = DateTime.now()
-            ..updatedAt = DateTime.now();
-
-            // Note: We leave supabaseId null so it gets uploaded to personal_tracks 
-            // as a distinct "my copy" in the next sync
-
-          await _db.isar.writeTxn(() async {
-            await _db.isar.tracks.put(track);
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error importing saved community tracks: $e');
-      // Don't block main sync
-    }
-  }
-
-  /// Upload a single track to Supabase
-  Future<void> _uploadTrack(Track track) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-    
-    // Ensure GPX file exists
-    final file = File(track.gpxFilePath!);
-    if (!await file.exists()) {
-       debugPrint('GPX file missing for track ${track.id}');
-       return;
-    }
-    
-    try {
-      // 1. Upload GPX to Storage
-      final fileName = '${track.id}_${DateTime.now().millisecondsSinceEpoch}.gpx';
-      final storagePath = '${user.id}/$fileName';
-      
-      await _supabase.storage.from(_storageBucket).upload(
-        storagePath,
-        file,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      
-      // 2. Insert into database
-      final trackData = {
-        'user_id': user.id,
-        'name': track.name,
-        'description': track.description,
-        'gpx_file_url': storagePath,
-        'distance': track.distance,
-        'elevation': track.elevation,
-        'duration': track.duration,
-        'terrain_type': track.terrainType,
-        'region': track.region,
-        'source': track.source,
-        'created_at': track.createdAt.toIso8601String(),
-        'updated_at': track.updatedAt.toIso8601String(),
-      };
-      
-      final response = await _supabase
-          .from(_table)
-          .insert(trackData)
-          .select()
-          .single();
-          
-      // 3. Update local record with Supabase ID
-      track.supabaseId = response['id'];
-      track.gpxUrl = storagePath;
-      track.lastSyncedAt = DateTime.now();
-      
-      await updateTrack(track);
-      
-    } catch (e) {
-      debugPrint('Error uploading track ${track.id}: $e');
-      rethrow;
-    }
-  }
-
-  /// Download track data and GPX, then save locally
-  Future<void> _downloadAndCreateTrack(Map<String, dynamic> remote) async {
-    try {
-      final storagePath = remote['gpx_file_url'];
-      if (storagePath == null) return;
-      
-      // 1. Download GPX File
-      final fileBytes = await _supabase.storage
-          .from(_storageBucket)
-          .download(storagePath);
-          
-      // Save to local directory
-      final dir = await getApplicationDocumentsDirectory();
-      final filename = p.basename(storagePath);
-      final localFile = File('${dir.path}/tracks/$filename');
-      
-      if (!await localFile.parent.exists()) {
-        await localFile.parent.create(recursive: true);
-      }
-      
-      await localFile.writeAsBytes(fileBytes);
-      
-      // 2. Create local Track record
-      final track = Track()
-        ..name = remote['name']
-        ..description = remote['description']
-        ..gpxFilePath = localFile.path
-        ..distance = (remote['distance'] as num).toDouble()
-        ..elevation = (remote['elevation'] as num).toDouble()
-        ..duration = remote['duration']
-        ..terrainType = remote['terrain_type'] ?? 'road'
-        ..region = remote['region']
-        ..source = remote['source'] ?? 'manual'
-        ..createdAt = DateTime.parse(remote['created_at'])
-        ..updatedAt = DateTime.parse(remote['updated_at'])
-        ..supabaseId = remote['id']
-        ..gpxUrl = storagePath
-        ..lastSyncedAt = DateTime.now();
-
-      await _db.isar.writeTxn(() async {
-        await _db.isar.tracks.put(track);
-      });
-      
-    } catch (e) {
-      debugPrint('Error downloading track ${remote['id']}: $e');
+      debugPrint('Error signing GPX URL: $e');
+      return null;
     }
   }
 }

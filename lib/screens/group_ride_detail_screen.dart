@@ -3,16 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/group_ride.dart';
 import '../models/planned_ride.dart'; // Added
-import '../models/climb.dart';
+import '../models/terrain_analysis.dart';
 import '../models/route_coordinates.dart';
-import '../models/clothing_item.dart';
 import '../models/outfit_suggestion.dart';
 import '../models/weather_conditions.dart';
 import '../services/crew_service.dart';
@@ -20,8 +18,10 @@ import '../services/gpx_service.dart';
 import '../services/weather_service.dart';
 import '../services/ai_service.dart';
 import '../services/outfit_service.dart';
-import '../services/data_mode_service.dart'; // Added
+// import '../services/data_mode_service.dart'; // Removed
 import '../widgets/route_map_widget.dart';
+import '../widgets/elevation_profile_widget.dart';
+import '../widgets/terrain_breakdown_widget.dart';
 
 class GroupRideDetailScreen extends StatefulWidget {
   final GroupRide groupRide;
@@ -41,7 +41,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   final _weatherService = WeatherService();
   final _aiService = AIService();
   final _outfitService = OutfitService();
-  final _dataModeService = DataModeService();
+  // final _dataModeService = DataModeService(); // Removed
   final _supabase = Supabase.instance.client;
   
   final _notesController = TextEditingController();
@@ -369,9 +369,32 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                         _buildHeroStats(),
                         const SizedBox(height: 16),
                         _buildMeetingInfo(),
-                        const SizedBox(height: 24),
+                        
+                        // 3. Terrain Breakdown (if available)
+                        if (_routeData != null && _routeData!['terrainBreakdown'] != null) ...[
+                          const SizedBox(height: 16),
+                          Text('Tipo Terreno', style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 8),
+                          TerrainBreakdownWidget(
+                            terrain: _routeData!['terrainBreakdown'] as TerrainBreakdown,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        
+                        // 4. Elevation Profile (moved here, after meeting info)
+                        if (_routeData != null && _routeData!['elevationProfile'] != null && (_routeData!['elevationProfile'] as List).isNotEmpty) ...[
+                          Text('Profilo Altimetrico', style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 16),
+                          ElevationProfileWidget(
+                            elevationProfile: (_routeData!['elevationProfile'] as List<Map<String, double>>)
+                                .map((e) => e['elevation'] ?? 0.0)
+                                .toList(),
+                            distanceKm: widget.groupRide.distance ?? 0.0,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
 
-                        // 3. Description
+                        // 5. Description
                         if (widget.groupRide.description != null) ...[
                           Text('Descrizione', style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 8),
@@ -379,19 +402,11 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                           const SizedBox(height: 24),
                         ],
                         
-                        // 4. Participants
+                        // 6. Participants
                         _buildParticipantsSection(),
                         const SizedBox(height: 24),
 
-                        // 5. Elevation
-                        if (_routeData != null && _routeData!['elevationProfile'] != null) ...[
-                          Text('Profilo Altimetrico', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 16),
-                          _buildElevationChart(),
-                          const SizedBox(height: 24),
-                        ],
-
-                        // 6. Weather
+                        // 7. Weather
                         if (_weatherPoints.isNotEmpty) ...[
                            Text('Meteo Previsto', style: Theme.of(context).textTheme.titleLarge),
                            const SizedBox(height: 16),
@@ -399,7 +414,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                            const SizedBox(height: 24),
                         ],
                         
-                        // 7. Clothing Advice
+                        // 8. Clothing Advice
                         if (_outfitRecommendation != null) ...[
                            Text('Consiglio Abbigliamento', style: Theme.of(context).textTheme.titleLarge),
                            const SizedBox(height: 16),
@@ -409,7 +424,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
 
 
                         
-                        // 7a. AI Strategic Analysis
+                        // 9. AI Strategic Analysis
                         if (_aiAnalysis != null) ...[
                           Text('Analisi Strategica (Live)', style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 16),
@@ -443,7 +458,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                            const SizedBox(height: 24),
                         ],
 
-                        // 8. Notes
+                        // 10. Notes
                         Text('Note Personali', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 12),
                         TextField(
@@ -697,36 +712,6 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
     );
   }
 
-  Widget _buildElevationChart() {
-    final profile = _routeData!['elevationProfile'] as List<Map<String, double>>;
-    if (profile.isEmpty) return const SizedBox();
-
-    final spots = profile.asMap().entries.map((entry) {
-      return FlSpot(entry.value['distance']!, entry.value['elevation']!);
-    }).toList();
-
-    return SizedBox(
-      height: 150,
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(show: false),
-          titlesData: FlTitlesData(show: false),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: Theme.of(context).colorScheme.primary,
-              barWidth: 2,
-              dotData: FlDotData(show: false),
-              belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildWeatherTimeline() {
     return SizedBox(
       height: 130, 
@@ -793,7 +778,31 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         
         // Ensure public profile exists before joining (fixes "Ciclista" name issue)
         // If the user hasn't synced profile, we create a default one now.
-        await _dataModeService.ensurePublicProfile(user);
+        // await _dataModeService.ensurePublicProfile(user); // Removed
+        
+        try {
+            // Check if profile exists
+            final publicProfile = await _supabase
+                .from('public_profiles')
+                .select()
+                .eq('user_id', user.id)
+                .maybeSingle();
+                
+            if (publicProfile == null) {
+              // Create default public profile
+              // Try to get name from local Isar or User Metadata
+              String displayName = user.userMetadata?['name'] ?? 'Ciclista';
+              
+              await _supabase.from('public_profiles').upsert({
+                'user_id': user.id,
+                'display_name': displayName,
+                'updated_at': DateTime.now().toIso8601String(),
+              });
+            }
+        } catch (e) {
+            debugPrint('Error ensuring public profile: $e');
+            // Continue anyway, join might work if trigger exists
+        }
 
         // Interact after profile check
         await _crewService.joinGroupRide(widget.groupRide.id);

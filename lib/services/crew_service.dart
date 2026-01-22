@@ -142,7 +142,7 @@ class CrewService {
       if (userIds.isNotEmpty) {
         final profiles = await _supabase
             .from('public_profiles')
-            .select('user_id, display_name, profile_image_url')
+            .select('user_id, display_name, profile_image_url, avatar_data')
             .inFilter('user_id', userIds.toList());
         
         for (final profile in profiles as List) {
@@ -160,6 +160,7 @@ class CrewService {
             if (profile != null) {
               p['display_name'] = profile['display_name'];
               p['profile_image_url'] = profile['profile_image_url'];
+              p['avatar_data'] = profile['avatar_data'];
             }
           }
         }

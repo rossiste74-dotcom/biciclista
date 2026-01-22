@@ -3,6 +3,7 @@ class CommunityTrack {
   final String id;
   final String? creatorId;
   final String? creatorName;
+  final String? creatorAvatarData;
   
   // Track info
   final String trackName;
@@ -39,6 +40,7 @@ class CommunityTrack {
     required this.id,
     this.creatorId,
     this.creatorName,
+    this.creatorAvatarData,
     required this.trackName,
     this.description,
     this.gpxData,
@@ -65,6 +67,7 @@ class CommunityTrack {
       id: json['id'] as String,
       creatorId: json['creator_id'] as String?,
       creatorName: json['profiles'] != null ? json['profiles']['name'] as String? : null,
+      creatorAvatarData: json['profiles'] != null ? json['profiles']['avatar_data'] as String? : null,
       trackName: json['track_name'] as String,
       description: json['description'] as String?,
       gpxData: json['gpx_data'] as Map<String, dynamic>?,

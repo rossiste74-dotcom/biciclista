@@ -17,93 +17,113 @@ const TrackSchema = CollectionSchema(
   name: r'Track',
   id: 6244076704169336260,
   properties: {
-    r'communityTrackId': PropertySchema(
+    r'asphaltPercent': PropertySchema(
       id: 0,
+      name: r'asphaltPercent',
+      type: IsarType.double,
+    ),
+    r'communityTrackId': PropertySchema(
+      id: 1,
       name: r'communityTrackId',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'description',
       type: IsarType.string,
     ),
+    r'difficultyLevel': PropertySchema(
+      id: 4,
+      name: r'difficultyLevel',
+      type: IsarType.long,
+    ),
     r'displayName': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'displayName',
       type: IsarType.string,
     ),
     r'distance': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'distance',
       type: IsarType.double,
     ),
     r'duration': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'duration',
       type: IsarType.long,
     ),
     r'elevation': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'elevation',
       type: IsarType.double,
     ),
     r'gpxFilePath': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'gpxFilePath',
       type: IsarType.string,
     ),
     r'gpxUrl': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'gpxUrl',
       type: IsarType.string,
     ),
+    r'gravelPercent': PropertySchema(
+      id: 11,
+      name: r'gravelPercent',
+      type: IsarType.double,
+    ),
     r'lastSyncedAt': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'lastSyncedAt',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'name',
       type: IsarType.string,
     ),
+    r'pathPercent': PropertySchema(
+      id: 14,
+      name: r'pathPercent',
+      type: IsarType.double,
+    ),
     r'region': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'region',
       type: IsarType.string,
     ),
     r'source': PropertySchema(
-      id: 12,
+      id: 16,
       name: r'source',
       type: IsarType.string,
     ),
     r'supabaseId': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'supabaseId',
       type: IsarType.string,
     ),
     r'terrainIcon': PropertySchema(
-      id: 14,
+      id: 18,
       name: r'terrainIcon',
       type: IsarType.string,
     ),
     r'terrainLabel': PropertySchema(
-      id: 15,
+      id: 19,
       name: r'terrainLabel',
       type: IsarType.string,
     ),
     r'terrainType': PropertySchema(
-      id: 16,
+      id: 20,
       name: r'terrainType',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 17,
+      id: 21,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -206,24 +226,28 @@ void _trackSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.communityTrackId);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.description);
-  writer.writeString(offsets[3], object.displayName);
-  writer.writeDouble(offsets[4], object.distance);
-  writer.writeLong(offsets[5], object.duration);
-  writer.writeDouble(offsets[6], object.elevation);
-  writer.writeString(offsets[7], object.gpxFilePath);
-  writer.writeString(offsets[8], object.gpxUrl);
-  writer.writeDateTime(offsets[9], object.lastSyncedAt);
-  writer.writeString(offsets[10], object.name);
-  writer.writeString(offsets[11], object.region);
-  writer.writeString(offsets[12], object.source);
-  writer.writeString(offsets[13], object.supabaseId);
-  writer.writeString(offsets[14], object.terrainIcon);
-  writer.writeString(offsets[15], object.terrainLabel);
-  writer.writeString(offsets[16], object.terrainType);
-  writer.writeDateTime(offsets[17], object.updatedAt);
+  writer.writeDouble(offsets[0], object.asphaltPercent);
+  writer.writeString(offsets[1], object.communityTrackId);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeString(offsets[3], object.description);
+  writer.writeLong(offsets[4], object.difficultyLevel);
+  writer.writeString(offsets[5], object.displayName);
+  writer.writeDouble(offsets[6], object.distance);
+  writer.writeLong(offsets[7], object.duration);
+  writer.writeDouble(offsets[8], object.elevation);
+  writer.writeString(offsets[9], object.gpxFilePath);
+  writer.writeString(offsets[10], object.gpxUrl);
+  writer.writeDouble(offsets[11], object.gravelPercent);
+  writer.writeDateTime(offsets[12], object.lastSyncedAt);
+  writer.writeString(offsets[13], object.name);
+  writer.writeDouble(offsets[14], object.pathPercent);
+  writer.writeString(offsets[15], object.region);
+  writer.writeString(offsets[16], object.source);
+  writer.writeString(offsets[17], object.supabaseId);
+  writer.writeString(offsets[18], object.terrainIcon);
+  writer.writeString(offsets[19], object.terrainLabel);
+  writer.writeString(offsets[20], object.terrainType);
+  writer.writeDateTime(offsets[21], object.updatedAt);
 }
 
 Track _trackDeserialize(
@@ -233,22 +257,26 @@ Track _trackDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Track();
-  object.communityTrackId = reader.readStringOrNull(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.description = reader.readStringOrNull(offsets[2]);
-  object.distance = reader.readDouble(offsets[4]);
-  object.duration = reader.readLongOrNull(offsets[5]);
-  object.elevation = reader.readDouble(offsets[6]);
-  object.gpxFilePath = reader.readStringOrNull(offsets[7]);
-  object.gpxUrl = reader.readStringOrNull(offsets[8]);
+  object.asphaltPercent = reader.readDoubleOrNull(offsets[0]);
+  object.communityTrackId = reader.readStringOrNull(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.description = reader.readStringOrNull(offsets[3]);
+  object.difficultyLevel = reader.readLongOrNull(offsets[4]);
+  object.distance = reader.readDouble(offsets[6]);
+  object.duration = reader.readLongOrNull(offsets[7]);
+  object.elevation = reader.readDouble(offsets[8]);
+  object.gpxFilePath = reader.readStringOrNull(offsets[9]);
+  object.gpxUrl = reader.readStringOrNull(offsets[10]);
+  object.gravelPercent = reader.readDoubleOrNull(offsets[11]);
   object.id = id;
-  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[9]);
-  object.name = reader.readString(offsets[10]);
-  object.region = reader.readStringOrNull(offsets[11]);
-  object.source = reader.readString(offsets[12]);
-  object.supabaseId = reader.readStringOrNull(offsets[13]);
-  object.terrainType = reader.readString(offsets[16]);
-  object.updatedAt = reader.readDateTime(offsets[17]);
+  object.lastSyncedAt = reader.readDateTimeOrNull(offsets[12]);
+  object.name = reader.readString(offsets[13]);
+  object.pathPercent = reader.readDoubleOrNull(offsets[14]);
+  object.region = reader.readStringOrNull(offsets[15]);
+  object.source = reader.readString(offsets[16]);
+  object.supabaseId = reader.readStringOrNull(offsets[17]);
+  object.terrainType = reader.readString(offsets[20]);
+  object.updatedAt = reader.readDateTime(offsets[21]);
   return object;
 }
 
@@ -260,40 +288,48 @@ P _trackDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
       return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readDouble(offset)) as P;
-    case 5:
       return (reader.readLongOrNull(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readDouble(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 13:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 15:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readString(offset)) as P;
+    case 19:
+      return (reader.readString(offset)) as P;
+    case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -498,6 +534,84 @@ extension TrackQueryWhere on QueryBuilder<Track, Track, QWhereClause> {
 }
 
 extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'asphaltPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'asphaltPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'asphaltPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'asphaltPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'asphaltPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> asphaltPercentBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'asphaltPercent',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterFilterCondition> communityTrackIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -841,6 +955,75 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'description',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'difficultyLevel',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'difficultyLevel',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'difficultyLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'difficultyLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'difficultyLevel',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> difficultyLevelBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'difficultyLevel',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1459,6 +1642,84 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'gravelPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'gravelPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'gravelPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'gravelPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'gravelPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> gravelPercentBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'gravelPercent',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1704,6 +1965,84 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'name',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'pathPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'pathPercent',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pathPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'pathPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'pathPercent',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> pathPercentBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'pathPercent',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -2577,6 +2916,18 @@ extension TrackQueryObject on QueryBuilder<Track, Track, QFilterCondition> {}
 extension TrackQueryLinks on QueryBuilder<Track, Track, QFilterCondition> {}
 
 extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByAsphaltPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'asphaltPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByAsphaltPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'asphaltPercent', Sort.desc);
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterSortBy> sortByCommunityTrackId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'communityTrackId', Sort.asc);
@@ -2610,6 +2961,18 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
   QueryBuilder<Track, Track, QAfterSortBy> sortByDescriptionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'description', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByDifficultyLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'difficultyLevel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByDifficultyLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'difficultyLevel', Sort.desc);
     });
   }
 
@@ -2685,6 +3048,18 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
     });
   }
 
+  QueryBuilder<Track, Track, QAfterSortBy> sortByGravelPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'gravelPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByGravelPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'gravelPercent', Sort.desc);
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterSortBy> sortByLastSyncedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastSyncedAt', Sort.asc);
@@ -2706,6 +3081,18 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
   QueryBuilder<Track, Track, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByPathPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pathPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByPathPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pathPercent', Sort.desc);
     });
   }
 
@@ -2795,6 +3182,18 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
 }
 
 extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByAsphaltPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'asphaltPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByAsphaltPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'asphaltPercent', Sort.desc);
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterSortBy> thenByCommunityTrackId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'communityTrackId', Sort.asc);
@@ -2828,6 +3227,18 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
   QueryBuilder<Track, Track, QAfterSortBy> thenByDescriptionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'description', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByDifficultyLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'difficultyLevel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByDifficultyLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'difficultyLevel', Sort.desc);
     });
   }
 
@@ -2903,6 +3314,18 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Track, Track, QAfterSortBy> thenByGravelPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'gravelPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByGravelPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'gravelPercent', Sort.desc);
+    });
+  }
+
   QueryBuilder<Track, Track, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -2936,6 +3359,18 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
   QueryBuilder<Track, Track, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByPathPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pathPercent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByPathPercentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pathPercent', Sort.desc);
     });
   }
 
@@ -3025,6 +3460,12 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
 }
 
 extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
+  QueryBuilder<Track, Track, QDistinct> distinctByAsphaltPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'asphaltPercent');
+    });
+  }
+
   QueryBuilder<Track, Track, QDistinct> distinctByCommunityTrackId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3043,6 +3484,12 @@ extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'description', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Track, Track, QDistinct> distinctByDifficultyLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'difficultyLevel');
     });
   }
 
@@ -3085,6 +3532,12 @@ extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
     });
   }
 
+  QueryBuilder<Track, Track, QDistinct> distinctByGravelPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'gravelPercent');
+    });
+  }
+
   QueryBuilder<Track, Track, QDistinct> distinctByLastSyncedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastSyncedAt');
@@ -3095,6 +3548,12 @@ extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Track, Track, QDistinct> distinctByPathPercent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pathPercent');
     });
   }
 
@@ -3154,6 +3613,12 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Track, double?, QQueryOperations> asphaltPercentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'asphaltPercent');
+    });
+  }
+
   QueryBuilder<Track, String?, QQueryOperations> communityTrackIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'communityTrackId');
@@ -3169,6 +3634,12 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
   QueryBuilder<Track, String?, QQueryOperations> descriptionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'description');
+    });
+  }
+
+  QueryBuilder<Track, int?, QQueryOperations> difficultyLevelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'difficultyLevel');
     });
   }
 
@@ -3208,6 +3679,12 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Track, double?, QQueryOperations> gravelPercentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'gravelPercent');
+    });
+  }
+
   QueryBuilder<Track, DateTime?, QQueryOperations> lastSyncedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastSyncedAt');
@@ -3217,6 +3694,12 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
   QueryBuilder<Track, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Track, double?, QQueryOperations> pathPercentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pathPercent');
     });
   }
 

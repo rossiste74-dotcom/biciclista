@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/crew_service.dart';
 import '../services/database_service.dart';
 import '../services/community_tracks_service.dart';
@@ -36,12 +38,44 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
   List<PlannedRide> _availableRoutes = [];
   List<SavedTrack> _savedTracks = [];
   final _communityService = CommunityTracksService();
+  
+  // Location Search
+  bool _isSearching = false;
+  List<dynamic> _searchResults = [];
+  Map<String, dynamic>? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
     _loadAvailableRoutes();
     _loadSavedTracks();
+  }
+
+  Future<void> _searchLocation(String query) async {
+    if (query.length < 3) {
+      if (mounted) setState(() => _searchResults = []);
+      return;
+    }
+
+    if (mounted) setState(() => _isSearching = true);
+    try {
+      final url = Uri.parse(
+        'https://geocoding-api.open-meteo.com/v1/search?name=${Uri.encodeComponent(query)}&count=5&language=it&format=json'
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _searchResults = data['results'] ?? [];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Search failed: $e');
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
   }
 
 
@@ -89,12 +123,27 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
         _meetingTime.minute,
       );
 
+      double? lat;
+      double? lon;
+      
+      if (_selectedRoute != null && (_selectedRoute!.latitude != null)) {
+        // Priority: Track Start Point
+        lat = _selectedRoute!.latitude;
+        lon = _selectedRoute!.longitude;
+      } else if (_selectedLocation != null) {
+        // Fallback: Searched Location
+        lat = _selectedLocation!['latitude'];
+        lon = _selectedLocation!['longitude'];
+      }
+
       final newRide = await _crewService.createGroupRide(
         rideName: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),
         meetingPoint: _meetingPointController.text.trim(),
+        meetingLatitude: lat,
+        meetingLongitude: lon,
         meetingTime: meetingDateTime,
         difficultyLevel: _difficulty,
         isPublic: _isPublic,
@@ -212,21 +261,47 @@ class _CreateGroupRideScreenState extends State<CreateGroupRideScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Punto di incontro
-            TextFormField(
+            // Punto di incontro (Searchable)
+            TextField(
               controller: _meetingPointController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Punto di Incontro',
-                hintText: 'es. Piazza Garibaldi',
-                prefixIcon: Icon(Icons.location_on),
+                hintText: 'Cerca indirizzo o città...',
+                prefixIcon: const Icon(Icons.location_on),
+                suffixIcon: _isSearching 
+                    ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2))) 
+                    : null,
+                helperText: _selectedLocation != null 
+                    ? 'Coordinate trovate: ${_selectedLocation!['latitude']}, ${_selectedLocation!['longitude']}'
+                    : 'Inserisci indirizzo per vedere la mappa',
+                helperStyle: TextStyle(color: _selectedLocation != null ? Colors.green : null),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Inserisci punto di incontro';
-                }
-                return null;
-              },
+              onChanged: _searchLocation,
             ),
+            if (_searchResults.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: _searchResults.map((res) {
+                    return ListTile(
+                      dense: true,
+                      title: Text('${res['name']}, ${res['admin1'] ?? ''}'),
+                      subtitle: Text(res['country'] ?? ''),
+                      onTap: () {
+                        setState(() {
+                          _selectedLocation = res;
+                          _meetingPointController.text = '${res['name']}, ${res['admin1'] ?? ''}';
+                          _searchResults = [];
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
             const SizedBox(height: 16),
 
             // Data e ora

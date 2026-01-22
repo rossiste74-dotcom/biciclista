@@ -37,9 +37,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   
-  # Local-First Database
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  # Local-First Database - REMOVED for Cloud-Only Architecture
+  # isar: ^3.1.0+1
+  # isar_flutter_libs: ^3.1.0+1
   
   # File System & Utilities
   path_provider: ^2.1.0
@@ -83,7 +83,8 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   
   # Cloud Persistence
-  supabase_flutter: ^2.8.0
+  supabase_flutter: ^2.12.0
+  flutter_svg: ^2.2.3
 
 
 dev_dependencies:
@@ -97,8 +98,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   
-  # Isar Code Generation
-  isar_generator: ^3.1.0
+  # Isar Code Generation - REMOVED
+  # isar_generator: ^3.1.0
   build_runner: ^2.4.0
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.4
@@ -118,6 +119,10 @@ flutter:
   assets:
     - assets/icon.png
     - assets/log1.png
+    - assets/avatar/base/
+    - assets/avatar/hair/
+    - assets/avatar/helmets/
+    - assets/avatar/jerseys/
 
 flutter_launcher_icons:
   android: "launcher_icon"

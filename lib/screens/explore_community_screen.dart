@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/community_track.dart';
 import '../services/community_tracks_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
+import '../models/user_avatar_config.dart';
+import '../widgets/avatar/avatar_preview.dart';
 
 /// Explore Community Tracks screen
 class ExploreCommunityScreen extends StatefulWidget {
@@ -177,18 +180,23 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with name and rating
+            // Header with name and rating
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Creator Info
                   Row(
                     children: [
+                      _buildCreatorAvatar(track),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          track.trackName,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          track.creatorName ?? 'Utente Sconosciuto',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -205,6 +213,16 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
                         ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  
+                  // Track Name
+                  Text(
+                    track.trackName,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  
                   if (track.description != null) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -378,6 +396,33 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
       }
     }
   }
+
+  Widget _buildCreatorAvatar(CommunityTrack track) {
+    if (track.creatorAvatarData != null) {
+      try {
+        final config = UserAvatarConfig.fromJson(jsonDecode(track.creatorAvatarData!));
+        return Container(
+          width: 32, 
+          height: 32,
+          decoration: BoxDecoration(
+             shape: BoxShape.circle,
+             color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+          child: ClipOval(
+            child: AvatarPreview(config: config), 
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error parsing avatar: $e');
+      }
+    }
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+      child: Icon(Icons.person, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+    );
+  }
+
 
   void _showFilters() {
     // TODO: Implement filters dialog

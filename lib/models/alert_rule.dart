@@ -1,6 +1,3 @@
-import 'package:isar/isar.dart';
-
-part 'alert_rule.g.dart';
 
 /// Types of navigation events that can trigger alerts
 enum AlertEventType {
@@ -20,12 +17,10 @@ enum AlertActionType {
   both,       // Vibrazione + voce
 }
 
-@collection
 class AlertRule {
-  Id id = Isar.autoIncrement;
+  int? id;
 
   /// Event type that triggers this rule (stored as index of AlertEventType)
-  @Index()
   late int eventTypeIndex;
 
   /// Action to perform (stored as index of AlertActionType)
@@ -43,13 +38,11 @@ class AlertRule {
   /// Order for display
   int displayOrder = 0;
 
-  // ==================== Computed Properties (ignored by Isar) ====================
+  // ==================== Computed Properties ====================
 
-  @ignore
   AlertEventType get eventType => AlertEventType.values[eventTypeIndex];
   set eventType(AlertEventType type) => eventTypeIndex = type.index;
 
-  @ignore
   AlertActionType get action => AlertActionType.values[actionIndex];
   set action(AlertActionType type) => actionIndex = type.index;
 

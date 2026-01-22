@@ -10,8 +10,8 @@ import '../services/route_planning_service.dart';
 import '../services/database_service.dart';
 import '../services/track_service.dart';
 import '../models/planned_ride.dart';
-import '../models/track.dart';
 import '../services/ai_service.dart';
+import '../widgets/elevation_profile_widget.dart';
 
 class RoutePlannerScreen extends StatefulWidget {
   const RoutePlannerScreen({super.key});
@@ -44,6 +44,12 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   // Schedule toggle
   bool _scheduleNow = false;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  
+  // Adventure mode
+  bool _isAdventureMode = false;
+  LatLng? _adventureStart;
+  ElevationPreference _adventureElevation = ElevationPreference.balanced;
+  double? _adventureMaxDistance;
 
   @override
   void initState() {
@@ -76,6 +82,23 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   void _handleTap(TapPosition tapPos, LatLng point) async {
     if (_isLoading) return;
 
+    // Adventure mode: handle start -> destination
+    if (_isAdventureMode) {
+      if (_adventureStart == null) {
+        // First tap: set start
+        setState(() {
+          _adventureStart = point;
+          _markers.add(_buildAdventureMarker(point, isStart: true));
+        });
+        return;
+      } else {
+        // Second tap: set destination and generate route
+        _generateAdventureRoute(point);
+        return;
+      }
+    }
+
+    // Normal mode: manual waypoint routing
     // 1. If first point
     if (_markers.isEmpty) {
       setState(() {
@@ -218,88 +241,57 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore ricalcolo: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore ricalcolo: $e')));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
   
   void _clearRouteState({bool keepStart = false}) {
-     // Helper ...
+     if (!keepStart) {
+       _markers.clear();
+       _allPoints.clear();
+       _segments.clear();
+       _totalDistanceKm = 0;
+       _totalElevationM = 0;
+     } else {
+       // Keep only the first marker/point
+       if (_markers.isNotEmpty) {
+         final start = _markers.first;
+         _markers.clear();
+         _markers.add(start);
+       }
+       if (_allPoints.isNotEmpty) {
+         final start = _allPoints.first;
+         _allPoints.clear();
+         _allPoints.add(start);
+       }
+       _segments.clear();
+       _totalDistanceKm = 0;
+       _totalElevationM = 0;
+     }
   }
   
   void _showSaveDialog() {
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Salva Percorso'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_totalDistanceKm.toStringAsFixed(1)} km • ${_totalElevationM.toStringAsFixed(0)} m',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Divider(height: 24),
-              
-              // Schedule toggle
-              SwitchListTile(
-                value: _scheduleNow,
-                onChanged: (value) {
-                  setDialogState(() => _scheduleNow = value);
-                },
-                title: const Text('Pianifica subito'),
-                subtitle: const Text('Assegna una data a questa traccia'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              
-              // Date picker (conditional)
-              if (_scheduleNow) ...[
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.event),
-                  title: const Text('Data Uscita'),
-                  subtitle: Text(
-                    DateFormat('EEEE, d MMMM y', 'it_IT').format(_selectedDate),
-                  ),
-                  trailing: const Icon(Icons.edit),
-                  contentPadding: EdgeInsets.zero,
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setDialogState(() => _selectedDate = date);
-                    }
-                  },
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annulla'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _saveGpx();
-              },
-              child: const Text('Salva'),
-            ),
-          ],
-        ),
+      builder: (context) => _SaveTrackDialog(
+        distanceKm: _totalDistanceKm,
+        elevationM: _totalElevationM,
+        onSave: (name, scheduleNow, date) {
+          _scheduleNow = scheduleNow;
+          _selectedDate = date;
+          _saveGpx(trackName: name);
+        },
       ),
     );
   }
   
-  Future<void> _saveGpx() async {
+  Future<void> _saveGpx({String? trackName}) async {
     if (_allPoints.length < 2) return;
     
     setState(() => _isLoading = true);
@@ -307,16 +299,27 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     try {
       // 1. Create GPX content
       final gpx = Gpx();
-      final trk = Trk(name: 'Percorso Disegnato ${DateTime.now().day}/${DateTime.now().month}');
+      final trk = Trk(name: trackName ?? 'Percorso Disegnato ${DateTime.now().day}/${DateTime.now().month}');
       final seg = Trkseg();
       
-      for (final p in _allPoints) {
-        seg.trkpts.add(Wpt(lat: p.latitude, lon: p.longitude, ele: 0));
+      for (final segment in _segments) {
+        // Map geometry points to GPX waypoints with elevation
+        for (int i = 0; i < segment.geometry.length; i++) {
+          // Skip first point of subsequent segments to avoid duplicates
+          if (seg.trkpts.isNotEmpty && i == 0) continue;
+          
+          final point = segment.geometry[i];
+          final ele = (segment.elevationProfile != null && i < segment.elevationProfile!.length)
+              ? segment.elevationProfile![i]
+              : 0.0;
+              
+          seg.trkpts.add(Wpt(lat: point.latitude, lon: point.longitude, ele: ele));
+        }
       }
       
       trk.trksegs.add(seg);
       gpx.trks.add(trk);
-      gpx.creator = 'Biciclista App';
+      gpx.creator = 'Biciclista App - BRouter';
       
       final gpxString = GpxWriter().asString(gpx, pretty: true);
       
@@ -346,30 +349,62 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
       final centerLat = sumLat / _allPoints.length;
       final centerLng = sumLng / _allPoints.length;
       
+      // Aggregate terrain breakdown from all segments
+      double totalAsphalt = 0, totalGravel = 0, totalPath = 0;
+      double difficultySum = 0;
+      int segmentsWithTerrain = 0;
+      int segmentsWithDifficulty = 0;
+      
+      for (var segment in _segments) {
+        if (segment.terrainBreakdown != null) {
+          totalAsphalt += segment.terrainBreakdown!.asphaltPercent;
+          totalGravel += segment.terrainBreakdown!.gravelPercent;
+          totalPath += segment.terrainBreakdown!.pathPercent;
+          segmentsWithTerrain++;
+        }
+        if (segment.difficulty != null) {
+          // Convert enum to int manually
+          final level = segment.difficulty!.index + 1; // beginner=0 -> 1, etc.
+          difficultySum += level;
+          segmentsWithDifficulty++;
+        }
+      }
+      
+      // Calculate averages
+      final asphaltPercent = segmentsWithTerrain > 0 ? totalAsphalt / segmentsWithTerrain : null;
+      final gravelPercent = segmentsWithTerrain > 0 ? totalGravel / segmentsWithTerrain : null;
+      final pathPercent = segmentsWithTerrain > 0 ? totalPath / segmentsWithTerrain : null;
+      final difficultyLevel = segmentsWithDifficulty > 0 ? (difficultySum / segmentsWithDifficulty).round() : null;
+
       if (_scheduleNow) {
+        
         // Create Track + PlannedRide
         final trackService = TrackService();
         final track = await trackService.createTrack(
-          name: 'Percorso Disegnato',
+          name: trackName ?? 'Percorso Disegnato',
           gpxFilePath: file.path,
           distance: _totalDistanceKm,
           elevation: _totalElevationM,
           terrainType: terrainType,
           source: 'manual',
+          asphaltPercent: asphaltPercent,
+          gravelPercent: gravelPercent,
+          pathPercent: pathPercent,
+          difficultyLevel: difficultyLevel,
         );
         
         final db = DatabaseService();
         final plannedRide = PlannedRide()
           ..trackId = track.id
           ..rideDate = _selectedDate
-          ..rideName = 'Giro Disegnato'
+          ..rideName = trackName ?? 'Giro Disegnato'
           ..distance = _totalDistanceKm
           ..elevation = _totalElevationM
           ..latitude = centerLat
           ..longitude = centerLng
           ..gpxFilePath = file.path;
         
-        plannedRide.track.value = track;
+        plannedRide.track = track;
         
         // Generate AI Analysis
         final aiService = AIService();
@@ -405,12 +440,16 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         // Create Track only
         final trackService = TrackService();
         await trackService.createTrack(
-          name: 'Percorso Disegnato',
+          name: trackName ?? 'Percorso Disegnato',
           gpxFilePath: file.path,
           distance: _totalDistanceKm,
           elevation: _totalElevationM,
           terrainType: terrainType,
           source: 'manual',
+          asphaltPercent: asphaltPercent,
+          gravelPercent: gravelPercent,
+          pathPercent: pathPercent,
+          difficultyLevel: difficultyLevel,
         );
         
         if (mounted) {
@@ -442,22 +481,51 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crea Percorso'),
+        title: Text(_isAdventureMode ? '🧭 Modalità Avventura' : 'Crea Percorso'),
+        leading: _isAdventureMode 
+          ? IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: _cancelAdventureMode,
+              tooltip: 'Annulla Avventura',
+            )
+          : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome),
-            tooltip: 'Genera Percorso Automatico',
-            onPressed: _showGeneratorDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showSettingsDialog,
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _segments.isEmpty ? null : () => _showSaveDialog(),
-          )
+          if (!_isAdventureMode) ...[
+            IconButton(
+              icon: const Icon(Icons.explore),
+              tooltip: 'Percorso Avventura',
+              onPressed: _showAdventureDialog,
+              color: Colors.orange,
+            ),
+            IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              tooltip: 'Genera Percorso Automatico',
+              onPressed: _showGeneratorDialog,
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: _showSettingsDialog,
+            ),
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _segments.isEmpty ? null : () => _showSaveDialog(),
+            ),
+          ] else ...[
+            // In adventure mode: show cancel and info
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_adventureStart == null 
+                      ? 'Tocca la mappa per scegliere la partenza'
+                      : 'Tocca la mappa per scegliere la destinazione'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
       body: Column(
@@ -537,6 +605,13 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          // Elevation Profile
+          if (_segments.isNotEmpty && _getAllElevations().isNotEmpty)
+            ElevationProfileWidget(
+              elevationProfile: _getAllElevations(),
+              distanceKm: _totalDistanceKm,
+            ),
+          if (_segments.isNotEmpty) const SizedBox(height: 12),
           // Terrain Selector
           SegmentedButton<RouteProfile>(
             segments: const [
@@ -586,6 +661,22 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   }
   
   String _profileName(RouteProfile p) => p.toString().split('.').last.toUpperCase();
+  
+  /// Get all elevation points from all segments
+  List<double> _getAllElevations() {
+    final elevations = <double>[];
+    for (final segment in _segments) {
+      if (segment.elevationProfile != null) {
+        if (elevations.isEmpty) {
+          elevations.addAll(segment.elevationProfile!);
+        } else {
+          // Skip first point to avoid duplication
+          elevations.addAll(segment.elevationProfile!.skip(1));
+        }
+      }
+    }
+    return elevations;
+  }
 
   void _showSettingsDialog() {
      final controller = TextEditingController(text: _graphHopperKey ?? '');
@@ -776,5 +867,361 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Adventure mode methods
+  
+  Marker _buildAdventureMarker(LatLng point, {bool isStart = false}) {
+    return Marker(
+      point: point,
+      width: 40,
+      height: 40,
+      child: Icon(
+        isStart ? Icons.explore : Icons.flag_circle,
+        color: isStart ? Colors.orange : Colors.deepOrange,
+        size: 40,
+      ),
+    );
+  }
+  
+  Future<void> _generateAdventureRoute(LatLng destination) async {
+    if (_adventureStart == null) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final route = await _planningService.generateAdventureRoute(
+        start: _adventureStart!,
+        destination: destination,
+        maxDistanceKm: _adventureMaxDistance,
+        elevation: _adventureElevation,
+      );
+      
+      if (route != null) {
+        setState(() {
+          _segments.clear();
+          _allPoints.clear();
+          _markers.clear();
+          
+          _segments.add(route);
+          _allPoints.addAll(route.geometry);
+          _totalDistanceKm = route.distanceKm;
+          _totalElevationM = route.elevationGainM;
+          
+          _markers.add(_buildAdventureMarker(route.geometry.first, isStart: true));
+          _markers.add(_buildAdventureMarker(route.geometry.last));
+          
+          _isAdventureMode = false;
+          _adventureStart = null;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🏞️ Percorso Avventura generato: ${route.distanceKm.toStringAsFixed(1)} km'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _adventureMaxDistance != null 
+                  ? 'Impossibile generare percorso entro ${_adventureMaxDistance!.toStringAsFixed(0)} km'
+                  : 'Impossibile generare il percorso. Riprova con una destinazione diversa.',
+              ),
+            ),
+          );
+        }
+        setState(() {
+          _markers.clear();
+          _adventureStart = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
+        );
+      }
+      setState(() {
+        _markers.clear();
+        _adventureStart = null;
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+  
+  void _showAdventureDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateUi) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.explore, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Percorso Avventura 🏞️'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Genera un percorso che massimizza sentieri e punti panoramici evitando strade trafficate.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                
+                const Text('Preferenza Dislivello:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                SegmentedButton<ElevationPreference>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ElevationPreference.flat, 
+                      label: Text('Piatto'),
+                      icon: Icon(Icons.trending_flat, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: ElevationPreference.balanced, 
+                      label: Text('Medio'),
+                      icon: Icon(Icons.terrain, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: ElevationPreference.hilly, 
+                      label: Text('Alto'),
+                      icon: Icon(Icons.landscape, size: 18),
+                    ),
+                  ],
+                  selected: {_adventureElevation},
+                  onSelectionChanged: (s) => setStateUi(() => _adventureElevation = s.first),
+                  showSelectedIcon: false,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                Row(
+                  children: [
+                    const Flexible(
+                      child: Text('Distanza Max (opzionale):', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _adventureMaxDistance != null 
+                        ? '${_adventureMaxDistance!.round()} km'
+                        : 'Illimitata',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: _adventureMaxDistance ?? 100,
+                  min: 10,
+                  max: 100,
+                  divisions: 18,
+                  label: _adventureMaxDistance != null 
+                    ? '${_adventureMaxDistance!.round()} km' 
+                    : 'Illimitata',
+                  onChanged: (v) => setStateUi(() => _adventureMaxDistance = v),
+                ),
+                TextButton(
+                  onPressed: () => setStateUi(() => _adventureMaxDistance = null),
+                  child: const Text('Rimuovi limite'),
+                ),
+                
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  '📍 Tocca la mappa due volte:\n1° Partenza\n2° Destinazione',
+                  style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _startAdventureMode();
+              },
+              icon: const Icon(Icons.explore),
+              label: const Text('Seleziona sulla Mappa'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  void _startAdventureMode() {
+    setState(() {
+      _isAdventureMode = true;
+      _adventureStart = null;
+      _segments.clear();
+      _allPoints.clear();
+      _markers.clear();
+      _totalDistanceKm = 0;
+      _totalElevationM = 0;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🧭 Modalità Avventura attiva! Tocca la mappa per la partenza'),
+        duration: Duration(seconds: 3),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+  
+  void _cancelAdventureMode() {
+    setState(() {
+      _isAdventureMode = false;
+      _adventureStart = null;
+      _markers.clear();
+    });
+  }
+}
+
+class _SaveTrackDialog extends StatefulWidget {
+  final double distanceKm;
+  final double elevationM;
+  final Function(String name, bool scheduleNow, DateTime date) onSave;
+
+  const _SaveTrackDialog({
+    required this.distanceKm,
+    required this.elevationM,
+    required this.onSave,
+  });
+
+  @override
+  State<_SaveTrackDialog> createState() => _SaveTrackDialogState();
+}
+
+class _SaveTrackDialogState extends State<_SaveTrackDialog> {
+  late final TextEditingController _nameController;
+  bool _scheduleNow = false;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Salva Percorso'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${widget.distanceKm.toStringAsFixed(1)} km • ${widget.elevationM.toStringAsFixed(0)} m',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Divider(height: 24),
+            
+            // Track name input
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Nome della traccia',
+                hintText: 'es. Giro del Lago',
+                prefixIcon: const Icon(Icons.route),
+                border: const OutlineInputBorder(),
+                errorText: _errorText,
+              ),
+              textCapitalization: TextCapitalization.words,
+              autofocus: true,
+              onChanged: (value) {
+                if (_errorText != null && value.trim().isNotEmpty) {
+                  setState(() => _errorText = null);
+                }
+              },
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Schedule toggle
+            SwitchListTile(
+              value: _scheduleNow,
+              onChanged: (value) {
+                setState(() => _scheduleNow = value);
+              },
+              title: const Text('Pianifica subito'),
+              subtitle: const Text('Assegna una data a questa traccia'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            
+            // Date picker (conditional)
+            if (_scheduleNow) ...[
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.event),
+                title: const Text('Data Uscita'),
+                subtitle: Text(
+                  DateFormat('EEEE, d MMMM y', 'it_IT').format(_selectedDate),
+                ),
+                trailing: const Icon(Icons.edit),
+                contentPadding: EdgeInsets.zero,
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null) {
+                    setState(() => _selectedDate = date);
+                  }
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Annulla'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final trackName = _nameController.text.trim();
+            if (trackName.isEmpty) {
+              setState(() => _errorText = 'Inserisci un nome');
+              return;
+            }
+            Navigator.pop(context);
+            widget.onSave(trackName, _scheduleNow, _selectedDate);
+          },
+          child: const Text('Salva'),
+        ),
+      ],
+    );
   }
 }

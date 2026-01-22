@@ -1,8 +1,4 @@
-import 'package:isar/isar.dart';
 
-part 'bicycle.g.dart';
-
-@embedded
 class BicycleComponent {
   String? name;
   double currentKm = 0.0;
@@ -10,10 +6,12 @@ class BicycleComponent {
   DateTime? lastMaintenance;
 }
 
-@collection
 class Bicycle {
-  Id id = Isar.autoIncrement;
+  // Supabase uses UUID Strings
+  String? id;
   
+  String? userId; // Supabase user id
+
   /// Dynamic list of components for maintenance
   List<BicycleComponent> components = [];
 
@@ -21,7 +19,6 @@ class Bicycle {
   late String name;
 
   /// Type of bicycle (e.g., "Road", "MTB", "Gravel", "City")
-  @Index()
   late String type;
 
   /// Gearing system type (e.g., "Mechanical", "Electronic", "Single Speed")
@@ -46,6 +43,16 @@ class Bicycle {
 
   /// Local path to bicycle image
   String? bikeImagePath;
+  
+  /// E-Bike battery capacity in Watt-hours (Wh)
+  /// null for non-electric bikes
+  double? batteryCapacityWh;
+  
+  /// E-Bike assistance level (1-5)
+  int assistanceLevel = 3;
+  
+  /// Bike weight in kg (used for energy calculations)
+  double bikeWeightKg = 12.0;
 
   /// Date of the last maintenance
   late DateTime lastMaintenance;

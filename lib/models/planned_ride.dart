@@ -1,31 +1,27 @@
-import 'package:isar/isar.dart';
+
 import 'track.dart';
 
-part 'planned_ride.g.dart';
-
-@collection
 class PlannedRide {
-  Id id = Isar.autoIncrement;
+  // Supabase ID (UUID String)
+  String? id;
 
   /// Date and time of the planned ride
-  @Index()
   late DateTime rideDate;
 
   /// Name of the ride (optional, overrides track name if set)
   String? rideName;
 
-  // ========== TRACK REFERENCE (NEW) ==========
+  // ========== TRACK REFERENCE ==========
   
-  /// Reference to Track (GPX route)
-  int? trackId;
+  /// Reference to Track ID (Foreign Key)
+  String? trackId;
   
-  /// Link to Track object
-  final track = IsarLink<Track>();
+  /// Runtime link to Track object (manual join)
+  Track? track;
 
-  // ========== EVENT TYPE (NEW) ==========
+  // ========== EVENT TYPE ==========
   
   /// Is this a community group ride?
-  @Index()
   bool isGroupRide = false;
   
   /// Supabase event ID if synced as group ride
@@ -33,20 +29,16 @@ class PlannedRide {
 
   // ========== GPX DATA (DEPRECATED - use track.gpxFilePath) ==========
   
-  /// Local file path to the GPX file
-  /// @deprecated Use track.gpxFilePath instead
+  /// Local file path to the GPX file (Legacy/Fallback)
   String? gpxFilePath;
 
   /// Weather forecast data (stored as JSON string)
-  /// Contains temperature, wind, precipitation, etc.
   String? forecastWeather;
 
   /// Total distance in kilometers (extracted from GPX)
-  /// @deprecated Use track.distance instead when track is linked
   late double distance;
 
   /// Total elevation gain in meters (extracted from GPX)
-  /// @deprecated Use track.elevation instead when track is linked
   late double elevation;
 
   /// Moving time in seconds (from external sync)
@@ -86,11 +78,10 @@ class PlannedRide {
   String? aiAnalysis;
 
   /// Whether the ride has been completed
-  @Index()
   bool isCompleted = false;
 
   /// ID of the bicycle used for this ride (optional)
-  int? bicycleId;
+  String? bicycleId;
 
   /// Timestamp when the ride was planned
   late DateTime createdAt;
@@ -99,17 +90,17 @@ class PlannedRide {
     createdAt = DateTime.now();
   }
 
-  // ========== HELPER GETTERS (BACKWARD COMPATIBILITY) ==========
+  // ========== HELPER GETTERS ==========
   
   /// Get effective distance (from track if available, else legacy field)
-  double get effectiveDistance => track.value?.distance ?? distance;
+  double get effectiveDistance => track?.distance ?? distance;
   
   /// Get effective elevation (from track if available, else legacy field)
-  double get effectiveElevation => track.value?.elevation ?? elevation;
+  double get effectiveElevation => track?.elevation ?? elevation;
   
   /// Get effective GPX path (from track if available, else legacy field)
-  String? get effectiveGpxPath => track.value?.gpxFilePath ?? gpxFilePath;
+  String? get effectiveGpxPath => track?.gpxFilePath ?? gpxFilePath;
   
   /// Get display name (custom name or track name)
-  String get displayName => rideName ?? track.value?.name ?? 'Uscita ${id}';
+  String get displayName => rideName ?? track?.name ?? 'Uscita ${id ?? ""}';
 }

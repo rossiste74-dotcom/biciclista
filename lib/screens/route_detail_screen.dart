@@ -25,6 +25,10 @@ import '../services/qr_service.dart';
 import '../services/notification_service.dart';
 import '../services/ai_service.dart'; // Added
 import '../widgets/route_map_widget.dart';
+import '../widgets/elevation_profile_widget.dart';
+import '../widgets/terrain_breakdown_widget.dart';
+import '../widgets/difficulty_badge.dart';
+import '../models/terrain_analysis.dart';
 import 'active_navigation_screen.dart';
 
 
@@ -253,6 +257,13 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
 
       // 2. Load Profile
       _profile = await _db.getUserProfile();
+
+      // EXTRA: Ensure Track details (Terrain/Difficulty) are loaded if linked
+      if (widget.plannedRide.track == null && widget.plannedRide.trackId != null) {
+        // Load track manually if needed? 
+        // For now, assume it's loaded with plannedRide or unnecessary if we rely on effective getters
+      }
+
 
       // 3. Fetch Weather points
       await _fetchWeatherPoints(coords);
@@ -623,7 +634,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     );
 
     if (confirm == true) {
-      await _db.deletePlannedRide(widget.plannedRide.id);
+      if (widget.plannedRide.id != null) await _db.deletePlannedRide(widget.plannedRide.id!);
       if (mounted) {
         Navigator.pop(context); // Close details screen
       }
@@ -994,6 +1005,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   }
 
   Widget _buildInfoCard() {
+    final track = widget.plannedRide.track;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1023,6 +1036,32 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                 'Coordinate',
                 '${widget.plannedRide.latitude!.toStringAsFixed(4)}, ${widget.plannedRide.longitude!.toStringAsFixed(4)}',
               ),
+            ],
+            
+            // Terrain & Difficulty from Linked Track
+            if (track != null) ...[
+               if (track.asphaltPercent != null) ...[
+                 const Divider(height: 24),
+                 TerrainBreakdownWidget(
+                   terrain: TerrainBreakdown(
+                     asphaltPercent: track.asphaltPercent!,
+                     gravelPercent: track.gravelPercent!,
+                     pathPercent: track.pathPercent!,
+                   ),
+                   compact: false,
+                 ),
+               ],
+               
+               if (track.difficultyLevel != null) ...[
+                 const Divider(height: 24),
+                 Center(
+                   child: DifficultyBadge(
+                     difficulty: difficultyFromLevel(track.difficultyLevel!),
+                     showLabel: true,
+                     showLevel: true,
+                   ),
+                 ),
+               ],
             ],
           ],
         ),
@@ -1089,80 +1128,17 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   }
 
   Widget _buildElevationChart() {
+    if (_routeData == null || _routeData!['elevationProfile'] == null) return const SizedBox.shrink();
+    
     final profile = _routeData!['elevationProfile'] as List<Map<String, double>>;
     if (profile.isEmpty) return const SizedBox.shrink();
 
-    // Downsample for performance if too many points
-    final List<FlSpot> spots = [];
-    final step = (profile.length / 50).ceil().clamp(1, profile.length);
-    for (int i = 0; i < profile.length; i += step) {
-      spots.add(FlSpot(profile[i]['distance']!, profile[i]['elevation']!));
-    }
-    // Ensure last point is added
-    if (spots.last.x != profile.last['distance']) {
-      spots.add(FlSpot(profile.last['distance']!, profile.last['elevation']!));
-    }
+    // Extract elevation values
+    final elevations = profile.map((p) => p['elevation']!).toList();
 
-    final minEle = profile.map((p) => p['elevation']!).reduce(math.min);
-    final maxEle = profile.map((p) => p['elevation']!).reduce(math.max);
-    final padding = (maxEle - minEle) * 0.2;
-
-    return Container(
-      height: 180,
-      padding: const EdgeInsets.only(right: 16, top: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: const FlGridData(show: false),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 22,
-                interval: (widget.plannedRide.distance / 5).clamp(1.0, 100.0),
-                getTitlesWidget: (value, meta) => Text(
-                  '${value.toInt()}km',
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget: (value, meta) => Text(
-                  '${value.toInt()}m',
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ),
-            ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: false),
-          minX: 0,
-          maxX: widget.plannedRide.distance,
-          minY: minEle - padding,
-          maxY: maxEle + padding,
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: Theme.of(context).colorScheme.primary,
-              barWidth: 3,
-              isStrokeCapRound: true,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ElevationProfileWidget(
+      elevationProfile: elevations,
+      distanceKm: widget.plannedRide.distance,
     );
   }
 

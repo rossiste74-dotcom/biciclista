@@ -401,7 +401,7 @@ class _GarageScreenState extends State<GarageScreen> {
     );
 
     if (confirm == true) {
-      await _db.deleteBicycle(bike.id);
+      if (bike.id != null) await _db.deleteBicycle(bike.id!);
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'dart:math';
 import '../models/community_track.dart';
 import '../models/saved_track.dart';
@@ -11,6 +13,70 @@ class CommunityTracksService {
   SupabaseClient get _supabase => SupabaseConfig.client;
 
   // ==================== PUBLISH & MANAGE TRACKS ====================
+
+  /// Find track by creator and name (for linking deletion)
+  Future<CommunityTrack?> findTrackByCreatorAndName(String userId, String trackName) async {
+    try {
+      final response = await _supabase
+          .from('community_tracks')
+          .select('id')
+          .eq('creator_id', userId)
+          .eq('track_name', trackName)
+          .maybeSingle();
+
+      if (response == null) return null;
+      // Fetch full object or just return dummy with ID?
+      // Better fetch basic info to be safe, but ID is enough for deletion.
+      // Let's re-fetch or construct. But response only has ID if I select ID.
+      // Let's just return a partial object or string? 
+      // Changed return type to Future<String?>? No, safer to return object.
+      // Let's just fetch *
+      final fullResponse = await _supabase
+          .from('community_tracks')
+          .select()
+          .eq('creator_id', userId)
+          .eq('track_name', trackName)
+          .limit(1)
+          .maybeSingle();
+      
+      if (fullResponse == null) return null;
+      return CommunityTrack.fromJson(fullResponse);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Safe delete (only if not used)
+  Future<bool> safeDeleteTrack(String trackId) async {
+    try {
+      // 1. Check usages (Saved Tracks)
+      final savedCount = await _supabase
+          .from('saved_tracks')
+          .count(CountOption.exact)
+          .eq('track_id', trackId);
+          
+      if (savedCount != null && savedCount > 0) return false;
+
+      // 2. Check usages (Group Rides - implied by crew_service logic or planned_rides? 
+      // Note: Group rides usually copy data or link. If they link, we should check.
+      // Assuming 'community_rides' or similar link? 
+      // In this app, rides are in 'group_rides' table (via CrewService).
+      // Let's check 'group_rides'.
+      final ridesCount = await _supabase
+          .from('group_rides')
+          .count(CountOption.exact)
+          .eq('community_track_id', trackId);
+
+      if (ridesCount != null && ridesCount > 0) return false;
+
+      // 3. Delete
+      await deleteTrack(trackId);
+      return true;
+    } catch (e) {
+      debugPrint('Safe delete failed: $e');
+      return false;
+    }
+  }
 
   /// Publish track to community catalog (with GPX optimization)
   Future<CommunityTrack> publishTrack({
@@ -104,8 +170,9 @@ class CommunityTracksService {
     try {
       final response = await _supabase
           .from('community_tracks')
-          .select('*, profiles(name)')
+          .select('*, profiles(name, avatar_data)')
           .eq('is_public', true)
+          .neq('creator_id', _supabase.auth.currentUser?.id ?? '')
           .order('usage_count', ascending: false)
           .limit(limit);
 
@@ -124,6 +191,7 @@ class CommunityTracksService {
           .from('community_tracks')
           .select('*, profiles(name)')
           .eq('is_public', true)
+          .neq('creator_id', _supabase.auth.currentUser?.id ?? '')
           .gt('total_ratings', 0)
           .order('avg_rating', ascending: false)
           .limit(limit);
@@ -143,6 +211,7 @@ class CommunityTracksService {
           .from('community_tracks')
           .select('*, profiles(name)')
           .eq('is_public', true)
+          .neq('creator_id', _supabase.auth.currentUser?.id ?? '')
           .order('created_at', ascending: false)
           .limit(limit);
 
@@ -167,6 +236,7 @@ class CommunityTracksService {
           .from('community_tracks')
           .select('*, profiles(name)')
           .eq('is_public', true)
+          .neq('creator_id', _supabase.auth.currentUser?.id ?? '')
           .not('start_latitude', 'is', null)
           .not('start_longitude', 'is', null);
 
@@ -225,7 +295,8 @@ class CommunityTracksService {
       var queryBuilder = _supabase
           .from('community_tracks')
           .select('*, profiles(name)')
-          .eq('is_public', true);
+          .eq('is_public', true)
+          .neq('creator_id', _supabase.auth.currentUser?.id ?? '');
 
       if (query != null && query.isNotEmpty) {
         queryBuilder = queryBuilder.ilike('track_name', '%$query%');
@@ -318,7 +389,8 @@ class CommunityTracksService {
               track_name,
               distance,
               elevation,
-              difficulty_level
+              difficulty_level,
+              gpx_data
             )
           ''')
           .eq('user_id', user.id)
@@ -333,6 +405,7 @@ class CommunityTracksService {
           'distance': trackData['distance'],
           'elevation': trackData['elevation'],
           'difficulty_level': trackData['difficulty_level'],
+          'gpx_data': trackData['gpx_data'] is Map ? jsonEncode(trackData['gpx_data']) : trackData['gpx_data'],
         });
       }).toList();
     } catch (e) {

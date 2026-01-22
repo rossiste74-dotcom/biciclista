@@ -1,3 +1,4 @@
+import "package:biciclistico/screens/auth_screen.dart";
 import 'package:flutter/material.dart';
 import 'dart:math';
 
@@ -5,6 +6,7 @@ import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import 'main_navigation_screen.dart';
 import 'onboarding_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,8 +36,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    // 3 seconds delay as requested
-    await Future.delayed(const Duration(seconds: 3)); 
+    // 3 seconds delay as requested (or maybe less now?)
+    await Future.delayed(const Duration(seconds: 2)); 
 
     try {
       final dbService = DatabaseService();
@@ -44,24 +46,66 @@ class _SplashScreenState extends State<SplashScreen> {
       final notificationService = NotificationService();
       await notificationService.init();
 
-      final profile = await dbService.getUserProfile();
-      
       if (!mounted) return;
 
-      if (profile == null) {
+      // 1. Check Supabase Session
+      final session = Supabase.instance.client.auth.currentSession;
+      
+      if (session == null) {
+        // No session -> Auth Screen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
         );
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-        );
+        // Has session -> Check if profile exists in Cloud (or Sync)
+        // ideally we sync here or just proceed.
+        // For now, let's assume if logged in, he might need to onboard if profile missing.
+        
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+           final profile = await dbService.getUserProfile(); // Check local cache first?
+           // OR Check Cloud
+           // Let's check Cloud availability to be "Cloud First"
+           try {
+             final data = await Supabase.instance.client
+                .from('profiles')
+                .select()
+                .eq('user_id', user.id)
+                .maybeSingle();
+                
+             if (data == null) {
+                // Logged in but no profile data? -> Onboarding
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                );
+             } else {
+                // Profile exists -> Main App
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+                );
+             }
+           } catch (e) {
+             // Offline or error -> Fallback to local profile check if "Offline Buffer" is desired
+             final localProfile = await dbService.getUserProfile();
+             if (localProfile != null) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+                );
+             } else {
+                // No local, no cloud access -> Maybe AuthScreen again or Error?
+                // If offline and no session token preserved, Supabase SDK usually handles persistence.
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offline e nessun dato locale.')));
+                // Retry?
+             }
+           }
+        }
       }
     } catch (e) {
       debugPrint('Initialization Error: $e');
       if (mounted) {
+         // Fallback to Auth
          Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
         );
       }
     }

@@ -1,8 +1,11 @@
-import '../services/data_mode_service.dart'; // Added
+// import '../services/data_mode_service.dart'; // Removed
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/user_profile.dart';
 import '../services/database_service.dart';
+import '../models/user_avatar_config.dart';
+import '../widgets/avatar/avatar_customizer.dart';
+import '../widgets/avatar/avatar_preview.dart';
 import '../services/health_sync_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -19,13 +22,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   bool _isLoading = true;
   UserProfile? _profile;
-  bool _isCommunityMode = false;
-  
-  final _dataModeService = DataModeService(); // Added
-  String? _userEmail; // Added
-
-  
-  // Controllers
+  UserAvatarConfig? _avatarConfig; // Added
+  // final _dataModeService = DataModeService(); // Removed
+  // bool _isCommunityMode = false; // Removed
+  // String? _userEmail; // Removed 
 
   // Controllers
   final _nameController = TextEditingController();
@@ -40,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _selectedGender = 'Maschio';
   int _thermalSensitivity = 3;
 
+  @override
   void initState() {
     super.initState();
     _loadProfile();
@@ -63,10 +64,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (profile != null) {
       setState(() {
         _profile = profile;
-        _isCommunityMode = profile.isCommunityMode;
+        // _isCommunityMode = profile.isCommunityMode; // Removed
         
-        final user = _dataModeService.getCurrentUser();
-        _userEmail = user?.email;
+        // Parse avatar data
+        _avatarConfig = profile.avatarData != null
+            ? UserAvatarConfig.fromJsonString(profile.avatarData!)
+            : null;
+        
+        // final user = _dataModeService.getCurrentUser(); // Removed
+        // _userEmail = user?.email; // Removed
 
         _nameController.text = profile.name ?? '';
         _ageController.text = profile.age.toString();
@@ -101,6 +107,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     profile.functionalThresholdPower = int.parse(_ftpController.text);
     profile.thermalSensitivity = _thermalSensitivity;
     profile.preferredUnit = 'km'; // Default for now
+    
+    // Save avatar config if exists
+    if (_avatarConfig != null) {
+      profile.avatarData = _avatarConfig!.toJsonString();
+    }
 
     // Record manual update in health history for trends
     profile.updateHealthSnapshot(
@@ -113,31 +124,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _db.saveUserProfile(profile);
 
     // Auto-sync if in Community Mode
+    // Auto-sync block removed
+    /*
     if (_isCommunityMode) {
-      // Run in background properly or await? 
-      // Awaiting ensuring user knows it's synced.
-      if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Salvataggio e sincronizzazione in corso...')),
-         );
-      }
-      final syncResult = await _dataModeService.syncLocalToCloud();
-      
-      if (!syncResult['success'] && mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text('Salvataggio locale OK, ma errore sync: ${syncResult['error']}'),
-             backgroundColor: Colors.red,
-           ),
-         );
-      }
+       ...
     }
+    */
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profilo aggiornato con successo!')),
       );
       Navigator.pop(context);
+    }
+  }
+  
+  Future<void> _openAvatarCustomizer() async {
+    final result = await Navigator.push<UserAvatarConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AvatarCustomizerScreen(initialConfig: _avatarConfig),
+      ),
+    );
+    
+    if (result != null) {
+      setState(() {
+        _avatarConfig = result;
+      });
+      // We don't save immediately here to keep "Save Profile" button as the main fetch
+      // But we could suggest user to save.
     }
   }
 
@@ -165,35 +180,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Avatar & Community Status Logic
                     Center(
                       child: InkWell(
-                        onTap: () async {
-                           // Toggle logic moved to switch below
-                           // _loadProfile(); // Refresh on return
-                        },
+                        onTap: _openAvatarCustomizer,
                         borderRadius: BorderRadius.circular(50),
                         child: Stack(
                           children: [
-                            CircleAvatar(
-                              radius: 40,
-                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              child: Text(
-                                _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : '?',
-                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            if (_isCommunityMode)
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
+                            if (_avatarConfig != null)
+                              ClipOval(
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
-                                  ),
-                                  child: const Icon(Icons.cloud, size: 12, color: Colors.white),
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  child: AvatarPreview(config: _avatarConfig!, size: 100),
+                                ),
+                              )
+                            else
+                              CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                child: Text(
+                                  _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : '?',
+                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                                 ),
                               ),
+                             Positioned(
+                               bottom: 0,
+                               right: 0,
+                               child: Container(
+                                 padding: const EdgeInsets.all(4),
+                                 decoration: BoxDecoration(
+                                   color: Theme.of(context).colorScheme.primary,
+                                   shape: BoxShape.circle,
+                                   border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+                                 ),
+                                 child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                               ),
+                             ),
+                             // Cloud icon removed
                           ],
                         ),
                       ),
@@ -201,54 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 24),
 
                     // Community & Sync Card (Merged)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                             Row(
-                               children: [
-                                 Expanded(
-                                   child: Column(
-                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                     children: [
-                                       Text('Modalità Community', style: Theme.of(context).textTheme.titleMedium),
-                                       Text(
-                                         _isCommunityMode ? 'Sincronizzazione attiva' : 'Solo locale',
-                                         style: Theme.of(context).textTheme.bodySmall,
-                                       ),
-                                     ],
-                                   ),
-                                 ),
-                                 Switch(
-                                   value: _isCommunityMode,
-                                   onChanged: _toggleMode,
-                                 ),
-                               ],
-                             ),
-                             if (_isCommunityMode && _userEmail != null) ...[
-                               const Divider(),
-                               Row(
-                                 children: [
-                                    const Icon(Icons.account_circle, size: 16, color: Colors.grey),
-                                    const SizedBox(width: 8),
-                                    Expanded(child: Text(_userEmail!, style: const TextStyle(fontSize: 12))),
-                                    FilledButton.icon(
-                                       onPressed: _syncCloud,
-                                       icon: const Icon(Icons.cloud_upload, size: 16),
-                                       label: const Text('Sync'),
-                                       style: FilledButton.styleFrom(
-                                          visualDensity: VisualDensity.compact,
-                                       ),
-                                    ),
-                                 ],
-                               ),
-                             ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                    // Community Mode UI Removed
+
 
                     _buildSectionHeader('Dati Anagrafici'),
                     TextFormField(
@@ -478,193 +452,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // --- Community Mode Helpers ---
 
-  Future<void> _toggleMode(bool enabled) async {
-    if (enabled) {
-      final user = _dataModeService.getCurrentUser();
-      if (user == null) {
-        await _showAuthDialog();
-      } else {
-        await _enableCommunityMode();
-      }
-    } else {
-      await _disableCommunityMode();
-    }
-  }
-
-  Future<void> _enableCommunityMode() async {
-    setState(() => _isLoading = true);
-    final result = await _dataModeService.enableCommunityMode();
-    // Refresh profile to see 'isCommunityMode' update from DB
-    await _loadProfile(); 
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['success'] ? 'Modalità Community attivata' : (result['error'] ?? 'Errore')),
-          backgroundColor: result['success'] ? Colors.green : Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _disableCommunityMode() async {
-    // Confirm
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Disattivare Community?'),
-        content: const Text('I dati rimarranno solo sul dispositivo.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Disattiva')),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    setState(() => _isLoading = true);
-    await _dataModeService.disableCommunityMode();
-    await _loadProfile();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Modalità Autonoma attivata')));
-    }
-  }
-
-  Future<void> _syncCloud() async {
-     setState(() => _isLoading = true);
-     final result = await _dataModeService.syncLocalToCloud();
-     await _loadProfile(); // Update last sync timestamp if needed
-     
-     if (mounted) {
-       ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(
-           content: Text(result['message'] ?? 'Sync completato'),
-           backgroundColor: result['success'] ? Colors.green : Colors.red,
-         ),
-       );
-     }
-  }
-
-  Future<void> _showAuthDialog() async {
-    await showDialog(
-      context: context,
-      builder: (ctx) => _AuthDialog(
-        onSuccess: () async {
-          Navigator.pop(ctx);
-          await _enableCommunityMode();
-        },
-      ),
-    );
-  }
+  // --- Community Mode Helpers ---
+  // (Removed as part of Cloud-First refactor)
 }
 
-/// Dialog for authentication (Embedded in Profile)
-class _AuthDialog extends StatefulWidget {
-  final VoidCallback onSuccess;
-  
-  const _AuthDialog({required this.onSuccess});
-
-  @override
-  State<_AuthDialog> createState() => _AuthDialogState();
-}
-
-class _AuthDialogState extends State<_AuthDialog> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  final _dataModeService = DataModeService();
-  
-  bool _isSignUp = false;
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    setState(() => _isLoading = true);
-    
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    
-    final result = _isSignUp
-        ? await _dataModeService.signUpWithEmail(email, password)
-        : await _dataModeService.signInWithEmail(email, password);
-    
-    setState(() => _isLoading = false);
-    
-    if (!mounted) return;
-    
-    if (result['success']) {
-      widget.onSuccess();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['error'] ?? 'Errore autenticazione'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isSignUp ? 'Registrati' : 'Accedi'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Inserisci email';
-                if (!value.contains('@')) return 'Email non valida';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock),
-              ),
-              obscureText: true,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Inserisci password';
-                if (value.length < 6) return 'Minimo 6 caratteri';
-                return null;
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => setState(() => _isSignUp = !_isSignUp),
-          child: Text(_isSignUp ? 'Hai già un account? Accedi' : 'Non hai un account? Registrati', style: const TextStyle(fontSize: 12)),
-        ),
-        FilledButton(
-          onPressed: _isLoading ? null : _submit,
-          child: _isLoading
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(_isSignUp ? 'Registrati' : 'Accedi'),
-        ),
-      ],
-    );
-  }
-}
 

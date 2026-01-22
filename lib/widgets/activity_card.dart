@@ -3,6 +3,10 @@ import 'package:intl/intl.dart';
 import '../models/group_ride.dart';
 import '../services/crew_service.dart';
 import '../services/supabase_config.dart';
+import '../widgets/difficulty_badge.dart';
+import '../models/terrain_analysis.dart';
+import '../models/user_avatar_config.dart';
+import '../widgets/avatar/avatar_preview.dart';
 
 /// Enhanced activity card with creator avatar, participant row, and join button
 class ActivityCard extends StatefulWidget {
@@ -179,25 +183,57 @@ class _ActivityCardState extends State<ActivityCard> {
                   ],
                 ],
               ),
+              
+              // Difficulty indicator row
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Difficoltà:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(width: 8),
+                  DifficultyIndicator(
+                    difficulty: _parseDifficulty(widget.activity.difficultyLevel),
+                  ),
+                ],
+              ),
               const Divider(height: 24),
 
               // Creator section
               if (widget.activity.participants.isNotEmpty)
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        widget.activity.participants
-                            .firstWhere(
-                              (p) => p.userId == widget.activity.creatorId,
-                              orElse: () => widget.activity.participants.first,
-                            )
-                            .displayName[0]
-                            .toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final creator = widget.activity.participants.firstWhere(
+                          (p) => p.userId == widget.activity.creatorId,
+                          orElse: () => widget.activity.participants.first,
+                        );
+                        final avatarConfig = creator.avatarData != null
+                            ? UserAvatarConfig.fromJsonString(creator.avatarData!)
+                            : null;
+                            
+                        if (avatarConfig != null) {
+                          return ClipOval(
+                            child: Container(
+                               color: Theme.of(context).colorScheme.primaryContainer,
+                               child: AvatarPreview(config: avatarConfig, size: 32),
+                            ),
+                          );
+                        }
+                        
+                        return CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          child: Text(
+                            creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?',
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                        );
+                      }
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -231,25 +267,38 @@ class _ActivityCardState extends State<ActivityCard> {
                     itemCount: widget.activity.participants.length,
                     itemBuilder: (context, index) {
                       final participant = widget.activity.participants[index];
+                      final avatarConfig = participant.avatarData != null
+                          ? UserAvatarConfig.fromJsonString(participant.avatarData!)
+                          : null;
+                      
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: Tooltip(
                           message: participant.displayName,
-                          child: CircleAvatar(
-                            radius: 20,
-                            backgroundColor: participant.userId == widget.activity.creatorId
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.grey[300],
-                            child: Text(
-                              participant.displayName[0].toUpperCase(),
-                              style: TextStyle(
-                                color: participant.userId == widget.activity.creatorId
-                                    ? Colors.white
-                                    : Colors.black87,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          child: avatarConfig != null
+                              ? ClipOval(
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    color: Theme.of(context).colorScheme.primaryContainer,
+                                    child: AvatarPreview(config: avatarConfig, size: 40),
+                                  ),
+                                )
+                              : CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: participant.userId == widget.activity.creatorId
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey[300],
+                                  child: Text(
+                                    participant.displayName.isNotEmpty ? participant.displayName[0].toUpperCase() : '?',
+                                    style: TextStyle(
+                                      color: participant.userId == widget.activity.creatorId
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                         ),
                       );
                     },
@@ -280,5 +329,20 @@ class _ActivityCardState extends State<ActivityCard> {
         ),
       ),
     );
+  }
+  
+  DifficultyRating _parseDifficulty(String level) {
+    switch (level.toLowerCase()) {
+      case 'easy':
+        return DifficultyRating.easy;
+      case 'medium':
+        return DifficultyRating.moderate;
+      case 'hard':
+        return DifficultyRating.hard;
+      case 'expert':
+        return DifficultyRating.expert;
+      default:
+        return DifficultyRating.moderate;
+    }
   }
 }
