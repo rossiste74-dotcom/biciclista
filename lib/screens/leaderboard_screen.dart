@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../services/database_service.dart';
+import '../models/user_profile.dart';
+import '../models/user_avatar_config.dart';
+import '../widgets/avatar/avatar_preview.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -17,21 +20,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
     'most_active': [],
     'organizers': [], // Actually cartographers now
     'laziest': [],
+    'crew': [],
   };
+
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final res = await _db.getFullLeaderboard();
+    final crew = await _db.getAllProfiles();
     if (mounted) {
       setState(() {
         _data = res;
+        _data['crew'] = crew;
         _isLoading = false;
       });
     }
@@ -54,6 +61,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             Tab(icon: const Icon(Icons.directions_bike), text: 'leaderboard.most_active_title'.tr()),
             Tab(icon: const Icon(Icons.map), text: 'leaderboard.cartographer_title'.tr()),
             Tab(icon: const Icon(Icons.weekend), text: 'leaderboard.laziest_title'.tr()),
+            const Tab(icon: Icon(Icons.groups), text: 'Crew'),
           ],
         ),
       ),
@@ -65,6 +73,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                 _buildList(_data['most_active'] ?? [], 'km', Colors.yellow.shade700),
                 _buildList(_data['organizers'] ?? [], 'leaderboard.unit_tracks'.tr(), Colors.blue.shade700),
                 _buildList(_data['laziest'] ?? [], 'km', Colors.orange.shade700, ascending: true),
+                _buildCrewGrid(_data['crew'] ?? []),
               ],
             ),
     );
@@ -136,6 +145,52 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
               ),
             ),
           ),
+        );
+      },
+
+    );
+  }
+
+  Widget _buildCrewGrid(List<dynamic> users) {
+    if (users.isEmpty) {
+      return Center(child: Text('leaderboard.no_data'.tr()));
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.75, // Adjust for avatar + text
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        final user = users[index] as UserProfile;
+        final avatarConfig = UserAvatarConfig.fromJsonString(user.avatarData ?? '');
+        
+        return Column(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.shade300, width: 2),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: AvatarPreview(config: avatarConfig, size: 100),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              user.name ?? 'Unknown',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         );
       },
     );

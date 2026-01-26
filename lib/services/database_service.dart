@@ -106,6 +106,32 @@ class DatabaseService {
 
   Future<void> updateUserProfile(UserProfile profile) async => saveUserProfile(profile);
 
+  /// Get all user profiles for the Crew tab
+  Future<List<UserProfile>> getAllProfiles() async {
+    try {
+      final res = await _supabase.from('profiles').select().order('name', ascending: true);
+      
+      return (res as List).map((data) {
+        final p = UserProfile();
+        p.id = data['user_id'] ?? '';
+        p.name = data['name'];
+        p.gender = data['gender'];
+        p.age = data['age'] ?? 30;
+        p.weight = (data['weight'] ?? 70.0).toDouble();
+        
+        final avatarJson = data['avatar_data'];
+        if (avatarJson != null) {
+          p.avatarData = avatarJson is String ? avatarJson : json.encode(avatarJson);
+        }
+        
+        return p;
+      }).toList();
+    } catch (e) {
+      print('Error fetching all profiles: $e');
+      return [];
+    }
+  }
+
   // ==================== Bicycle CRUD ====================
 
   Future<String> createBicycle(Bicycle bicycle) async {

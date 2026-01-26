@@ -1,6 +1,6 @@
 {
-    "name": "ride_crew",
-    "short_name": "ride_crew",
+    "name": "Biciclistico",
+    "short_name": "Biciclistico",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#191919",
