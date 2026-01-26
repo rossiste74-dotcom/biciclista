@@ -1,37 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 /// Widget showing weather forecast with Il Biciclista's sarcastic motivation
 class BiciclistaWeather extends StatelessWidget {
   final double temperature;
   final bool isRaining;
   final double windSpeed;
+  final Map<String, String>? weatherMessages;
 
   const BiciclistaWeather({
     super.key,
     required this.temperature,
     this.isRaining = false,
     this.windSpeed = 0,
+    this.weatherMessages,
   });
 
   String _getWeatherComment() {
     if (isRaining) {
-      return "Piove? E allora? Non sei mica di zucchero! I veri ciclisti escono anche con l'acquazzone.";
+      return weatherMessages?['rain'] ?? "weather.rain".tr();
     }
     
     if (windSpeed > 30) {
-      return "Vento contrario in andata significa vento a favore al ritorno. Pensa positivo (o fai un giro ad anello).";
+      return weatherMessages?['wind_high'] ?? "weather.wind_high".tr();
     }
     
     if (temperature > 28) {
-      return "Fa caldo! Parti presto la mattina o la sera, che a mezzogiorno ti sciogli sull'asfalto.";
+      return weatherMessages?['hot'] ?? "weather.hot".tr();
     } else if (temperature >= 20 && temperature <= 25) {
-      return "Che aspetti? Il meteo è perfetto, le gambe si muovono da sole!";
+      return weatherMessages?['perfect'] ?? "weather.perfect".tr();
     } else if (temperature >= 15) {
-      return "Temperature ideali per pedalare. Né troppo caldo né troppo freddo, solo scuse non accettate.";
+      return weatherMessages?['good'] ?? "weather.good".tr();
     } else if (temperature >= 5) {
-      return "Fa freschetto, ma con l'abbigliamento giusto vai benissimo. Copri le estremità e parti!";
+      return weatherMessages?['cool'] ?? "weather.cool".tr();
     } else {
-      return "Fa freddo da lupi. Copriti bene o fai un giro corto, che poi ti chiamano ghiacciolo.";
+      return weatherMessages?['cold'] ?? "weather.cold".tr();
     }
   }
 
@@ -44,11 +47,11 @@ class BiciclistaWeather extends StatelessWidget {
   }
 
   String _getWeatherCondition() {
-    if (isRaining) return "Pioggia";
-    if (windSpeed > 25) return "Ventoso";
-    if (temperature > 25) return "Caldo";
-    if (temperature < 10) return "Freddo";
-    return "Nuvoloso";
+    if (isRaining) return "weather.condition_rain".tr();
+    if (windSpeed > 25) return "weather.condition_windy".tr();
+    if (temperature > 25) return "weather.condition_hot".tr();
+    if (temperature < 10) return "weather.condition_cold".tr();
+    return "weather.condition_cloudy".tr();
   }
 
   @override
@@ -86,7 +89,7 @@ class BiciclistaWeather extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Meteo Oggi',
+                    'weather.title_today'.tr(),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,

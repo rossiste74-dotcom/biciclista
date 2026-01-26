@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
@@ -89,7 +90,7 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Abilita la localizzazione per usare la navigazione')),
+          SnackBar(content: Text('map.enable_location_msg'.tr())),
         );
       }
       return;
@@ -101,7 +102,7 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
       if (permission == LocationPermission.denied) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permesso di localizzazione negato')),
+            SnackBar(content: Text('map.location_denied'.tr())),
           );
         }
         return;
@@ -111,7 +112,7 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Abilita i permessi di localizzazione dalle impostazioni')),
+          SnackBar(content: Text('map.location_forever_denied'.tr())),
         );
       }
       return;
@@ -282,7 +283,8 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
                 userAgentPackageName: 'com.biciclistico.app',
               ),
               PolylineLayer(
@@ -343,13 +345,13 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            widget.rideName ?? 'Navigazione',
+                            widget.rideName ?? 'map.navigation_default_title'.tr(),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (widget.totalDistanceKm > 0)
                             Text(
-                              '${_distanceToFinishKm.toStringAsFixed(1)} km rimanenti',
+                              'map.km_remaining'.tr(args: [_distanceToFinishKm.toStringAsFixed(1)]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -392,14 +394,14 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
-                    SizedBox(width: 12),
+                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
                     Text(
-                      'FUORI PERCORSO!',
-                      style: TextStyle(
+                      'map.off_course'.tr(),
+                      style: const TextStyle(
                         color: Colors.white, 
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -454,18 +456,18 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Terminare la navigazione?'),
+        title: Text('map.stop_nav_title'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
+            child: Text('common.cancel'.tr()),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: const Text('Termina'),
+            child: Text('map.stop_btn'.tr()),
           ),
         ],
       ),

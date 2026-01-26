@@ -8,12 +8,16 @@ class NextRidePreviewCard extends StatelessWidget {
   final PlannedRide? ride;
   final OutfitSuggestion? outfit;
   final VoidCallback onTap;
+  final VoidCallback? onNavigate;
+  final VoidCallback? onTerminate;
 
   const NextRidePreviewCard({
     super.key,
     this.ride,
     this.outfit,
     required this.onTap,
+    this.onNavigate,
+    this.onTerminate,
   });
 
   @override
@@ -55,13 +59,13 @@ class NextRidePreviewCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
-                              ),
+                                ),
                         ),
                         Text(
                           DateFormat('EEEE, d MMMM', 'it_IT').format(ride!.rideDate),
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
-                              ),
+                                ),
                         ),
                       ],
                     ),
@@ -130,6 +134,29 @@ class NextRidePreviewCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                  // Buttons Row
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (onTerminate != null)
+                        TextButton.icon(
+                          onPressed: onTerminate,
+                          icon: const Icon(Icons.flag),
+                          label: const Text('Termina'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (onNavigate != null)
+                        FilledButton.icon(
+                          onPressed: onNavigate,
+                          icon: const Icon(Icons.navigation),
+                          label: const Text('Navigazione'),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/group_ride.dart';
@@ -6,6 +7,7 @@ import '../services/crew_service.dart';
 import '../widgets/activity_card.dart';
 import 'group_ride_detail_screen.dart';
 import 'create_group_ride_screen.dart';
+import '../services/configuration_service.dart';
 
 /// Unified agenda screen showing all user activities (created + joined)
 class UnifiedAgendaScreen extends StatefulWidget {
@@ -17,14 +19,15 @@ class UnifiedAgendaScreen extends StatefulWidget {
 
 class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerProviderStateMixin {
   final _crewService = CrewService();
-  List<GroupRide> _activities = [];
+  List<GroupRide> _upcomingActivities = [];
+  List<GroupRide> _completedActivities = [];
   bool _isLoading = true;
   late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadActivities();
   }
 
@@ -45,7 +48,8 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
       
       if (mounted) {
         setState(() {
-          _activities = activities;
+          _upcomingActivities = activities.where((a) => a.status.toLowerCase() != 'completed').toList();
+          _completedActivities = activities.where((a) => a.status.toLowerCase() == 'completed').toList();
           _isLoading = false;
         });
       }
@@ -53,7 +57,7 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore caricamento: $e')),
+          SnackBar(content: Text('agenda.load_error'.tr(args: [e.toString()]))),
         );
       }
     }
@@ -67,16 +71,17 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
         toolbarHeight: 0, // Collapse toolbar to just show TabBar
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.list), text: 'Lista'),
-            Tab(icon: Icon(Icons.map), text: 'Mappa'),
+          tabs: [
+            Tab(icon: const Icon(Icons.list), text: 'agenda.tab_list'.tr()),
+            Tab(icon: const Icon(Icons.map), text: 'agenda.tab_map'.tr()),
+            Tab(icon: const Icon(Icons.check_circle_outline), text: 'agenda.tab_completed'.tr()),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadActivities,
-            tooltip: 'Aggiorna',
+            tooltip: 'common.refresh'.tr(),
           ),
         ],
       ),
@@ -87,6 +92,7 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
               children: [
                 _buildListTab(),
                 _buildMapTab(),
+                _buildCompletedTab(),
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -106,15 +112,35 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
   }
 
   Widget _buildListTab() {
-    if (_activities.isEmpty) return _buildEmptyState();
+    if (_upcomingActivities.isEmpty) return _buildEmptyState();
 
     return RefreshIndicator(
       onRefresh: _loadActivities,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _activities.length,
+        itemCount: _upcomingActivities.length,
         itemBuilder: (context, index) {
-          final activity = _activities[index];
+          final activity = _upcomingActivities[index];
+          return ActivityCard(
+            activity: activity,
+            showJoinButton: false,
+            onTap: () => _openActivityDetail(activity),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCompletedTab() {
+    if (_completedActivities.isEmpty) return _buildEmptyCompletedState();
+
+    return RefreshIndicator(
+      onRefresh: _loadActivities,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: _completedActivities.length,
+        itemBuilder: (context, index) {
+          final activity = _completedActivities[index];
           return ActivityCard(
             activity: activity,
             showJoinButton: false,
@@ -127,15 +153,15 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
 
   Widget _buildMapTab() {
     // Filter activities with valid coordinates
-    final mapActivities = _activities.where((a) => 
+    final mapActivities = _upcomingActivities.where((a) => 
       a.meetingLatitude != null && a.meetingLongitude != null
     ).toList();
 
     if (mapActivities.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Nessuna attività con posizione sulla mappa',
-          style: TextStyle(color: Colors.grey),
+          'agenda.no_map_activities'.tr(),
+          style: const TextStyle(color: Colors.grey),
         ),
       );
     }
@@ -155,7 +181,8 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
           userAgentPackageName: 'com.biciclistico.app',
         ),
         MarkerLayer(
@@ -218,15 +245,50 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
               color: Colors.grey[400],
             ),
             const SizedBox(height: 24),
+            const SizedBox(height: 24),
             Text(
-              'Nessuna Attività',
+              'agenda.empty_title'.tr(),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Crea la tua prima attività o esplora quelle pubbliche!',
+              'agenda.empty_subtitle'.tr(),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[500],
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyCompletedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 80,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(height: 24),
+            Text(
+              'agenda.empty_completed_title'.tr(),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'agenda.empty_completed_subtitle'.tr(),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[500],
                   ),

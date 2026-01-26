@@ -106,7 +106,8 @@ class _RouteMapWidgetState extends State<RouteMapWidget> {
           children: [
             // OpenStreetMap tile layer
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+              subdomains: const ['a', 'b', 'c'],
               userAgentPackageName: 'com.biciclistico.app',
               maxZoom: 19,
             ),

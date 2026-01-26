@@ -1,35 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 /// Widget showing bike maintenance alerts with Il Biciclista's sarcastic tone
 class BiciclistaMaintenance extends StatelessWidget {
   final String? componentName;
   final double? kmRemaining;
   final bool allOk;
+  final Map<String, String>? maintenanceMessages;
 
   const BiciclistaMaintenance({
     super.key,
     this.componentName,
     this.kmRemaining,
     this.allOk = true,
+    this.maintenanceMessages,
   });
 
   String _getMaintenanceComment() {
     if (allOk) {
-      return "Per una volta la bici è in ordine. Adesso non hai più scuse per non uscire!";
+      return maintenanceMessages?['all_ok'] ?? "maintenance.all_ok".tr();
     }
 
     if (kmRemaining == null || kmRemaining! <= 0) {
-      return "Il limite è superato! Cambia subito quel componente o preparati a camminare.";
+      return maintenanceMessages?['critical'] ?? "maintenance.critical".tr();
     }
 
     final percentage = (kmRemaining! / 1000 * 100).clamp(0, 100);
     
     if (percentage < 10) {
-      return "$componentName grida aiuto! Fra poco si rompe e ti lascia a piedi... anzi, a pedali.";
+      return "$componentName ${maintenanceMessages?['warning'] ?? "maintenance.warning".tr()}";
     } else if (percentage < 30) {
-      return "$componentName ha visto giorni migliori. Cambialo prima di ritrovarti con una sorpresa in salita.";
+      return "$componentName ${maintenanceMessages?['notice'] ?? "maintenance.notice".tr()}";
     } else {
-      return "$componentName richiede attenzione. Non aspettare l'ultimo momento, che poi ti costa il doppio!";
+      return "$componentName ${maintenanceMessages?['attention'] ?? "maintenance.attention".tr()}";
     }
   }
 
@@ -88,7 +91,7 @@ class BiciclistaMaintenance extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Manutenzione Bici',
+                    'maintenance.title'.tr(),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -114,7 +117,7 @@ class BiciclistaMaintenance extends StatelessWidget {
                         ),
                         if (kmRemaining != null && kmRemaining! > 0)
                           Text(
-                            '${kmRemaining!.toStringAsFixed(0)} km rimanenti',
+                            '${kmRemaining!.toStringAsFixed(0)} ${'maintenance.remaining'.tr()}',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.white.withValues(alpha: 0.9),
                             ),

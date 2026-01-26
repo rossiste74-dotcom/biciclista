@@ -636,7 +636,25 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     if (confirm == true) {
       if (widget.plannedRide.id != null) await _db.deletePlannedRide(widget.plannedRide.id!);
       if (mounted) {
-        Navigator.pop(context); // Close details screen
+        Navigator.pop(context, true); // Close details screen with refresh signal
+      }
+    }
+  }
+
+  Future<void> _toggleCompletion() async {
+    if (!widget.plannedRide.isCompleted) {
+      // If marking as done, ask for bike
+      await _showCompletionDialog();
+    } else {
+      // If unmarking, just toggle back
+      setState(() {
+        widget.plannedRide.isCompleted = false;
+      });
+      await _db.updatePlannedRide(widget.plannedRide);
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Attività spostata in pianificate')),
+        );
       }
     }
   }
@@ -647,48 +665,61 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       appBar: AppBar(
         title: Text(widget.plannedRide.rideName ?? 'Dettagli Percorso'),
         actions: [
-          IconButton(
-            icon: Icon(
-              widget.plannedRide.isCompleted ? Icons.check_circle : Icons.check_circle_outline,
-              color: widget.plannedRide.isCompleted ? Colors.green : null,
+          // Naviga (Prominent)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: FilledButton.icon(
+              onPressed: _startActiveNavigation,
+              icon: const Icon(Icons.navigation, size: 16),
+              label: const Text('Naviga'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                visualDensity: VisualDensity.compact,
+              ),
             ),
-            tooltip: widget.plannedRide.isCompleted ? 'Segna come da fare' : 'Segna come completato',
-            onPressed: () async {
-              if (!widget.plannedRide.isCompleted) {
-                // If marking as done, ask for bike
-                _showCompletionDialog();
-              } else {
-                // If unmarking, just toggle back
-                setState(() {
-                  widget.plannedRide.isCompleted = false;
-                });
-                await _db.updatePlannedRide(widget.plannedRide);
-                if (mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Attività spostata in pianificate')),
-                  );
-                }
-              }
-            },
           ),
+          
+          // Condividi
           IconButton(
             icon: const Icon(Icons.share),
-            tooltip: 'Condividi (WhatsApp/File)',
+            tooltip: 'Condividi',
             onPressed: _shareRide,
           ),
+          
+          // Termina / Status
           IconButton(
-            icon: const Icon(Icons.qr_code_2),
-            tooltip: 'Condividi via QR',
-            onPressed: _showQrShare,
+            icon: Icon(
+              widget.plannedRide.isCompleted ? Icons.check_circle : Icons.circle_outlined,
+              color: widget.plannedRide.isCompleted ? Colors.green : null,
+            ),
+            tooltip: widget.plannedRide.isCompleted ? 'Completata' : 'Segna come completata',
+            onPressed: _toggleCompletion,
           ),
-          IconButton(
-            icon: const Icon(Icons.navigation_outlined),
-            tooltip: 'Avvia Navigazione',
-            onPressed: _startActiveNavigation,
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _confirmDelete,
+
+          // Menu Altro (QR, Delete)
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'qr') _showQrShare();
+              if (value == 'delete') _confirmDelete();
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'qr',
+                child: ListTile(
+                  leading: Icon(Icons.qr_code),
+                  title: Text('Codice QR'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text('Elimina', style: TextStyle(color: Colors.red)),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1380,7 +1411,6 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       ],
     );
   }
-
 
 }
 

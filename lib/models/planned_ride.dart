@@ -88,6 +88,8 @@ class PlannedRide {
 
   PlannedRide() {
     createdAt = DateTime.now();
+    latitude = null;
+    longitude = null;
   }
 
   // ========== HELPER GETTERS ==========

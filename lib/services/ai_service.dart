@@ -5,13 +5,16 @@ import '../models/user_profile.dart';
 import '../models/ai_provider.dart';
 import '../models/planned_ride.dart';
 import '../models/track.dart';
+import '../models/ai_config.dart';
 import '../services/database_service.dart';
+import '../services/prompt_service.dart';
 import '../services/supabase_config.dart';
 import 'package:intl/intl.dart';
 
 /// Service for AI Coach functionality using Supabase Edge Functions (Butler AI via OpenRouter)
 class AIService {
   final _db = DatabaseService();
+  final _promptService = PromptService();
   final _functions = Supabase.instance.client.functions;
 
   /// Check if AI is configured (User has a profile)
@@ -72,57 +75,39 @@ class AIService {
     final provider = profile.getAIProvider() ?? AIProvider.deepseek;
     
     // Build specialized prompt
-    final prompt = StringBuffer();
-    prompt.writeln('Sei "Il Biciclista" - un ciclista esperto e diretto che analizza i percorsi con occhio critico. Analizza questo percorso:');
-    prompt.writeln();
-    prompt.writeln('**Dati Percorso:**');
-    prompt.writeln('- Distanza: ${ride.distance.toStringAsFixed(1)} km');
-    prompt.writeln('- Dislivello: ${ride.elevation.toStringAsFixed(0)} m');
-    prompt.writeln('- Data: ${ride.rideDate.day}/${ride.rideDate.month} ore ${ride.rideDate.hour}:${ride.rideDate.minute}');
-    
+    // Prepare data for interpolation
+    String weatherInfo = '';
     if (ride.forecastWeather != null) {
       try {
         final w = json.decode(ride.forecastWeather!);
-        prompt.writeln('- Meteo previsto: ${w['temperature']}°C, Vento ${w['windSpeed']}km/h');
+        weatherInfo = '- Meteo previsto: ${w['temperature']}°C, Vento ${w['windSpeed']}km/h';
       } catch (_) {}
     }
 
-    prompt.writeln();
-    prompt.writeln('**Dati Ciclista:**');
-    prompt.writeln('- Peso: ${profile.weight}kg');
-    prompt.writeln('- HRV ultimi 7gg: ${profile.hrv} (Readiness: ${_calculateReadinessScore(profile)}/100)');
+    final userMessage = await _promptService.getPrompt(AIConfig.keyAnalyzeRide, {
+      'distance': ride.distance.toStringAsFixed(1),
+      'elevation': ride.elevation.toStringAsFixed(0),
+      'date': '${ride.rideDate.day}/${ride.rideDate.month} ore ${ride.rideDate.hour}:${ride.rideDate.minute}',
+      'weather': weatherInfo,
+      'weight': profile.weight,
+      'hrv': profile.hrv,
+      'readiness': _calculateReadinessScore(profile),
+    });
 
-    prompt.writeln();
-    prompt.writeln('Fornisci una analisi sintetica (max 100 parole) strutturata in:');
-    prompt.writeln('1. **Difficoltà**: Quanto sarà tosta?');
-    prompt.writeln('2. **Strategia**: Come gestirla?');
-    prompt.writeln('3. **Consiglio Flash**: Una dritta secca.');
-    prompt.writeln('Usa un tono diretto, simpatico e sarcastico. Sii breve.');
-
-    // Determine personality
+    // Determine personality prompt
     final personality = profile.coachPersonality ?? 'friendly';
-    String systemPrompt = "Sei 'Il Biciclista', il tuo compagno di uscite esperto.";
-
+    String personaKey = AIConfig.keyPersonaFriendly;
     switch (personality) {
-      case 'sergeant':
-        systemPrompt = "Sei un SERGENTE ISTRUTTORE. Stai urlando nelle orecchie dell'atleta mentre pedala. DURO, DIRETTO, NIENTE SCUSE. Se il meteo è brutto, è MEGLIO (più gloria).";
-        break;
-      case 'zen':
-        systemPrompt = "Sei un Maestro Zen. Guida l'atleta a trovare il flusso interiore. Il meteo e la fatica sono illusioni. Respira e pedala.";
-        break;
-      case 'analytical':
-        systemPrompt = "Sei un Computer di Bordo Avanzato. Analizza meteo, HR e fatica. Fornisci strategie basate su percentuali e dati. Freddo e calcolatore.";
-        break;
-      case 'friendly':
-      default:
-        systemPrompt = "Sei 'Il Biciclista', un compagno esperto che pedala a fianco. Simpatico, incoraggiante, pratico. Se piove, fai una battuta.";
-        break;
+      case 'sergeant': personaKey = AIConfig.keyPersonaSergeant; break;
+      case 'zen': personaKey = AIConfig.keyPersonaZen; break;
+      case 'analytical': personaKey = AIConfig.keyPersonaAnalytical; break;
     }
+    final systemPrompt = await _promptService.getPrompt(personaKey);
 
     final result = await _callAI(
       provider: profile.getAIProvider() ?? AIProvider.deepseek,
       systemPrompt: systemPrompt,
-      userMessage: prompt.toString(),
+      userMessage: userMessage,
       action: 'analyze_ride',
       payloadExtras: {'ride_id': ride.id}, // Optional tracking
     );
@@ -138,75 +123,59 @@ class AIService {
   Future<String> analyzeTrack(Track track) async {
     final profile = await _db.getUserProfile();
     
-    final prompt = StringBuffer();
-    prompt.writeln('Sei "Il Biciclista". Analizza questa traccia salvata in libreria e dai consigli strategici su come affrontarla.');
-    prompt.writeln();
-    prompt.writeln('**Dati Traccia:**');
-    prompt.writeln('- Nome: ${track.name}');
-    prompt.writeln('- Distanza: ${track.distance.toStringAsFixed(1)} km');
-    prompt.writeln('- Dislivello: ${track.elevation.toStringAsFixed(0)} m');
-    prompt.writeln('- Terreno: ${track.terrainLabel}');
-    
+    String relatedRideContext = '';
     // Check for upcoming planned rides for this track
     try {
       final upcomingRides = await _db.getUpcomingRides();
       final relatedRide = upcomingRides.where((r) => r.trackId == track.id).firstOrNull;
       
       if (relatedRide != null) {
-        prompt.writeln();
-        prompt.writeln('**CONTESTO IMPORTANTE: Questa traccia è pianificata per una uscita!**');
-        prompt.writeln('- Data: ${DateFormat('dd MMMM yyyy, HH:mm').format(relatedRide.rideDate)}');
-        prompt.writeln('- Tipo: ${relatedRide.isGroupRide ? "Uscita di Gruppo" : "Uscita in Solitaria"}');
+        final sb = StringBuffer();
+        sb.writeln('**CONTESTO IMPORTANTE: Questa traccia è pianificata per una uscita!**');
+        sb.writeln('- Data: ${DateFormat('dd MMMM yyyy, HH:mm').format(relatedRide.rideDate)}');
+        sb.writeln('- Tipo: ${relatedRide.isGroupRide ? "Uscita di Gruppo" : "Uscita in Solitaria"}');
         
         if (relatedRide.forecastWeather != null) {
           try {
             final weather = json.decode(relatedRide.forecastWeather!);
-            prompt.writeln('- Meteo Previsto: Temp ${weather['temperature']}°C, Vento ${weather['windSpeed'] ?? '?'} km/h');
+            sb.writeln('- Meteo Previsto: Temp ${weather['temperature']}°C, Vento ${weather['windSpeed'] ?? '?'} km/h');
           } catch (_) {}
         }
-        prompt.writeln('Tieni conto della DATA e del METEO (se presente) per dare consigli specifici.');
+        sb.writeln('Tieni conto della DATA e del METEO (se presente) per dare consigli specifici.');
+        relatedRideContext = sb.toString();
       }
     } catch (e) {
       print('Error fetching related rides: $e');
     }
 
+    String profileContext = '';
     if (profile != null) {
-      prompt.writeln();
-      prompt.writeln('**Profilo Atleta (per contesto):**');
-      prompt.writeln('- Peso: ${profile.weight}kg');
+      profileContext = '**Profilo Atleta (per contesto):**\n- Peso: ${profile.weight}kg';
     }
 
-    prompt.writeln();
-    prompt.writeln('Fornisci un analisi strategica "senza tempo" (non conosci meteo o data). Concentrati su:');
-    prompt.writeln('1. **Difficoltà Tecnica**: Cosa aspettarsi dal terreno.');
-    prompt.writeln('2. **Gestione Sforzo**: Dove spingere e dove risparmiare gamba.');
-    prompt.writeln('3. **Nutrizione Ideale**: Stima del fabbisogno.');
-    prompt.writeln('Sii sempre simpatico e diretto.');
+    final userMessage = await _promptService.getPrompt(AIConfig.keyAnalyzeTrack, {
+      'name': track.name,
+      'distance': track.distance.toStringAsFixed(1),
+      'elevation': track.elevation.toStringAsFixed(0),
+      'terrain': track.terrainLabel,
+      'related_ride_context': relatedRideContext,
+      'profile_context': profileContext,
+    });
 
-    // Determine personality
+    // Determine personality prompt
     final personality = profile?.coachPersonality ?? 'friendly';
-    String systemPrompt = "Sei 'Il Biciclista', analizzi percorsi GPX con saggezza e ironia.";
-    
+    String personaKey = AIConfig.keyPersonaFriendly;
     switch (personality) {
-      case 'sergeant':
-        systemPrompt = "Sei un SERGENTE ISTRUTTORE di ciclismo. Sei DURO, MOTIVANTE, non accetti scuse. Urla (MAIUSCOLO) i punti critici. Vuoi sudore e gloria.";
-        break;
-      case 'zen':
-        systemPrompt = "Sei un Maestro Zen della bicicletta. Parla con calma, usa metafore sulla natura e il flusso. L'obiettivo è l'armonia, non la velocità.";
-        break;
-      case 'analytical':
-        systemPrompt = "Sei un Ingegnere Olistico. Analizza solo i DATI. Sii freddo, preciso, focus su Watt/kg, pendenze ed efficienza. Niente chiacchiere.";
-        break;
-      case 'friendly':
-      default:
-        systemPrompt = "Sei 'Il Biciclista', un compagno di uscite esperto. Sei simpatico, ironico, usi slang ciclistico (gamba, scia, cappottarsi).";
-        break;
+      case 'sergeant': personaKey = AIConfig.keyPersonaSergeant; break;
+      case 'zen': personaKey = AIConfig.keyPersonaZen; break;
+      case 'analytical': personaKey = AIConfig.keyPersonaAnalytical; break;
     }
+    final systemPrompt = await _promptService.getPrompt(personaKey);
 
     final result = await _callAI(
       provider: profile?.getAIProvider() ?? AIProvider.deepseek,
       systemPrompt: systemPrompt,
-      userMessage: prompt.toString(),
+      userMessage: userMessage,
       action: 'analyze_track',
       payloadExtras: {'track_id': track.id},
     );
@@ -391,71 +360,79 @@ class AIService {
 
   /// Build system prompt (Helper)
   Future<String> _buildSystemPrompt(UserProfile profile, {bool includeHealthData = true}) async {
-    final prompt = StringBuffer();
-    
-    prompt.writeln('Sei "Il Biciclista" - un ciclista navigato, esperto e un po\' sarcastico. Dai consigli pratici con un tono simpatico e diretto, usando gergo ciclistico italiano. Non essere troppo formale, parla come se stessi consigliando un amico al bar dopo un\'uscita. Analizza i seguenti dati e fornisci consigli utili ma con personalità:');
-    prompt.writeln();
+    final userData = StringBuffer();
+    final bikeData = StringBuffer();
+    final upcomingRide = StringBuffer();
 
     if (includeHealthData) {
-      prompt.writeln('**Dati Atleta:**');
-      prompt.writeln('- Peso: ${profile.weight.toStringAsFixed(1)}kg');
-      prompt.writeln('- HRV (Heart Rate Variability): ${profile.hrv}ms');
-      prompt.writeln('- Sonno: ${profile.sleepHours.toStringAsFixed(1)} ore');
+      userData.writeln('**Dati Atleta:**');
+      userData.writeln('- Peso: ${profile.weight.toStringAsFixed(1)}kg');
+      userData.writeln('- HRV (Heart Rate Variability): ${profile.hrv}ms');
+      userData.writeln('- Sonno: ${profile.sleepHours.toStringAsFixed(1)} ore');
       
       final readiness = _calculateReadinessScore(profile);
-      prompt.writeln('- Readiness Score: $readiness/100');
-      prompt.writeln();
+      userData.writeln('- Readiness Score: $readiness/100');
 
       // Dati Bici (Manutenzione)
       final bikes = await _db.getAllBicycles();
       if (bikes.isNotEmpty) {
         final bike = bikes.first; // Use primary/first bike
-        prompt.writeln('**Bicicletta in Uso:**');
-        prompt.writeln('- Modello: ${bike.name} (${bike.type})');
-        prompt.writeln('- KM Totali: ${bike.totalKilometers.toStringAsFixed(1)} km');
-        prompt.writeln('- Componenti:');
+        bikeData.writeln('**Bicicletta in Uso:**');
+        bikeData.writeln('- Modello: ${bike.name} (${bike.type})');
+        bikeData.writeln('- KM Totali: ${bike.totalKilometers.toStringAsFixed(1)} km');
+        bikeData.writeln('- Componenti:');
         for (var c in bike.components) {
           final usage = c.currentKm;
           final limit = c.limitKm;
           final status = usage > limit ? 'DA SOSTITUIRE ⚠️' : (usage > limit * 0.8 ? 'Attenzione ⚠️' : 'OK');
-          prompt.writeln('  * ${c.name}: ${usage.toStringAsFixed(0)}/${limit.toStringAsFixed(0)} km [$status]');
+          bikeData.writeln('  * ${c.name}: ${usage.toStringAsFixed(0)}/${limit.toStringAsFixed(0)} km [$status]');
         }
-        prompt.writeln();
       }
 
       final upcomingRides = await _db.getUpcomingRides();
       if (upcomingRides.isNotEmpty) {
         final nextRide = upcomingRides.first;
-        prompt.writeln('**Percorso Pianificato:**');
+        upcomingRide.writeln('**Percorso Pianificato:**');
         if (nextRide.rideName != null && nextRide.rideName!.isNotEmpty) {
-          prompt.writeln('- Nome: ${nextRide.rideName}');
+          upcomingRide.writeln('- Nome: ${nextRide.rideName}');
         }
-        prompt.writeln('- Distanza: ${nextRide.distance.toStringAsFixed(1)}km');
-        prompt.writeln('- Dislivello: ${nextRide.elevation.toStringAsFixed(0)}m');
+        upcomingRide.writeln('- Distanza: ${nextRide.distance.toStringAsFixed(1)}km');
+        upcomingRide.writeln('- Dislivello: ${nextRide.elevation.toStringAsFixed(0)}m');
         
         if (nextRide.forecastWeather != null && nextRide.forecastWeather!.isNotEmpty) {
           try {
             final weatherData = json.decode(nextRide.forecastWeather!);
-            prompt.writeln();
-            prompt.writeln('**Condizioni Meteo Previste:**');
-            prompt.writeln('- Temperatura: ${weatherData['temperature']}°C');
+            upcomingRide.writeln();
+            upcomingRide.writeln('**Condizioni Meteo Previste:**');
+            upcomingRide.writeln('- Temperatura: ${weatherData['temperature']}°C');
              if (weatherData['windSpeed'] != null) {
-              prompt.writeln('- Vento: ${weatherData['windSpeed']}km/h');
+              upcomingRide.writeln('- Vento: ${weatherData['windSpeed']}km/h');
             }
           } catch (e) {}
         }
       } else {
-        prompt.writeln('**Percorso Pianificato:** Nessun percorso imminente.');
+        upcomingRide.writeln('**Percorso Pianificato:** Nessun percorso imminente.');
       }
     } else {
-      prompt.writeln('**Modalità Meccanico/Tecnico:**');
-      prompt.writeln('Ignora dati fisiologici. Concentrati solo sulla richiesta tecnica riguardo la biciletta.');
+      userData.writeln('**Modalità Meccanico/Tecnico:**');
+      userData.writeln('Ignora dati fisiologici. Concentrati solo sulla richiesta tecnica riguardo la biciletta.');
     }
 
-    prompt.writeln();
-    prompt.writeln('Fornisci consigli specifici e pratici. Sii MOLTO SINTETICO (max 80 parole) e diretto. Usa un tono colloquiale con gergo ciclistico italiano.');
-    
-    return prompt.toString();
+    // Determine personality prompt
+    final personality = profile.coachPersonality ?? 'friendly';
+    String personaKey = AIConfig.keyPersonaFriendly;
+    switch (personality) {
+      case 'sergeant': personaKey = AIConfig.keyPersonaSergeant; break;
+      case 'zen': personaKey = AIConfig.keyPersonaZen; break;
+      case 'analytical': personaKey = AIConfig.keyPersonaAnalytical; break;
+    }
+    // We append the personal data to the persona, or use a base coach prompt?
+    // Let's use base_coach as the main template
+    return _promptService.getPrompt(AIConfig.keyBaseCoach, {
+      'user_data': userData.toString(),
+      'bike_data': bikeData.toString(),
+      'upcoming_ride': upcomingRide.toString(),
+    });
   }
 
   int _calculateReadinessScore(UserProfile profile) {
@@ -500,6 +477,46 @@ class AIService {
     } catch (e) {
       print('Error fetching Gemini models: $e');
       return [];
+    }
+  }
+  /// Get Daily Wisdom for Community (Lazy Generation)
+  Future<String> getOrGenerateDailyWisdom() async {
+    final now = DateTime.now();
+    
+    // 1. Check DB
+    final cached = await _db.getDailyWisdom(now);
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    // 2. If missing, Generate
+    final profile = await _db.getUserProfile();
+    final provider = profile?.getAIProvider() ?? AIProvider.deepseek;
+    
+    // We use community_motivation key as requested
+    final systemPrompt = await _promptService.getPrompt(AIConfig.keyCommunityMotivation, {
+      'dati_aggregati_crew': 'Attività in calo del 20% questa settimana. Meteo buono nel weekend.' // Placeholder logic
+    });
+    
+    // Provide some minimal context if needed (e.g. day of week)
+    final dayName = DateFormat('EEEE', 'it_IT').format(now);
+    final userMessage = "Oggi è $dayName. Genera il messaggio.";
+
+    final result = await _callAI(
+      provider: provider,
+      systemPrompt: systemPrompt,
+      userMessage: userMessage,
+      action: 'daily_wisdom',
+    );
+
+    if (result['success']) {
+      final content = result['content'] as String;
+      // 3. Save to DB
+      await _db.saveDailyWisdom(now, content);
+      return content;
+    } else {
+      // Fallback
+      return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
     }
   }
 }

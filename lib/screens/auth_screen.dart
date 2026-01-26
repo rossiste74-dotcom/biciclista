@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:biciclistico/screens/onboarding_screen.dart';
 import 'package:biciclistico/screens/main_navigation_screen.dart';
@@ -67,7 +68,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('auth.error_prefix'.tr(args: [e.toString()])), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -88,26 +89,26 @@ class _AuthScreenState extends State<AuthScreen> {
               Image.asset('assets/icon.png', height: 100, errorBuilder: (_,__,___) => const Icon(Icons.directions_bike, size: 100)),
               const SizedBox(height: 32),
               Text(
-                _isLogin ? 'Bentornato!' : 'Crea Account',
+                _isLogin ? 'auth.welcome_back'.tr() : 'auth.create_account'.tr(),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                decoration: InputDecoration(
+                  labelText: 'auth.email_hint'.tr(),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                decoration: InputDecoration(
+                  labelText: 'auth.password_hint'.tr(),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock),
                 ),
                 obscureText: true,
               ),
@@ -122,13 +123,13 @@ class _AuthScreenState extends State<AuthScreen> {
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
                       ),
-                      child: Text(_isLogin ? 'Accedi' : 'Registrati'),
+                      child: Text(_isLogin ? 'auth.login_btn'.tr() : 'auth.register_btn'.tr()),
                     ),
                     TextButton(
                       onPressed: () => setState(() => _isLogin = !_isLogin),
                       child: Text(_isLogin
-                          ? 'Non hai un account? Registrati'
-                          : 'Hai già un account? Accedi'),
+                          ? 'auth.no_account'.tr()
+                          : 'auth.have_account'.tr()),
                     ),
                   ],
                 ),

@@ -1,31 +1,46 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import '../services/ai_service.dart';
 
-/// Widget showing sarcastic quotes from Il Biciclista when no rides are planned
-class BiciclistaWisdom extends StatelessWidget {
+/// Widget showing the "Community Daily Wisdom" from Il Biciclista
+class BiciclistaWisdom extends StatefulWidget {
   const BiciclistaWisdom({super.key});
 
-  static final List<String> _quotes = [
-    "Vedo che la bici è ancora pulita. O sei un maniaco dell'ordine o oggi hai preferito il divano. Nel secondo caso, sappi che la catena sta piangendo.",
-    "Il meteo dice sole, le tue gambe dicono sì, ma il tuo GPS segna zero km. Cos'è, hai perso le scarpe o aspetti che la salita venga da te?",
-    "Guardare i video dei professionisti su YouTube non conta come allenamento, sai? Muovi quel rapportone!",
-    "C'è chi scollina e chi sta in cucina. Tu oggi a quale categoria appartieni?",
-    "Ricorda: non esiste il cattivo tempo, esiste solo il ciclista che ha paura di sporcare la divisa nuova.",
-    "Hai un HRV da atleta olimpico e sei ancora lì a fissare lo schermo? Vai fuori a farti venire il fiatone!",
-    "La tua bici in garage sta iniziando a fare amicizia con i ragni. Vedi di rimediare prima che aprano un mutuo sul telaio.",
-    "Se aspetti la giornata perfetta per uscire, finirai per pedalare solo a Ferragosto. Forza, che il fango fa bene alla pelle!",
-    "Vedo che non hai pianificato nulla. Il tuo spirito agonistico è andato in vacanza o è solo rimasto sotto le coperte?",
-    "La vita è troppo breve per pedalare con la sella bassa e la pancia piena. Esci e fai vedere a quel segmento chi comanda!",
-  ];
+  @override
+  State<BiciclistaWisdom> createState() => _BiciclistaWisdomState();
+}
 
-  String _getRandomQuote() {
-    return _quotes[Random().nextInt(_quotes.length)];
+class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
+  final _aiService = AIService();
+  String? _wisdom;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWisdom();
+  }
+
+  Future<void> _loadWisdom() async {
+    try {
+      final wisdom = await _aiService.getOrGenerateDailyWisdom();
+      if (mounted) {
+        setState(() {
+          _wisdom = wisdom;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _wisdom = "Oggi il saggio è in fuga e non prende il telefono. Riprova domani.";
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final quote = _getRandomQuote();
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -49,10 +64,14 @@ class BiciclistaWisdom extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.directions_bike,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  size: 28,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/butler_avatar.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -67,15 +86,26 @@ class BiciclistaWisdom extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              '"$quote"',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontSize: 16,
-                fontStyle: FontStyle.italic,
-                height: 1.5,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+            if (_isLoading)
+               Align(
+                alignment: Alignment.center,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(
+                       color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+               )
+            else
+              Text(
+                _wisdom != null ? '"$_wisdom"' : '"Pedala e taci."',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontSize: 16,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
               ),
-            ),
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,

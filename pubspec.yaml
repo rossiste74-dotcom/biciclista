@@ -85,6 +85,7 @@ dependencies:
   # Cloud Persistence
   supabase_flutter: ^2.12.0
   flutter_svg: ^2.2.3
+  easy_localization: ^3.0.8
 
 
 dev_dependencies:
@@ -119,10 +120,13 @@ flutter:
   assets:
     - assets/icon.png
     - assets/log1.png
+    - assets/butler_avatar.png
     - assets/avatar/base/
     - assets/avatar/hair/
     - assets/avatar/helmets/
     - assets/avatar/jerseys/
+    - assets/avatar/glasses/
+    - assets/translations/
 
 flutter_launcher_icons:
   android: "launcher_icon"

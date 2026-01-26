@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:biciclistico/resources/brouter_profiles.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../models/route_preferences.dart';
@@ -77,12 +78,13 @@ class RoutePlanningService {
     required RouteProfile profile,
     String? graphHopperKey,
     RoutePreferences preferences = const RoutePreferences(),
+    int alternativeIndex = 0,
   }) async {
     try {
       // Use BRouter for advanced bike routing (free, unlimited)
       // Falls back to OSRM if BRouter fails
       try {
-        return await _fetchViaBRouter(start, end, profile, preferences);
+        return await _fetchViaBRouter(start, end, profile, preferences, alternativeIndex);
       } catch (e) {
         debugPrint('BRouter failed, falling back to OSRM: $e');
         return _fetchOsrmRoute(start, end);
@@ -140,11 +142,16 @@ class RoutePlanningService {
 
   /// Generate an adventure route from start to destination
   /// Maximizes trails and scenic paths while avoiding busy roads
+  /// Generate an adventure route from start to destination
+  /// Maximizes trails and scenic paths while avoiding busy roads
   Future<RouteSegment?> generateAdventureRoute({
     required LatLng start,
     required LatLng destination,
     double? maxDistanceKm,
     ElevationPreference elevation = ElevationPreference.balanced,
+    double roughnessFactor = 1.0,
+    bool avoidTraffic = true, 
+    int technicalDifficulty = 1,
   }) async {
     try {
       // Use MTB profile with custom preferences for maximum trail usage
@@ -159,6 +166,9 @@ class RoutePlanningService {
         destination, 
         preferences,
         elevation,
+        roughnessFactor,
+        avoidTraffic,
+        technicalDifficulty,
       );
       
       // Check max distance constraint if specified
@@ -306,20 +316,23 @@ class RoutePlanningService {
     LatLng end,
     RouteProfile profile,
     RoutePreferences preferences,
+    int alternativeIndex,
   ) async {
     // Map profile to BRouter profile name
     final brouterProfile = _getBRouterProfile(profile);
     
     // BRouter uses lon,lat format (GeoJSON standard)
-    final url = Uri.parse(
-      '$_brouterBaseUrl?'
-      'lonlats=${start.longitude},${start.latitude}|${end.longitude},${end.latitude}'
-      '&profile=$brouterProfile'
-      '&alternativeidx=0'
-      '&format=geojson'
+    final uri = Uri.parse(_brouterBaseUrl).replace(
+      queryParameters: {
+        'lonlats': '${start.longitude},${start.latitude}|${end.longitude},${end.latitude}',
+        'profile': brouterProfile,
+        'alternativeidx': '$alternativeIndex',
+        'format': 'geojson',
+        'exportWaypoints': '1',
+      },
     );
 
-    final response = await http.get(url);
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
       final geoJson = jsonDecode(response.body);
@@ -362,6 +375,12 @@ class RoutePlanningService {
             ascendM,
             distanceKm,
           );
+
+          // Validation: If route has only 2 points and distance > 500m, it's likely a straight line failure (crow flies)
+          // BRouter fallback behavior is often a straight line if no route found.
+          if (points.length <= 2 && distanceKm > 0.5) {
+             throw Exception('BRouter returned straight line (routing failed or impossible).');
+          }
           
           return RouteSegment(
             geometry: points,
@@ -383,13 +402,17 @@ class RoutePlanningService {
   String _getBRouterProfile(RouteProfile profile) {
     switch (profile) {
       case RouteProfile.asphalt:
-        return 'trekking'; // Optimized for paved cycleways
+        return 'fastbike'; // Optimized for paved roads
       case RouteProfile.gravel:
-        return 'fastbike-lowtraffic'; // Balanced gravel/road
+        return 'trekking'; // Balanced gravel/road
       case RouteProfile.mtb:
-        return 'mtb'; // Off-road trails and paths
+        return 'trekking-steep'; // User requested 'trekking-steep' for MTB
     }
   }
+  
+
+
+  // ... (existing code for _mapProfile) ...
   
   /// Fetch adventure route via BRouter
   /// Optimized for maximum trail usage and scenic paths
@@ -398,23 +421,26 @@ class RoutePlanningService {
     LatLng destination,
     RoutePreferences preferences,
     ElevationPreference elevation,
+    double roughnessFactor,
+    bool avoidTraffic,
+    int technicalDifficulty,
   ) async {
-    // Use MTB profile for maximum off-road capability
-    final profile = 'mtb';
+    // Use trekking-steep for Adventure Mode as requested
+    const adventureProfile = 'trekking-steep';
     
     // BRouter uses lon,lat format (GeoJSON standard)
-    // Add custom parameters to avoid busy roads
-    final url = Uri.parse(
-      '$_brouterBaseUrl?'
-      'lonlats=${start.longitude},${start.latitude}|${destination.longitude},${destination.latitude}'
-      '&profile=$profile'
-      '&alternativeidx=0'
-      '&format=geojson'
-      // Adventure mode: prefer scenic routes
-      '&timode=0' // No traffic mode (avoid busy roads)
+    final uri = Uri.parse(_brouterBaseUrl).replace(
+      queryParameters: {
+        'lonlats': '${start.longitude},${start.latitude}|${destination.longitude},${destination.latitude}',
+        'profile': adventureProfile,
+        'alternativeidx': '0',
+        'format': 'geojson',
+        'exportWaypoints': '1',
+      },
     );
 
-    final response = await http.get(url);
+    // Using standard profile improves reliability avoiding connection errors with custom bodies
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
       final geoJson = jsonDecode(response.body);
@@ -463,7 +489,7 @@ class RoutePlanningService {
             distanceKm: distanceKm,
             elevationGainM: ascendM,
             elevationLossM: descendM,
-            profile: RouteProfile.mtb, // Adventure routes use MTB profile
+            profile: RouteProfile.mtb, 
             elevationProfile: elevations,
             terrainBreakdown: terrainBreakdown,
             difficulty: difficulty,
@@ -471,7 +497,7 @@ class RoutePlanningService {
         }
       }
     }
-    throw Exception('BRouter Adventure Route Failed: ${response.statusCode}');
+    throw Exception('BRouter Adventure Route Failed: ${response.statusCode} - ${response.body}');
   }
   
   /// Analyze terrain breakdown from BRouter messages

@@ -49,7 +49,15 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   bool _isAdventureMode = false;
   LatLng? _adventureStart;
   ElevationPreference _adventureElevation = ElevationPreference.balanced;
-  double? _adventureMaxDistance;
+  double? _adventureMaxDistance = 50.0;
+  
+  // Custom Adventure Settings
+  double _adventureRoughness = 1.0; // 0.0-5.0
+  bool _adventureAvoidTraffic = true;
+  int _adventureTechnicalDifficulty = 1; // 0=Easy, 1=Medium, 2=Hard
+  
+  // Standard Routing Options
+  int _selectedAlternative = 0; // 0=Original, 1-3=Alternatives
 
   @override
   void initState() {
@@ -120,6 +128,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         end: point,
         profile: _selectedProfile,
         graphHopperKey: _graphHopperKey,
+        alternativeIndex: _selectedAlternative,
       );
 
       if (segment != null) {
@@ -190,19 +199,10 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   Future<void> _recalculateRoute() async {
     if (_segments.isEmpty) return;
     
-    final bool confirm = await showDialog(
-      context: context, 
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ricalcola Percorso'),
-        content: Text('Vuoi ricalcolare tutti i segmenti esistenti usando il profilo ${_profileName(_selectedProfile)}?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ricalcola')),
-        ],
-      )
-    ) ?? false;
+    // Confirm dialog removed as per user request
+    // proceeding directly to recalculation
     
-    if (!confirm) return;
+    // final bool confirm = await showDialog(...)
 
     setState(() => _isLoading = true);
     
@@ -210,9 +210,10 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     // Logic: clear segments, iterate markers pairwise, fetch new route.
     
     final waypoints = _markers.map((m) => m.point).toList();
-    _clearRouteState(keepStart: true); // Keep start marker? No, keep logic separate.
+    // Do NOT call _clearRouteState(keepStart: true) because it removes markers!
+    // We want to keep the same markers (waypoints) and just find new paths between them.
     
-    // Hard reset
+    // Hard reset of generated data only
     _segments.clear();
     _allPoints.clear();
     _totalDistanceKm = 0;
@@ -228,7 +229,8 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
           start: start, 
           end: end, 
           profile: _selectedProfile,
-          graphHopperKey: _graphHopperKey
+          graphHopperKey: _graphHopperKey,
+          alternativeIndex: _selectedAlternative,
         );
         
         if (segment != null) {
@@ -545,7 +547,8 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                   ),
                   children: [
                      TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
                       userAgentPackageName: 'com.biciclistico.app',
                     ),
                      if (_allPoints.isNotEmpty)
@@ -637,6 +640,41 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
               }
             },
             showSelectedIcon: false,
+          ),
+          const SizedBox(height: 12),
+          // Alternative Selector
+          const Align(alignment: Alignment.centerLeft, child: Text('Variante:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 4),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Orig')),
+                ButtonSegment(value: 1, label: Text('Alt 1')),
+                ButtonSegment(value: 2, label: Text('Alt 2')),
+                ButtonSegment(value: 3, label: Text('Alt 3')),
+              ],
+              selected: {_selectedAlternative},
+              onSelectionChanged: (Set<int> newSelection) {
+                setState(() {
+                  _selectedAlternative = newSelection.first;
+                });
+                if (_segments.isNotEmpty) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(
+                       content: const Text('Variante cambiata.'),
+                       action: SnackBarAction(label: 'Ricalcola', onPressed: _recalculateRoute),
+                       duration: const Duration(seconds: 4),
+                     )
+                   );
+                }
+              },
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                 visualDensity: VisualDensity.compact,
+                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
           )
         ],
       ),
@@ -895,6 +933,9 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         destination: destination,
         maxDistanceKm: _adventureMaxDistance,
         elevation: _adventureElevation,
+        roughnessFactor: _adventureRoughness,
+        avoidTraffic: _adventureAvoidTraffic,
+        technicalDifficulty: _adventureTechnicalDifficulty,
       );
       
       if (route != null) {
@@ -1035,6 +1076,58 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                   onPressed: () => setStateUi(() => _adventureMaxDistance = null),
                   child: const Text('Rimuovi limite'),
                 ),
+                
+                const Divider(),
+                const SizedBox(height: 8),
+
+                // Roughness Slider
+                Row(
+                  children: [
+                    const Text('Fattore Sterrato:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    Text(_adventureRoughness.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Slider(
+                  value: _adventureRoughness,
+                  min: 0.0,
+                  max: 5.0,
+                  divisions: 10,
+                  label: _adventureRoughness.toStringAsFixed(1),
+                  onChanged: (v) => setStateUi(() => _adventureRoughness = v),
+                ),
+                const Center(
+                   child: Text(
+                     '0 = Liscio/Asfalto  <-->  5 = Tecnico/Sconnesso',
+                     style: TextStyle(fontSize: 10, color: Colors.grey),
+                   ),
+                ),
+                const SizedBox(height: 16),
+
+                // Traffic Switch
+                SwitchListTile(
+                  title: const Text('Evita Traffico', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Evita strade principali e secondarie'),
+                  value: _adventureAvoidTraffic,
+                  onChanged: (v) => setStateUi(() => _adventureAvoidTraffic = v),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Technical Difficulty
+                const Text('Difficoltà Tecnica:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                SegmentedButton<int>(
+                  segments: const [
+                     ButtonSegment(value: 0, label: Text('Facile'), icon: Icon(Icons.emoji_nature)),
+                     ButtonSegment(value: 1, label: Text('Medio'), icon: Icon(Icons.directions_bike)),
+                     ButtonSegment(value: 2, label: Text('Difficile'), icon: Icon(Icons.terrain)),
+                  ],
+                  selected: {_adventureTechnicalDifficulty},
+                  onSelectionChanged: (s) => setStateUi(() => _adventureTechnicalDifficulty = s.first),
+                ),
+
                 
                 const Divider(),
                 const SizedBox(height: 8),

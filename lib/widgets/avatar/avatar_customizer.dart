@@ -106,19 +106,7 @@ class _AvatarCustomizerScreenState extends State<AvatarCustomizerScreen> with Si
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSectionTitle('Genere'),
-        Wrap(
-          spacing: 8,
-          children: AvatarGender.values.map((g) {
-            return ChoiceChip(
-              label: Text(g.name.toUpperCase()),
-              selected: _config.gender == g,
-              onSelected: (selected) {
-                if (selected) setState(() => _config.gender = g);
-              },
-            );
-          }).toList(),
-        ),
+
         const SizedBox(height: 16),
         _buildSectionTitle('Carnagione'),
         _buildColorPicker(
@@ -171,14 +159,19 @@ class _AvatarCustomizerScreenState extends State<AvatarCustomizerScreen> with Si
           ],
           (c) => setState(() => _config.hairColor = c),
         ),
-        if (_config.gender == AvatarGender.male) ...[
           const SizedBox(height: 16),
           SwitchListTile(
             title: const Text('Barba'),
             value: _config.hasBeard,
             onChanged: (v) => setState(() => _config.hasBeard = v),
           ),
-        ],
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Occhiali'),
+          value: _config.hasGlasses,
+          onChanged: (v) => setState(() => _config.hasGlasses = v),
+        ),
+
       ],
     );
   }
@@ -197,7 +190,8 @@ class _AvatarCustomizerScreenState extends State<AvatarCustomizerScreen> with Si
           (c) => setState(() => _config.helmetColor = c),
         ),
         const SizedBox(height: 16),
-        _buildSectionTitle('Colore Maglia'),
+        const SizedBox(height: 16),
+        _buildSectionTitle('Colore Maglia - Base'),
         _buildColorPicker(
           _config.jerseyColor,
           [
@@ -205,6 +199,26 @@ class _AvatarCustomizerScreenState extends State<AvatarCustomizerScreen> with Si
              Colors.white, Colors.orange, Colors.purple, Colors.yellow, Colors.teal, Colors.pink
           ],
           (c) => setState(() => _config.jerseyColor = c),
+        ),
+        const SizedBox(height: 16),
+        _buildSectionTitle('Colore Maglia - Dettagli 1'),
+        _buildColorPicker(
+          _config.jerseyColor2,
+          [
+             Colors.blue, Colors.red, Colors.green, Colors.black, 
+             Colors.white, Colors.orange, Colors.purple, Colors.yellow, Colors.teal, Colors.pink
+          ],
+          (c) => setState(() => _config.jerseyColor2 = c),
+        ),
+        const SizedBox(height: 16),
+        _buildSectionTitle('Colore Maglia - Dettagli 2'),
+        _buildColorPicker(
+          _config.jerseyColor3,
+          [
+             Colors.blue, Colors.red, Colors.green, Colors.black, 
+             Colors.white, Colors.orange, Colors.purple, Colors.yellow, Colors.teal, Colors.pink
+          ],
+          (c) => setState(() => _config.jerseyColor3 = c),
         ),
       ],
     );

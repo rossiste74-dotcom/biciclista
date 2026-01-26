@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 import '../models/clothing_item.dart';
 import '../models/planned_ride.dart';
@@ -19,8 +20,11 @@ import '../widgets/biciclista_wisdom.dart';
 import '../widgets/biciclista_stats.dart';
 import '../widgets/biciclista_maintenance.dart';
 import '../widgets/biciclista_weather.dart';
+import '../widgets/biciclista_weather.dart';
 import '../widgets/biciclista_challenge.dart';
+import '../widgets/biciclista_leaderboard.dart';
 import 'gpx_import_screen.dart';
+import 'leaderboard_screen.dart';
 import 'route_detail_screen.dart';
 import 'route_planner_screen.dart';
 
@@ -57,6 +61,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _totalKm = 0.0;
   double _weeklyKm = 0.0;
   int _totalRides = 0;
+  
+  // Messages Maps
+  Map<String, String> _weatherMessages = {};
+  Map<String, String> _statsMessages = {};
+  Map<String, String> _maintenanceMessages = {};
+  Map<String, String> _challengeMessages = {};
+  
+  // Leaderboard
+  Map<String, dynamic> _leaderboardData = {};
 
   @override
   void initState() {
@@ -96,20 +109,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _totalRides = await _db.getTotalCompletedRidesCount();
 
       // 4. Load Next Ride (prioritize group rides)
-      final upcomingPersonal = await _db.getUpcomingRides();
-      List<dynamic> allUpcoming = [...upcomingPersonal];
+      // We now fetch ALL incomplete rides (including past ones) to allow closing them
+      final incompletePersonal = await _db.getIncompleteRides();
+      List<dynamic> allUpcoming = [...incompletePersonal];
       
       // Fetch group rides from Crew
       try {
         final groupRides = await _crewService.getMyGroupRides();
-        // Filter only future rides
-        final futureGroupRides = groupRides.where((gr) => gr.meetingTime.isAfter(DateTime.now())).toList();
-        allUpcoming.addAll(futureGroupRides);
+        // Show group rides from last 12 hours (so you can join slightly late) + future
+        final cutoff = DateTime.now().subtract(const Duration(hours: 12));
+        final relevantGroupRides = groupRides.where((gr) => gr.meetingTime.isAfter(cutoff)).toList();
+        allUpcoming.addAll(relevantGroupRides);
       } catch (e) {
         debugPrint('Error fetching group rides: $e');
       }
       
-      // Sort by date and pick the closest
+      // Sort by date. 
+      // For past rides, users likely want to deal with the oldest incomplete first?
+      // Or the most recent?
+      // "Next Ride" usually implies the one closest to now (or closest future).
+      // But if I have a list of [Past1, Past2, Future1], and I want to clear Past1...
+      // Let's sort simply by date ascending. Past rides will show up first.
       if (allUpcoming.isNotEmpty) {
         allUpcoming.sort((a, b) {
           final dateA = a is PlannedRide ? a.rideDate : (a as dynamic).meetingTime;
@@ -165,7 +185,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             debugPrint('Weather fetch failed: $e');
           }
         }
-      }
+        }
+
+        // 6. Load Dashboard Messages
+        _weatherMessages = await _db.getWeatherMessages();
+        _statsMessages = await _db.getStatsMessages();
+        _maintenanceMessages = await _db.getMaintenanceMessages();
+        _challengeMessages = await _db.getChallengeMessages();
+        
+        // 7. Load Leaderboard
+        _leaderboardData = await _db.getLeaderboard();
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {
@@ -212,6 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         BiciclistaStats(
                           weeklyKm: _weeklyKm,
                           weeklyRides: _totalRides, // Using total for now, could filter weekly
+                          statsMessages: _statsMessages,
                         ),
                         const SizedBox(height: 24),
                         _buildWeatherWidget(),
@@ -219,10 +249,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildMaintenanceWidget(),
                         const SizedBox(height: 24),
                         BiciclistaChallenge(
-                          challengeTitle: '100 km questa settimana',
+                          challengeTitle: 'dashboard.challenge_title'.tr(),
                           targetValue: 100,
                           currentValue: _weeklyKm,
+                          challengeMessages: _challengeMessages,
                         ),
+                        const SizedBox(height: 24),
+                        if (_leaderboardData.isNotEmpty && _leaderboardData['most_active'] != null)
+                          BiciclistaLeaderboard(
+                            leaderboardData: _leaderboardData,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+                            ),
+                          ),
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -241,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.directions_bike,
             value: _totalRides.toString(),
-            label: 'Uscite Totali',
+            label: 'dashboard.total_rides'.tr(),
             color: Colors.blue,
           ),
         ),
@@ -250,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.route,
             value: '${_totalKm.toStringAsFixed(0)} km',
-            label: 'Km Totali',
+            label: 'dashboard.total_km'.tr(),
             color: Colors.green,
           ),
         ),
@@ -259,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.calendar_today,
             value: '${_weeklyKm.toStringAsFixed(0)} km',
-            label: 'Km Settimana',
+            label: 'dashboard.weekly_km'.tr(),
             color: Colors.orange,
           ),
         ),
@@ -276,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.monitor_weight_outlined,
             value: '${_profile!.weight.toStringAsFixed(1)} kg',
-            label: 'Peso',
+            label: 'dashboard.weight'.tr(),
             color: Colors.purple,
           ),
         ),
@@ -285,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.favorite_border,
             value: '${_profile!.hrv} ms',
-            label: 'HRV',
+            label: 'dashboard.hrv'.tr(),
             color: Colors.red,
           ),
         ),
@@ -294,7 +333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _buildStatCard(
             icon: Icons.bed_outlined,
             value: '${_profile!.sleepHours.toStringAsFixed(1)} h',
-            label: 'Sonno',
+            label: 'dashboard.sleep'.tr(),
             color: Colors.indigo,
           ),
         ),
@@ -309,7 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Trend Totale Readiness',
+          'dashboard.readiness_trend'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -380,7 +419,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Ultimo aggiornamento: ${DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!)}',
+              'dashboard.last_update'.tr(args: [DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!)]),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
@@ -394,7 +433,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return NextRidePreviewCard(
       ride: _nextRide,
       outfit: _outfitSuggestion,
-      onTap: () async {
+      onTap: () => _openRouteDetail(),
+      onNavigate: () => _openRouteDetail(),
+      onTerminate: () async {
+        if (_nextRide == null) return;
+        
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Hai finito?'),
+            content: const Text('Vuoi segnare questa pedalata come completata?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('No'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Sì, Termina'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirm == true) {
+           // Mark as completed
+           // Clone to modify
+           final updated = _nextRide!;
+           updated.isCompleted = true;
+           await _db.updatePlannedRide(updated);
+           
+           if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Pedalata completata! Grandissimo! 🚴‍♂️')),
+             );
+           }
+           _loadAllData();
+        }
+      },
+    );
+  }
+
+  Future<void> _openRouteDetail() async {
         if (_nextRide != null) {
           final result = await Navigator.of(context).push(
             MaterialPageRoute(
@@ -403,8 +483,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
           if (result == true) _loadAllData();
         }
-      },
-    );
   }
 
   Widget _buildTrendsSection() {
@@ -412,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Trend Ultimi 7 Giorni',
+          'dashboard.trend_7_days'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -430,7 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )
                   : _buildNoDataCard(
                       'HRV', 
-                      _hrvTrend.isNotEmpty ? '${_hrvTrend.last.toInt()} ms' : 'Sincronizza dati salute',
+                      _hrvTrend.isNotEmpty ? '${_hrvTrend.last.toInt()} ms' : 'dashboard.sync_placeholder'.tr(),
                       isPlaceholder: _hrvTrend.isEmpty,
                     ),
             ),
@@ -445,7 +523,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )
                   : _buildNoDataCard(
                       'Peso', 
-                      _weightTrend.isNotEmpty ? '${_weightTrend.last.toStringAsFixed(1)} kg' : 'Sincronizza dati salute',
+                      _weightTrend.isNotEmpty ? '${_weightTrend.last.toStringAsFixed(1)} kg' : 'dashboard.sync_placeholder'.tr(),
                       isPlaceholder: _weightTrend.isEmpty,
                     ),
             ),
@@ -499,7 +577,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   if (!isPlaceholder)
                     Text(
-                      'Sincronizza più dati per il trend',
+                      'dashboard.sync_hint'.tr(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.outline,
                         fontSize: 10,
@@ -524,14 +602,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       temperature: temp,
       isRaining: false, // Could be enhanced with weather service
       windSpeed: windSpeed,
+      weatherMessages: _weatherMessages,
     );
   }
 
   Widget _buildMaintenanceWidget() {
     // Check if there are any bikes with components near limit
     // For now, show "all OK" - this could be enhanced to check actual bike data
-    return const BiciclistaMaintenance(
+    return BiciclistaMaintenance(
       allOk: true,
+      maintenanceMessages: _maintenanceMessages,
     );
   }
 }

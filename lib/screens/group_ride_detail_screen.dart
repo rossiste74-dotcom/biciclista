@@ -7,8 +7,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/group_ride.dart';
 import '../models/planned_ride.dart'; // Added
+import '../models/user_profile.dart';
 import '../models/terrain_analysis.dart';
 import '../models/route_coordinates.dart';
 import '../models/outfit_suggestion.dart';
@@ -18,7 +21,8 @@ import '../services/gpx_service.dart';
 import '../services/weather_service.dart';
 import '../services/ai_service.dart';
 import '../services/outfit_service.dart';
-// import '../services/data_mode_service.dart'; // Removed
+import '../services/database_service.dart'; // Added
+import 'active_navigation_screen.dart'; // Added
 import '../widgets/route_map_widget.dart';
 import '../widgets/elevation_profile_widget.dart';
 import '../widgets/terrain_breakdown_widget.dart';
@@ -41,7 +45,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   final _weatherService = WeatherService();
   final _aiService = AIService();
   final _outfitService = OutfitService();
-  // final _dataModeService = DataModeService(); // Removed
+  final _db = DatabaseService(); // Added
   final _supabase = Supabase.instance.client;
   
   final _notesController = TextEditingController();
@@ -337,19 +341,180 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
     }
   }
 
+  Future<void> _startNavigation() async {
+    if (_routeData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nessuna traccia disponibile per la navigazione')),
+      );
+      return;
+    }
+    
+    final List<dynamic>? pointsRaw = _routeData!['allPoints'] as List<dynamic>?;
+    if (pointsRaw == null || pointsRaw.isEmpty) return;
+
+    final List<LatLng> points = pointsRaw.map((e) {
+      final Map<String, dynamic> pt = e as Map<String, dynamic>;
+      return LatLng(pt['lat'] as double, pt['lng'] as double);
+    }).toList();
+
+    final userId = _supabase.auth.currentUser?.id;
+    UserProfile? profile;
+    if (userId != null) {
+       profile = await _db.getUserProfile();
+    }
+    
+    if (profile == null) {
+       // Fallback dummy profile if null
+       profile = UserProfile()..id = 'dummy'; 
+    }
+
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ActiveNavigationScreen(
+            routePoints: points,
+            profile: profile!,
+            rideName: widget.groupRide.rideName,
+            totalDistanceKm: widget.groupRide.distance ?? 0.0,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _completeGroupRide() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Termina Uscita'),
+        content: const Text('Vuoi salvare questa uscita di gruppo come completata nel tuo diario personale?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sì, Salva'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    
+    try {
+      // 1. Update Remote Status (if Creator)
+      if (_isCreator) {
+        await _crewService.updateRideStatus(widget.groupRide.id, 'completed');
+        // Update local object to reflect change immediately if we stay on screen
+        // widget.groupRide = widget.groupRide.copyWith(status: 'completed'); // GroupRide is final fields mostly but checking...
+        // Actually we can't easily mutate it if it's not designed for it, but we can set a flag.
+      }
+
+      // 2. Create a personal Completed Ride from this Group Ride
+      final personalRide = PlannedRide()
+        ..rideName = widget.groupRide.rideName
+        ..rideDate = widget.groupRide.meetingTime
+        ..distance = widget.groupRide.distance ?? 0.0
+        ..elevation = widget.groupRide.elevation ?? 0.0
+        ..isCompleted = true
+        ..isGroupRide = true
+        ..aiAnalysis = 'Uscita di Gruppo Completata: ${widget.groupRide.rideName}';
+      
+      await _db.createPlannedRide(personalRide);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Grande! Uscita salvata e completata! 🏁')),
+        );
+        // Return true to refresh agenda
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore salvataggio: $e')));
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _shareGroupRide() async {
+    try {
+      await Share.share(
+        'Vieni a pedalare con noi! 🚴‍♂️\n\n'
+        '${widget.groupRide.rideName}\n'
+        '📅 ${DateFormat('dd/MM HH:mm').format(widget.groupRide.meetingTime)}\n'
+        '📍 ${widget.groupRide.meetingPoint}\n'
+        '📊 ${widget.groupRide.distance?.toStringAsFixed(1) ?? "?"} km | ${widget.groupRide.elevation?.toStringAsFixed(0) ?? "?"} m\n\n'
+        'Unisciti su Biciclista!',
+        subject: 'Invito Uscita: ${widget.groupRide.rideName}',
+      );
+    } catch (e) {
+      debugPrint('Share error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.groupRide.rideName),
-        actions: _isCreator
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: _confirmDelete,
+        actions: [
+           // Naviga (Prominent)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: FilledButton.icon(
+              onPressed: _startNavigation,
+              icon: const Icon(Icons.navigation, size: 16),
+              label: const Text('Naviga'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+          
+          // Condividi
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Condividi',
+            onPressed: _shareGroupRide,
+          ),
+          
+          // Termina (Salva su diario)
+          IconButton(
+            icon: const Icon(Icons.save_as),
+            tooltip: 'Salva nel Diario (Termina)',
+            onPressed: _completeGroupRide,
+          ),
+        
+          if (_isCreator)
+             IconButton(
+               icon: const Icon(Icons.delete),
+               onPressed: _confirmDelete,
+             ),
+             
+          // Menu Altro (Delete if creator, or other options)
+          if (_isCreator)
+             PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') _confirmDelete();
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete, color: Colors.red),
+                    title: Text('Elimina', style: TextStyle(color: Colors.red)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
-              ]
-            : null,
+              ],
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

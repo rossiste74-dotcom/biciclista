@@ -1,38 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 /// Widget showing weekly challenge with Il Biciclista's motivational sarcasm
 class BiciclistaChallenge extends StatelessWidget {
   final String challengeTitle;
   final double targetValue;
   final double currentValue;
+  final Map<String, String>? challengeMessages;
 
   const BiciclistaChallenge({
     super.key,
     required this.challengeTitle,
     required this.targetValue,
     required this.currentValue,
+    this.challengeMessages,
   });
 
   double get progress => (currentValue / targetValue * 100).clamp(0, 100);
 
   String _getProgressComment() {
     if (progress == 0) {
-      return "Ancora niente? La settimana fugge, muoviti!";
+      return challengeMessages?['start'] ?? "challenge.start".tr();
     } else if (progress < 25) {
-      return "Appena iniziato! Dai che la strada è ancora lunga.";
+      return challengeMessages?['quarter'] ?? "challenge.quarter".tr();
     } else if (progress < 50) {
-      return "Un quarto fatto. Continua così, ma senza mollare adesso!";
+      return challengeMessages?['half'] ?? "challenge.half".tr();
     } else if (progress < 75) {
-      return "A metà! Adesso non mollare proprio sul più bello.";
+      return challengeMessages?['quarter_left'] ?? "challenge.quarter_left".tr();
     } else if (progress < 100) {
-      return "Quasi arrivato! Manca poco, stringi i denti!";
+      return challengeMessages?['almost_there'] ?? "challenge.almost_there".tr();
     } else {
-      final messages = [
-        "Complimenti! Vedi che quando ti impegni?",
-        "Ce l'hai fatta! Ora riposa... o fai il bis!",
-        "Obiettivo raggiunto! Adesso però non montarti la testa.",
-      ];
-      return messages[DateTime.now().second % messages.length];
+      return challengeMessages?['completed'] ?? "challenge.completed".tr();
     }
   }
 
@@ -71,7 +69,7 @@ class BiciclistaChallenge extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Sfida della Settimana',
+                    'challenge.title'.tr(),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,

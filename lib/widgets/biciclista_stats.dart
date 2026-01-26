@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 /// Widget showing weekly statistics with sarcastic Il Biciclista comments
 class BiciclistaStats extends StatelessWidget {
   final double weeklyKm;
   final int weeklyRides;
+  final Map<String, String>? statsMessages;
 
   const BiciclistaStats({
     super.key,
     required this.weeklyKm,
     required this.weeklyRides,
+    this.statsMessages,
   });
 
   String _getSarcasticComment() {
     if (weeklyKm < 50) {
-      return "50km in una settimana? I miei nonni facevano di più per andare a prendere il pane!";
+      return statsMessages?['km_0_50'] ?? "stats.km_0_50".tr();
     } else if (weeklyKm < 100) {
-      return "Niente male, ma non è che stai preparando il Giro d'Italia...";
+      return statsMessages?['km_50_100'] ?? "stats.km_50_100".tr();
     } else if (weeklyKm < 150) {
-      return "Adesso sì che si ragiona! Continua così e tra un anno ti sponsorizza la pasta.";
+      return statsMessages?['km_100_150'] ?? "stats.km_100_150".tr();
     } else if (weeklyKm < 200) {
-      return "Bravo! Anche se probabilmente hai trascurato famiglia e lavoro per questi km.";
+      return statsMessages?['km_150_200'] ?? "stats.km_150_200".tr();
     } else {
-      return "Ma tu vivi in bici o cosa? Rispetta anche il divano ogni tanto!";
+      return statsMessages?['km_200_plus'] ?? "stats.km_200_plus".tr();
     }
   }
 
@@ -60,7 +63,7 @@ class BiciclistaStats extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Statistiche Settimanali',
+                    'stats.title'.tr(),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -84,7 +87,7 @@ class BiciclistaStats extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Questa settimana',
+                        'stats.this_week'.tr(),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
@@ -109,7 +112,7 @@ class BiciclistaStats extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'uscite',
+                        'stats.rides'.tr(),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.8),
                         ),

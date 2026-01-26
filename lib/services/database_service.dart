@@ -45,7 +45,28 @@ class DatabaseService {
       p.gender = data['gender'];
       p.age = data['age'] ?? 30;
       p.weight = (data['weight'] ?? 70.0).toDouble();
-      p.avatarData = data['avatar_data']; 
+      p.height = (data['height'] ?? 175.0).toDouble();
+      p.restingHeartRate = data['resting_heart_rate'] ?? 60;
+      p.functionalThresholdPower = data['ftp'] ?? 200;
+      p.hrv = data['hrv'] ?? 0;
+      p.sleepHours = (data['sleep_hours'] ?? 0.0).toDouble();
+      p.thermalSensitivity = data['thermal_sensitivity'] ?? 3;
+      
+      // Handle JSON fields (Supabase returns Map/List, Model expects String)
+      final avatarJson = data['avatar_data'];
+      if (avatarJson != null) {
+        p.avatarData = avatarJson is String ? avatarJson : json.encode(avatarJson);
+      }
+      
+      final historyJson = data['health_history'];
+      if (historyJson != null) {
+        p.healthHistory = historyJson is String ? historyJson : json.encode(historyJson);
+      } 
+      
+      // Load last sync date if available
+      if (data['last_health_sync'] != null) {
+        p.lastHealthSync = DateTime.tryParse(data['last_health_sync']);
+      }
       
       return p;
     } catch (e) {
@@ -63,9 +84,18 @@ class DatabaseService {
       await _supabase.from('profiles').upsert({
         'user_id': uid,
         'name': profile.name,
+        'gender': profile.gender,
         'age': profile.age,
-        'weight': profile.weight,
-        'avatar_data': profile.avatarData,
+        'weight': profile.weight.toDouble(),
+        'height': profile.height != null ? profile.height!.toDouble() : null,
+        'resting_heart_rate': profile.restingHeartRate.toInt(),
+        'ftp': profile.functionalThresholdPower.toInt(),
+        'hrv': profile.hrv.toInt(),
+        'sleep_hours': profile.sleepHours.toDouble(),
+        'thermal_sensitivity': profile.thermalSensitivity.toInt(),
+        'avatar_data': profile.avatarData != null ? json.decode(profile.avatarData!) : null,
+        'health_history': profile.healthHistory != null ? json.decode(profile.healthHistory!) : null,
+        'last_health_sync': profile.lastHealthSync?.toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
     } catch (e) {
@@ -85,7 +115,6 @@ class DatabaseService {
     final data = {
       'user_id': uid,
       'name': bicycle.name,
-      'type': bicycle.type, 
       'bike_type': bicycle.type, 
       'total_kilometers': bicycle.totalKilometers,
       'created_at': DateTime.now().toIso8601String(),
@@ -212,6 +241,20 @@ class DatabaseService {
         .gt('ride_date', now)
         .order('ride_date', ascending: true);
         
+    return (res as List).map((map) => _mapPlannedRide(map)).toList();
+  }
+
+  Future<List<PlannedRide>> getIncompleteRides() async {
+    final uid = _userId;
+    if (uid == null) return [];
+
+    // Fetch all incomplete rides, past and future
+    final res = await _supabase.from('planned_rides')
+        .select()
+        .eq('user_id', uid)
+        .eq('is_completed', false)
+        .order('ride_date', ascending: true);
+
     return (res as List).map((map) => _mapPlannedRide(map)).toList();
   }
   
@@ -408,4 +451,144 @@ class DatabaseService {
   Stream<void> watchPlannedRides() => const Stream.empty();
   Stream<void> watchBicycles() => const Stream.empty();
   Stream<void> watchUserProfile() => const Stream.empty();
+  // ==================== Daily Wisdom CRUD ====================
+
+  Future<String?> getDailyWisdom(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      final data = await _supabase.from('daily_wisdom').select('content').eq('date', dateStr).maybeSingle();
+      if (data != null) {
+        return data['content'] as String;
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching daily wisdom: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveDailyWisdom(DateTime date, String content) async {
+      final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      try {
+        await _supabase.from('daily_wisdom').insert({
+          'date': dateStr,
+          'content': content,
+        });
+      } catch (e) {
+        // Ignore duplicate key errors (race condition if two users gen at same time)
+        print('Error saving daily wisdom (might exist): $e');
+      }
+  }
+  // ==================== Dashboard Messages ====================
+
+  // Cache for messages
+  Map<String, String>? _weatherMessages;
+  Map<String, String>? _statsMessages;
+  Map<String, String>? _maintenanceMessages;
+  Map<String, String>? _challengeMessages;
+
+  Future<Map<String, String>> getWeatherMessages() async {
+    if (_weatherMessages != null) return _weatherMessages!;
+    
+    try {
+      final response = await _supabase.from('weather_messages').select('condition_key, message_text');
+      final Map<String, String> messages = {};
+      for (var row in response) {
+        messages[row['condition_key'] as String] = row['message_text'] as String;
+      }
+      _weatherMessages = messages;
+      return messages;
+    } catch (e) {
+      print('Error fetching weather messages: $e');
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> getStatsMessages() async {
+    if (_statsMessages != null) return _statsMessages!;
+    
+    try {
+      final response = await _supabase.from('stats_messages').select('condition_key, message_text');
+      final Map<String, String> messages = {};
+      for (var row in response) {
+        messages[row['condition_key'] as String] = row['message_text'] as String;
+      }
+      _statsMessages = messages;
+      return messages;
+    } catch (e) {
+      print('Error fetching stats messages: $e');
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> getMaintenanceMessages() async {
+    if (_maintenanceMessages != null) return _maintenanceMessages!;
+    
+    try {
+      final response = await _supabase.from('maintenance_messages').select('condition_key, message_text');
+      final Map<String, String> messages = {};
+      for (var row in response) {
+        messages[row['condition_key'] as String] = row['message_text'] as String;
+      }
+      _maintenanceMessages = messages;
+      return messages;
+    } catch (e) {
+      print('Error fetching maintenance messages: $e');
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> getChallengeMessages() async {
+    if (_challengeMessages != null) return _challengeMessages!;
+    
+    try {
+      final response = await _supabase.from('challenge_messages').select('condition_key, message_text');
+      final Map<String, String> messages = {};
+      for (var row in response) {
+        messages[row['condition_key'] as String] = row['message_text'] as String;
+      }
+      _challengeMessages = messages;
+      return messages;
+    } catch (e) {
+      print('Error fetching challenge messages: $e');
+      return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> getLeaderboard() async {
+    try {
+      final res = await _supabase.rpc('get_sarcastic_leaderboard');
+      return res as Map<String, dynamic>;
+    } catch (e) {
+      print('Error fetching leaderboard: $e');
+      // Fallback/Mock for empty states or errors
+      return {
+        'most_active': {'name': 'Nessuno', 'value': 0, 'title': 'Il Fuggitivo'},
+        'organizer': {'name': 'Nessuno', 'value': 0, 'title': 'Il Generale'},
+        'laziest': {'name': 'Tutti voi', 'value': 0, 'title': 'Il Turista'},
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getFullLeaderboard() async {
+    try {
+      final res = await _supabase.rpc('get_full_leaderboard');
+      return res as Map<String, dynamic>;
+    } catch (e) {
+      print('Error fetching full leaderboard: $e');
+      return {
+        'most_active': [],
+        'organizers': [],
+        'laziest': [],
+      };
+    }
+  }
+
+  /// Clear message cache (e.g., on pull-to-refresh)
+  void clearMessageCache() {
+    _weatherMessages = null;
+    _statsMessages = null;
+    _maintenanceMessages = null;
+    _challengeMessages = null;
+  }
 }

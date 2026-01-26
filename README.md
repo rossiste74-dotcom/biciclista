@@ -1,103 +1,120 @@
-# 🚴 Biciclistico
+# Biciclista 🚴‍♂️
 
-**Biciclistico** è l'applicazione compagna definitiva per i ciclisti, progettata per gestire ogni aspetto della vita su due ruote: dalla pianificazione dei percorsi alla manutenzione del garage, fino alle uscite di gruppo con la community.
+**Biciclista** è un'applicazione mobile completa per ciclisti, sviluppata in **Flutter**, progettata per migliorare l'esperienza di guida, gestire l'allenamento e connettere la community di appassionati.
 
-> **Stato**: In Sviluppo Attivo 🚧
+## 🚀 Funzionalità Principali
 
----
+L'applicazione offre un'ampia gamma di funzionalità divise per aree di interesse:
 
-## 🌟 Funzionalità Principali
+### 🗺️ Navigazione e Percorsi
+- **Pianificazione Percorsi**: Creazione e gestione di percorsi personalizzati (`RoutePlanner`).
+- **Navigazione Attiva**: Assistenza turn-by-turn durante la guida.
+- **Libreria Percorsi**: Gestione e organizzazione dei percorsi salvati.
+- **Importazione GPX**: Importazione facile di tracce da file GPX esterni.
+- **Mappe Offline/Online**: Integrazione con `flutter_map`.
 
-### 📊 Dashboard
-Una panoramica completa delle tue attività e del tuo stato fisico.
-- **Metriche**: Monitoraggio distanza settimanale, peso e HRV (Heart Rate Variability).
-- **Meteo**: Integrazione per previsioni meteo sulle uscite.
+### 🤖 AI e Coaching
+- **AI Coach**: Assistente virtuale per consigli su allenamento e performance.
+- **Analisi Performance**: Suggerimenti basati sui dati storici dell'utente.
 
-### 🗺️ Percorsi (Routes Library)
-Il cuore dell'esplorazione. Gestisci le tue tracce GPX e scopri nuovi sentieri.
-- **I Miei Percorsi**:
-  - Importazione file **GPX**.
-  - Sincronizzazione **Cloud** (Supabase) automatica per non perdere mai una traccia.
-  - Creazione percorsi disegnando direttamente su mappa (**Route Planner**).
-  - Condivisione rapida via **QR Code**.
-- **Community**:
-  - Catalogo globale di percorsi condivisi da altri utenti.
-  - **Pubblica** le tue tracce migliori con un click.
-  - **Salva** le tracce della community nella tua libreria personale.
-  - Visualizzazione dettagli: difficoltà, terreno, regione e autore ("di [Nome]").
+### 👥 Social e Community
+- **Crew Management**: Creazione e gestione di gruppi (Crew).
+- **Group Rides**: Organizzazione di uscite di gruppo con dettagli su percorso e partecipanti.
+- **Community Explore**: Scoperta di nuovi percorsi e ciclisti nella zona.
+- **Condivisione QR**: Scansione e condivisione rapida di profili e percorsi.
 
-### � Garage Digitale
-Tieni traccia dell'usura delle tue biciclette e dei componenti.
-- **Gestione Bici**: Aggiungi le tue bici (Strada, MTB, Gravel, ecc.).
-- **Manutenzione Intelligente**: Monitoraggio chilometrico dei componenti (catena, copertoni).
-- **Avvisi**: Notifiche automatiche quando un componente raggiunge il limite di usura.
+### 🚲 Garage e Equipaggiamento
+- **Garage Virtuale**: Gestione delle proprie biciclette con dettagli specifici.
+- **Manutenzione**: Tracciamento dello stato di manutenzione e promemoria.
+- **Settings Abbigliamento**: Gestione del guardaroba tecnico per suggerimenti basati sul meteo.
 
-### � Agenda & Social
-Organizza e partecipa alle uscite.
-- **Uscite di Gruppo**: Crea eventi per pedalare insieme.
-- **Partecipazione**: Segna la tua presenza e vedi chi altro partecipa.
+### 📊 Dashboard e Salute
+- **Integrazione Salute**: Sincronizzazione con Apple Health / Google Fit (tramite `health`).
+- **Statistiche**: Visualizzazione grafica dei dati di attività (`fl_chart`).
+- **Profilo Utente**: Dettagli personali, cronologia e preferenze.
 
 ---
 
-## �️ Tecnologie Utilizzate
+## 🛠️ Tecnologie Utilizzate
 
-Il progetto è costruito con tecnologie moderne per garantire prestazioni, offline-first experience e scalabilità.
+Il progetto utilizza uno stack moderno basato su Flutter e Supabase.
 
-- **Frontend**: [Flutter](https://flutter.dev) (Dart)
-- **Database Locale**: [Isar](https://isar.dev) (NoSQL, ultra-veloce, offline-first)
-- **Backend & Cloud**: [Supabase](https://supabase.com)
-  - **PostgreSQL**: Database relazionale per dati condivisi e sync.
-  - **Auth**: Gestione utenti.
-  - **Storage**: Salvataggio file GPX nel cloud.
-  - **Realtime**: Aggiornamenti live per le uscite di gruppo.
-- **Mappe**: `flutter_map` basato su OpenStreetMap.
-- **Parsers**: Gestione nativa file `.gpx`.
+### Frontend (Mobile App)
+- **Framework**: [Flutter](https://flutter.dev/) (Dart SDK >=3.10.4)
+- **Mappe**: `flutter_map`, `latlong2` per la gestione cartografica.
+- **State & Data**: `provider` (implicito), `shared_preferences`, `flutter_secure_storage` per dati locali sicuri.
+- **UI/UX**: `google_fonts`, `fl_chart` per grafici, `flutter_svg`, `cupertino_icons`.
+- **Hardware Integration**:
+  - `geolocator` (Posizione GPS)
+  - `flutter_compass` (Bussola)
+  - `mobile_scanner` / `qr_flutter` (Codici QR)
+  - `vibration` (Feedback tattile)
+  - `flutter_tts` (Text-to-Speech per navigazione vocale)
+  - `health` (Dati biometrici)
+
+### Backend (BaaS)
+- **Piattaforma**: [Supabase](https://supabase.com/)
+- **Database**: PostgreSQL (gestito tramite Supabase)
+- **Auth**: Supabase Auth
+- **Edge Functions**: TypeScript (nella cartella `supabase/functions/`) per logica server-side.
 
 ---
 
-## 🚀 Installazione
+## ⚙️ Guida all'Installazione
 
-Per eseguire il progetto in locale:
+### Prerequisiti
+1.  **Flutter SDK**: Assicurati di avere Flutter installato e configurato ([Guida ufficiale](https://docs.flutter.dev/get-started/install)).
+2.  **Account Supabase**: Un progetto Supabase attivo per il backend.
 
-1.  **Prerequisiti**:
-    - Flutter SDK installato (`flutter doctor` per verificare).
-    - Un account Supabase configurato.
+### Setup del Progetto
 
-2.  **Clona la repository**:
+1.  **Clona il Repository**:
     ```bash
-    git clone https://github.com/tuo-user/biciclistico.git
-    cd biciclistico
+    git clone https://github.com/tuo-username/biciclista.git
+    cd biciclista
     ```
 
-3.  **Installa le dipendenze**:
+2.  **Installa le Dipendenze**:
     ```bash
     flutter pub get
     ```
 
-4.  **Generazione Codice (Isar/Json)**:
-    ```bash
-    dart run build_runner build --delete-conflicting-outputs
-    ```
+3.  **Configurazione Variabili d'Ambiente**:
+    *   Individua il file di configurazione per le chiavi Supabase (solitamente `lib/core/constants.dart` o un file `.env` se presente).
+    *   Inserisci `SUPABASE_URL` e `SUPABASE_ANON_KEY` del tuo progetto.
 
-5.  **Configurazione Supabase**:
-    - Assicurati che `lib/services/supabase_config.dart` contenga URL e Anonym Key del tuo progetto Supabase.
-    - Esegui gli script SQL presenti nella cartella `supabase/` per creare le tabelle necessarie (`schema.sql`, `community_catalog_schema.sql`, ecc.).
+### Setup Backend (Supabase)
 
-6.  **Avvio**:
+1.  **Database Schema**:
+    *   Esegui gli script SQL presenti nella cartella `supabase/` nella dashboard SQL di Supabase per creare le tabelle necessarie:
+        - `schema.sql` (Schema base)
+        - `crew_schema.sql` (Schema per funzionalità social/crew)
+        - `community_catalog_schema.sql` (Catalogo community)
+
+2.  **Edge Functions (Opzionale/Avanzato)**:
+    *   Se necessario, deploya le funzioni presenti in `supabase/functions/`:
     ```bash
-    flutter run
+    supabase functions deploy <nome-funzione>
     ```
 
 ---
 
-## 📂 Struttura Cartelle
+## ▶️ Esecuzione
 
-- `lib/screens`: Tutte le schermate dell'app (Dashboard, Garage, Percorsi, ecc.).
-- `lib/models`: Modelli dati (Track, Bicycle, GroupRide) e collezioni Isar.
-- `lib/services`: Logica di business (Sync, Database, GPX, Community).
-- `lib/utils`: Helper per ottimizzazione GPX, formattazione, ecc.
-- `supabase`: Script SQL per la configurazione del backend.
+Per avviare l'applicazione in modalità debug:
+
+```bash
+flutter run
+```
+
+Seleziona il dispositivo di destinazione (Emulatore Android, Simulatore iOS o dispositivo fisico connesso).
 
 ---
 
-Realizzato con ❤️ e tanti Watt.
+## 📂 Struttura Cartelle Principali
+
+- `lib/screens/`: Contiene tutte le schermate dell'app (es. `dashboard`, `navigation`, `profile`).
+- `lib/widgets/`: Componenti UI riutilizzabili.
+- `lib/models/`: Modelli dati Dart.
+- `assets/`: Immagini, icone e file statici.
+- `supabase/`: Script SQL e funzioni backend.

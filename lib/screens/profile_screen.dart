@@ -1,5 +1,6 @@
 // import '../services/data_mode_service.dart'; // Removed
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 import '../models/user_profile.dart';
 import '../services/database_service.dart';
@@ -7,6 +8,8 @@ import '../models/user_avatar_config.dart';
 import '../widgets/avatar/avatar_customizer.dart';
 import '../widgets/avatar/avatar_preview.dart';
 import '../services/health_sync_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -133,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profilo aggiornato con successo!')),
+        SnackBar(content: Text('profile.update_success'.tr())),
       );
       Navigator.pop(context);
     }
@@ -160,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profilo Ciclista'),
+        title: Text('profile.title'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
@@ -218,19 +221,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () async {
+                           await Supabase.instance.client.auth.signOut();
+                           if (context.mounted) {
+                             // Navigate effectively to login
+                             Navigator.of(context).pushAndRemoveUntil(
+                               MaterialPageRoute(builder: (_) => const AuthScreen()),
+                               (route) => false,
+                             );
+                           }
+                        },
+                        icon: const Icon(Icons.logout, size: 16, color: Colors.red),
+                        label: const Text('Disconnetti', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Community & Sync Card (Merged)
                     // Community Mode UI Removed
 
 
-                    _buildSectionHeader('Dati Anagrafici'),
+                    _buildSectionHeader('profile.section_personal'.tr()),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome',
-                        prefixIcon: Icon(Icons.person_outline),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: 'profile.name_label'.tr(),
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null,
                     ),
@@ -240,9 +260,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _selectedGender,
-                            decoration: const InputDecoration(
-                              labelText: 'Genere',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.gender_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             items: ['Maschio', 'Femmina', 'Altro']
                                 .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -254,9 +274,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _ageController,
-                            decoration: const InputDecoration(
-                              labelText: 'Età',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.age_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -268,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSectionHeader('Dati Biometrici'),
+                        _buildSectionHeader('profile.section_biometric'.tr()),
                         if (_profile?.lastHealthSync != null)
                           Text(
                             'Sinc: ${DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!)}',
@@ -281,7 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     OutlinedButton.icon(
                       onPressed: _syncHealth,
                       icon: const Icon(Icons.sync),
-                      label: const Text('Sincronizza con App Salute'),
+                      label: Text('profile.sync_health_btn'.tr()),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 45),
                       ),
@@ -292,9 +312,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _weightController,
-                            decoration: const InputDecoration(
-                              labelText: 'Peso (kg)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.weight_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -304,9 +324,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _heightController,
-                            decoration: const InputDecoration(
-                              labelText: 'Altezza (cm)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.height_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                           ),
@@ -319,9 +339,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _rhrController,
-                            decoration: const InputDecoration(
-                              labelText: 'FC riposo (bpm)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.rhr_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -331,9 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _ftpController,
-                            decoration: const InputDecoration(
-                              labelText: 'FTP (Watt)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.ftp_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -347,9 +367,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _hrvController,
-                            decoration: const InputDecoration(
-                              labelText: 'HRV (ms)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.hrv_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -359,9 +379,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _sleepController,
-                            decoration: const InputDecoration(
-                              labelText: 'Sonno (ore)',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: 'profile.sleep_label'.tr(),
+                              border: const OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
@@ -370,9 +390,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    _buildSectionHeader('Sensibilità Termica'),
+                    _buildSectionHeader('profile.section_thermal'.tr()),
                     Text(
-                      'Quanto soffri il freddo? (1 = Molto resistente, 5 = Molto freddoloso)',
+                      'profile.thermal_hint'.tr(),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Slider(
@@ -390,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 50,
                       child: FilledButton(
                         onPressed: _saveProfile,
-                        child: const Text('Salva Profilo'),
+                        child: Text('profile.save_btn'.tr()),
                       ),
                     ),
                   ],
@@ -418,7 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!granted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permessi salute non concessi')),
+          SnackBar(content: Text('profile.health_perms_denied'.tr())),
         );
       }
       return;
@@ -427,7 +447,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       setState(() => _isLoading = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sincronizzazione dati salute...')),
+        SnackBar(content: Text('profile.sync_ongoing'.tr())),
       );
     }
 
@@ -436,14 +456,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _loadProfile();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sincronizzazione completata')),
+          SnackBar(content: Text('profile.sync_completed'.tr())),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sincronizzazione fallita: $e')),
+          SnackBar(content: Text('profile.sync_failed'.tr(args: [e.toString()]))),
         );
       }
     }

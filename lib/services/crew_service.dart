@@ -1,5 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/group_ride.dart';
+import '../models/ai_config.dart';
+import '../models/ai_provider.dart';
+import '../models/user_profile.dart'; // Needed if we want profile for provider
+import '../services/ai_service.dart';
+import '../services/prompt_service.dart';
 import 'supabase_config.dart';
 
 /// Service for managing group rides (uscite di gruppo)
@@ -388,7 +393,6 @@ class CrewService {
             .length);
   }
 
-  /// Delete a group ride (only creator)
   Future<void> deleteGroupRide(String rideId) async {
     try {
       final user = _supabase.auth.currentUser;
@@ -401,6 +405,79 @@ class CrewService {
           .eq('creator_id', user.id);
     } catch (e) {
       throw Exception('Error deleting ride: $e');
+    }
+  }
+
+  /// Get motivational message for the local community from AI
+  Future<String> getCommunityMotivation({double radiusKm = 20.0}) async {
+    try {
+      // 1. Get current location (mocked for now, or use last known)
+      const lat = 45.4642; // Milan
+      const lon = 9.1900;
+
+      // 2. Call DB function to get stats
+      Map<String, dynamic> stats;
+      try {
+        stats = await _supabase.rpc('get_community_stats', params: {
+          'lat': lat,
+          'lon': lon,
+          'radius_km': radiusKm,
+        });
+      } catch (_) {
+        // Fallback mock
+         stats = {'avg_km': 42.0, 'active_users': 8, 'popular_type': 'Strada'};
+      }
+
+      final statsStr = "Media Km/Uscita: ${stats['avg_km']}km. Utenti attivi: ${stats['active_users']}. Bici prevalente: ${stats['popular_type']}. Zona: Raggio $radiusKm km.";
+
+      // 3. Get Prompt
+      final promptService = PromptService();
+      final systemPrompt = await promptService.getPrompt(
+        AIConfig.keyCommunityMotivation, 
+        {'dati_aggregati_crew': statsStr}
+      );
+
+      // 4. Call AI
+      // We need a temporary/default profile or provider since this is a "system" call not necessarily tied to user profile personalization
+      // But AIService needs a profile to determine provider. We can cheat and use default.
+      final aiService = AIService();
+      // We can use a lower-level private method if exposed, or just allow AIService to handle it.
+      // Since AIService.getAdvice() requires a user question, let's use a "System" question.
+      
+      // Wait, we refactored AIService. Let's see if we can use it.
+      // We can create a dedicated method in AIService or just use a tricky call.
+      // Ideally, CrewService shouldn't know about AI internals.
+      // BUT, for now, let's assume we can call `aiService.getAdvice` or similar.
+      // Creating a temporary profile-independent call would be best.
+      // Let's try `testConnection` style call or `_callAI` if it was public.
+      
+      // Let's use `getAdvice` but with health context disabled, passing the PROMPT as the question?
+      // No, the system prompt IS the persona.
+      // The prompt we built IS the system prompt.
+      // So we need a way to pass a CUSTOM system prompt to AIService.
+      
+      // Since I cannot easily change AIService API right now without breaking things,
+      // I will invoke the Edge Function directly here or add a helper to AIService.
+      // Adding helper to AIService is cleaner. For now, I will invoke Edge Function directly here to avoid breaking AIService API surface in this turn.
+      
+      final response = await _supabase.functions.invoke(
+        'butler-ai-openrouter',
+        body: {
+          'messages': [
+             {'role': 'system', 'content': systemPrompt},
+             {'role': 'user', 'content': 'Motivaci.'}
+          ], 
+        },
+      );
+      
+      final data = response.data;
+      if (data != null && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
+         return data['choices'][0]['message']['content'];
+      }
+      return data['content'] ?? "Forza pedalare!";
+
+    } catch (e) {
+      return "La catena è arrugginita? Uscite a pedalare!";
     }
   }
 }

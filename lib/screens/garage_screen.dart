@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/bicycle.dart';
@@ -102,13 +103,13 @@ class _GarageScreenState extends State<GarageScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Aggiorna Foto', style: Theme.of(context).textTheme.titleLarge),
+            Text('garage.update_photo'.tr(), style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildSourceOption(Icons.camera_alt, 'Fotocamera', ImageSource.camera, context),
-                _buildSourceOption(Icons.photo_library, 'Galleria', ImageSource.gallery, context),
+                _buildSourceOption(Icons.camera_alt, 'garage.camera'.tr(), ImageSource.camera, context),
+                _buildSourceOption(Icons.photo_library, 'garage.gallery'.tr(), ImageSource.gallery, context),
               ],
             ),
             const SizedBox(height: 16),
@@ -162,11 +163,11 @@ class _GarageScreenState extends State<GarageScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Reset ${component.name}?'),
-        content: const Text('Confermi di aver sostituito questo componente? Il contatore verrà azzerato.'),
+        title: Text('garage.reset_confirm_title'.tr(args: [component.name ?? ''])),
+        content: Text('garage.reset_confirm_body'.tr()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Conferma')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('common.cancel'.tr())),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text('common.confirm'.tr())),
         ],
       ),
     );
@@ -191,7 +192,7 @@ class _GarageScreenState extends State<GarageScreen> {
     
     if (!await aiService.isConfigured()) {
        ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Configura prima l\'AI nelle impostazioni!')),
+        SnackBar(content: Text('garage.ai_config_error'.tr())),
       );
       return;
     }
@@ -229,14 +230,14 @@ class _GarageScreenState extends State<GarageScreen> {
                 children: [
                   Icon(Icons.build_circle, color: Theme.of(context).colorScheme.primary, size: 32),
                   const SizedBox(width: 12),
-                  Text('Meccanico AI', style: Theme.of(context).textTheme.headlineSmall),
+                  Text('garage.ai_mechanic'.tr(), style: Theme.of(context).textTheme.headlineSmall),
                 ],
               ),
               const Divider(),
               Expanded(
                 child: SingleChildScrollView(
                   child: Text(
-                    result['success'] ? result['content'] : "Errore: ${result['error']}",
+                    result['success'] ? result['content'] : "garage.ai_error".tr(args: [result['error']]),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
@@ -246,7 +247,7 @@ class _GarageScreenState extends State<GarageScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Ho capito'),
+                  child: Text('common.understood'.tr()),
                 ),
               ),
             ],
@@ -276,36 +277,36 @@ class _GarageScreenState extends State<GarageScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(bike == null ? 'Aggiungi Bicicletta' : 'Modifica Bicicletta'),
+        title: Text(bike == null ? 'garage.add_bike_title'.tr() : 'garage.edit_bike_title'.tr()),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  hintText: 'es: La mia Specialized',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'garage.bike_name_label'.tr(),
+                  hintText: 'garage.bike_name_hint'.tr(),
+                  border: const OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.sentences,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: kmController,
-                decoration: const InputDecoration(
-                  labelText: 'Chilometri Totali',
+                decoration: InputDecoration(
+                  labelText: 'garage.total_km_label'.tr(),
                   suffixText: 'km',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: typeController.text,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'garage.bike_type_label'.tr(),
+                  border: const OutlineInputBorder(),
                 ),
                 items: ['Road', 'MTB', 'Gravel', 'City', 'E-Bike']
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -315,9 +316,9 @@ class _GarageScreenState extends State<GarageScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: gearingController.text,
-                decoration: const InputDecoration(
-                  labelText: 'Sistema di Trasmissione',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'garage.transmission_label'.tr(),
+                  border: const OutlineInputBorder(),
                 ),
                 items: ['Mechanical', 'Electronic', 'Single Speed']
                     .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -330,19 +331,19 @@ class _GarageScreenState extends State<GarageScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
+            child: Text('common.cancel'.tr()),
           ),
           FilledButton(
             onPressed: () {
               if (nameController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Inserisci un nome')),
+                  SnackBar(content: Text('garage.name_required'.tr())),
                 );
                 return;
               }
               Navigator.pop(context, true);
             },
-            child: Text(bike == null ? 'Aggiungi' : 'Salva'),
+            child: Text(bike == null ? 'garage.add_bike'.tr() : 'common.save'.tr()),
           ),
         ],
       ),
@@ -384,17 +385,17 @@ class _GarageScreenState extends State<GarageScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Conferma eliminazione'),
-        content: Text('Sei sicuro di voler eliminare "${bike.name}"?'),
+        title: Text('garage.delete_confirm_title'.tr()),
+        content: Text('garage.delete_confirm_body'.tr(args: [bike.name])),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
+            child: Text('common.cancel'.tr()),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            child: const Text('Elimina'),
+            child: Text('common.delete'.tr()),
           ),
         ],
       ),
@@ -437,7 +438,7 @@ class _GarageScreenState extends State<GarageScreen> {
             TextButton.icon(
               onPressed: () => _askMechanic(bike, component.name ?? 'Componente'),
               icon: const Icon(Icons.smart_toy, size: 16),
-              label: const Text('Aiuto AI'),
+              label: Text('garage.ai_help_btn'.tr()),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 minimumSize: Size.zero,
@@ -452,7 +453,7 @@ class _GarageScreenState extends State<GarageScreen> {
                 minimumSize: const Size(0, 32),
                 side: BorderSide(color: Theme.of(context).colorScheme.outline),
               ),
-              child: const Text('Reset', style: TextStyle(fontSize: 12)),
+              child: Text('garage.reset_btn'.tr(), style: const TextStyle(fontSize: 12)),
             ),
           ],
         ),
@@ -467,7 +468,7 @@ class _GarageScreenState extends State<GarageScreen> {
         heroTag: 'garage_fab', 
         onPressed: () => _showBicycleDialog(),
         icon: const Icon(Icons.add),
-        label: const Text('Aggiungi Bici'),
+        label: Text('garage.add_bike'.tr()),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -478,11 +479,11 @@ class _GarageScreenState extends State<GarageScreen> {
                     children: [
                       const Icon(Icons.pedal_bike, size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
-                      const Text('Il tuo garage è vuoto.'),
+                      Text('garage.empty_state'.tr()),
                       const SizedBox(height: 16),
                       FilledButton(
                         onPressed: () => _showBicycleDialog(), 
-                        child: const Text('Aggiungi Bici'),
+                        child: Text('garage.add_bike'.tr()),
                       ),
                     ],
                   ),
@@ -521,7 +522,7 @@ class _GarageScreenState extends State<GarageScreen> {
                                             children: [
                                               Icon(Icons.add_a_photo, size: 48, color: Theme.of(context).colorScheme.primary),
                                               const SizedBox(height: 8),
-                                              const Text('Tocca per aggiungere foto'),
+                                              Text('garage.tap_to_add_photo'.tr()),
                                             ],
                                           ),
                                   ),
@@ -535,8 +536,8 @@ class _GarageScreenState extends State<GarageScreen> {
                                         if (value == 'delete') _deleteBicycle(bike);
                                       },
                                       itemBuilder: (context) => [
-                                        const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Modifica')])),
-                                        const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 20), SizedBox(width: 8), Text('Elimina', style: TextStyle(color: Colors.red))])),
+                                        PopupMenuItem(value: 'edit', child: Row(children: [const Icon(Icons.edit, size: 20), const SizedBox(width: 8), Text('common.edit'.tr())])),
+                                        PopupMenuItem(value: 'delete', child: Row(children: [const Icon(Icons.delete, color: Colors.red, size: 20), const SizedBox(width: 8), Text('common.delete'.tr(), style: const TextStyle(color: Colors.red))])),
                                       ],
                                     ),
                                   ),
@@ -577,7 +578,7 @@ class _GarageScreenState extends State<GarageScreen> {
                                 )),
                                 
                                 if (bike.components.isEmpty)
-                                  const Text('Nessun componente tracciato', style: TextStyle(fontStyle: FontStyle.italic)),
+                                  Text('garage.no_components'.tr(), style: const TextStyle(fontStyle: FontStyle.italic)),
                               ],
                             ),
                           ),

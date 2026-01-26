@@ -11,10 +11,10 @@ import 'user_guide_screen.dart';
 
 
 import 'integration_settings_screen.dart';
+import '../services/configuration_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -148,18 +148,27 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Disconnetti', style: TextStyle(color: Colors.red)),
+            leading: const Icon(Icons.system_update_alt),
+            title: const Text('Scarica Aggiornamento'),
+            subtitle: const Text('Scarica l\'ultima versione (APK)'),
             onTap: () async {
-              await Supabase.instance.client.auth.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
-                  (route) => false,
-                );
+              final url = ConfigurationService().getString(
+                'app.latest_apk_url',
+                defaultValue: 'https://fiukytfosrjppbmnrlmp.supabase.co/storage/v1/object/public/releases/app-release.apk',
+              );
+              if (await canLaunchUrl(Uri.parse(url))) {
+                await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Impossibile aprire il link')),
+                  );
+                }
               }
             },
           ),
+          const SizedBox(height: 24),
+
           const SizedBox(height: 32),
           Center(
             child: Opacity(
