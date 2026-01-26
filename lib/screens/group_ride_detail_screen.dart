@@ -422,6 +422,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         ..elevation = widget.groupRide.elevation ?? 0.0
         ..isCompleted = true
         ..isGroupRide = true
+        ..supabaseEventId = widget.groupRide.id // Link to remote group ride
         ..aiAnalysis = 'Uscita di Gruppo Completata: ${widget.groupRide.rideName}';
       
       await _db.createPlannedRide(personalRide);

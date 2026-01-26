@@ -311,6 +311,24 @@ class DatabaseService {
     return (res as List).map((m) => _mapPlannedRide(m)).toList();
   }
 
+  Future<Set<String>> getCompletedGroupRideIds() async {
+    final uid = _userId;
+    if (uid == null) return {};
+
+    try {
+      final res = await _supabase.from('planned_rides')
+          .select('supabase_event_id')
+          .eq('user_id', uid)
+          .eq('is_completed', true)
+          .not('supabase_event_id', 'is', null);
+      
+      return (res as List).map((m) => m['supabase_event_id'] as String).toSet();
+    } catch (e) {
+      print('Error fetching completed group ride IDs: $e');
+      return {};
+    }
+  }
+
   Future<double> getWeeklyCompletedKm() async {
     final rides = await getCompletedRides();
     final now = DateTime.now();

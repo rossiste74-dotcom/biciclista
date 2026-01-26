@@ -8,6 +8,7 @@ import '../widgets/activity_card.dart';
 import 'group_ride_detail_screen.dart';
 import 'create_group_ride_screen.dart';
 import '../services/configuration_service.dart';
+import '../services/database_service.dart';
 
 /// Unified agenda screen showing all user activities (created + joined)
 class UnifiedAgendaScreen extends StatefulWidget {
@@ -37,19 +38,35 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
     super.dispose();
   }
 
+  final _db = DatabaseService(); // Added DB instance
+
   Future<void> _loadActivities() async {
       setState(() => _isLoading = true);
     try {
       final activities = await _crewService.getUnifiedActivityAgenda();
-      debugPrint('UnifiedAgendaScreen: Loaded ${activities.length} activities');
-      for (var a in activities) {
-        debugPrint('Activity: ${a.rideName}, Lat: ${a.meetingLatitude}, Lon: ${a.meetingLongitude}');
-      }
+      final myCompletedIds = await _db.getCompletedGroupRideIds();
       
       if (mounted) {
         setState(() {
-          _upcomingActivities = activities.where((a) => a.status.toLowerCase() != 'completed').toList();
-          _completedActivities = activities.where((a) => a.status.toLowerCase() == 'completed').toList();
+          // Upcoming: Not personally completed AND Date is in future (or very recent past e.g. today)
+          // User request: "se non superata la data programmata" -> strictly > now?
+          // Let's use > now - 2 hours buffer or strict? 
+          // "se non superata la data" implies future.
+          final now = DateTime.now();
+          
+          _upcomingActivities = activities.where((a) {
+             final isMyCompleted = myCompletedIds.contains(a.id);
+             final isFuture = a.meetingTime.isAfter(now);
+             return !isMyCompleted && isFuture;
+          }).toList();
+
+          // Completed: I have personally completed it OR status is completed and I participated?
+          // User: "Nelle completate devo vedere solo le mie completate".
+          // So ONLY what I marked as finished in my diary.
+          _completedActivities = activities.where((a) {
+             return myCompletedIds.contains(a.id);
+          }).toList();
+          
           _isLoading = false;
         });
       }
