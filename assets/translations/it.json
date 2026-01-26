@@ -149,6 +149,12 @@
         "condition_cold": "Freddo",
         "condition_cloudy": "Nuvoloso"
     },
+    "wisdom": {
+        "title": "Il Biciclista Dice:",
+        "fallback": "Oggi il saggio è in fuga e non prende il telefono. Riprova domani.",
+        "loading": "Pedala e taci.",
+        "subtitle": "Solo per veri biciclisti!!"
+    },
     "challenge": {
         "title": "Sfida della Settimana",
         "start": "Ancora niente? La settimana fugge, muoviti!",

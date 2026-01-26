@@ -218,11 +218,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(16),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // Show BiciclistaWisdom first if no ride is planned
-                        if (_nextRide == null) ...[
-                          const BiciclistaWisdom(),
-                          const SizedBox(height: 24),
-                        ],
+                        BiciclistaWisdom(),
+                        const SizedBox(height: 24),
                         _buildStatsSection(),
                         const SizedBox(height: 24),
                         _buildBiometricStatsSection(),

@@ -137,6 +137,12 @@ insert into app_config (key, value, group_name) values
 ('weather.condition_cold', 'Freddo', 'weather'),
 ('weather.condition_cloudy', 'Nuvoloso', 'weather'),
 
+-- Wisdom
+('wisdom.title', 'Il Biciclista Dice:', 'wisdom'),
+('wisdom.fallback', 'Oggi il saggio è in fuga e non prende il telefono. Riprova domani.', 'wisdom'),
+('wisdom.loading', 'Pedala e taci.', 'wisdom'),
+('wisdom.subtitle', 'Solo per veri biciclisti!!', 'wisdom'),
+
 -- Challenge
 ('challenge.title', 'Sfida della Settimana', 'challenge'),
 ('challenge.start', 'Ancora niente? La settimana fugge, muoviti!', 'challenge'),

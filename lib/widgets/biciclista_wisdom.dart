@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../services/ai_service.dart';
 
@@ -32,7 +33,7 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _wisdom = "Oggi il saggio è in fuga e non prende il telefono. Riprova domani.";
+          _wisdom = "wisdom.fallback".tr();
           _isLoading = false;
         });
       }
@@ -76,7 +77,7 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Il Biciclista Dice:',
+                    'wisdom.title'.tr(),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -98,7 +99,7 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
                )
             else
               Text(
-                _wisdom != null ? '"$_wisdom"' : '"Pedala e taci."',
+                _wisdom != null ? '"$_wisdom"' : '"${"wisdom.loading".tr()}"',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontSize: 16,
                   fontStyle: FontStyle.italic,
@@ -110,7 +111,7 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Solo per veri biciclisti!!',
+                'wisdom.subtitle'.tr(),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
