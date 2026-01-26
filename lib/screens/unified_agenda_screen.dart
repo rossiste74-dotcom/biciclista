@@ -52,11 +52,18 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
           // User request: "se non superata la data programmata" -> strictly > now?
           // Let's use > now - 2 hours buffer or strict? 
           // "se non superata la data" implies future.
-          final now = DateTime.now();
-          
+          final now = DateTime.now().toUtc();
+          debugPrint('UnifiedAgendaScreen: User Time (UTC): \$now');
+
           _upcomingActivities = activities.where((a) {
              final isMyCompleted = myCompletedIds.contains(a.id);
-             final isFuture = a.meetingTime.isAfter(now);
+             
+             // Convert to UTC to be safe
+             final meetingTime = a.meetingTime.toUtc(); 
+             final isFuture = meetingTime.isAfter(now);
+             
+             debugPrint('Activity: \${a.rideName} - Time: \$meetingTime vs Now: \$now -> IsFuture? \$isFuture');
+
              return !isMyCompleted && isFuture;
           }).toList();
 
