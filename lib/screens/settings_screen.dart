@@ -11,6 +11,7 @@ import 'user_guide_screen.dart';
 
 
 import 'integration_settings_screen.dart';
+import 'sync_settings_screen.dart';
 import '../services/configuration_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
@@ -109,6 +110,17 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           _buildHeader(context, 'Integrazioni'),
+          ListTile(
+            leading: const Icon(Icons.monitor_heart_outlined),
+            title: const Text('Attività e Salute (Health Connect)'),
+            subtitle: const Text('Configura quali dati sincronizzare'),
+             onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SyncSettingsScreen()),
+                );
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.sync_alt),
             title: const Text('Connetti Strava & Komoot'),

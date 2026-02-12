@@ -50,7 +50,7 @@
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 		<key>NSCameraUsageDescription</key>
-		<string>L'app necessita della fotocamera per scansionare i QR code dei percorsi condivisi.</string>
+		<string>L'app necessita della fotocamera per scansionare i QR code e analizzare la postura in bici.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>L'app usa la tua posizione per la navigazione assistita lungo il percorso.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

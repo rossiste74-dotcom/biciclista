@@ -8,6 +8,7 @@ import '../services/configuration_service.dart';
 import 'main_navigation_screen.dart';
 import 'onboarding_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/health_sync_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,6 +50,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // Initialize Remote Configuration
       await ConfigurationService().initialize();
+
+      // 0. Request Health Permissions
+      await HealthSyncService().requestPermissions();
+
+      // Check for new activities from Health Connect (Fire & Forget)
+      HealthSyncService().checkNewActivities();
 
       if (!mounted) return;
 

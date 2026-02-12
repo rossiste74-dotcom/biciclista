@@ -80,7 +80,7 @@ class BiciclistaStats extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${weeklyKm.toStringAsFixed(0)} km',
+                        '${weeklyKm.toStringAsFixed(3)} km',
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

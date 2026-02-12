@@ -33,11 +33,37 @@ class _AICoachScreenState extends State<AICoachScreen> {
     super.dispose();
   }
 
+  int _remainingRequests = 10;
+  bool _limitReached = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRemainingRequests();
+  }
+
+  Future<void> _checkRemainingRequests() async {
+    final remaining = await _aiService.getRemainingRequests();
+    if (mounted) {
+      setState(() {
+        _remainingRequests = remaining;
+        _limitReached = remaining <= 0;
+      });
+    }
+  }
+
   Future<void> _getAdvice() async {
     if (_questionController.text.trim().isEmpty) {
       setState(() {
         _error = 'Inserisci una domanda';
         _response = null;
+      });
+      return;
+    }
+
+    if (_limitReached) {
+      setState(() {
+         _error = 'Hai esaurito le domande per oggi! Torna a pedalare.';
       });
       return;
     }
@@ -54,6 +80,9 @@ class _AICoachScreenState extends State<AICoachScreen> {
     final result = await _aiService.getAdvice(
       userQuestion: _questionController.text,
     );
+    
+    // Refresh limits
+    await _checkRemainingRequests();
 
     if (!mounted) return;
 
@@ -115,7 +144,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Coach'),
+        title: const Text('Chiedi al Biciclista'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -147,7 +176,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            'Il tuo coach personale analizza i tuoi dati biometrici e il meteo per darti consigli su misura.',
+                            'Il Biciclista è pronto a giudicarti. Chiedi pure consiglio, ma non aspettarti carezze. Qui si parla di potenza e sofferenza.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
@@ -182,68 +211,117 @@ class _AICoachScreenState extends State<AICoachScreen> {
               ],
             ),
             child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Suggestions
-                  if (_response == null && !_isLoading)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: _exampleQuestions.map((q) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ActionChip(
-                              label: Text(q),
-                              onPressed: () {
-                                _questionController.text = q;
-                              },
-                            ),
-                          );
-                        }).toList(),
+              child: _limitReached 
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.shade800),
                       ),
-                    ),
-                  
-                  // Text Field and Button
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _questionController,
-                          decoration: const InputDecoration(
-                            hintText: 'Chiedi al Biciclista...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(24)),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.lock_clock, size: 40, color: Colors.brown),
+                          const SizedBox(height: 12),
+                          Text(
+                            "⛔ Basta domande per oggi!",
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.brown.shade900),
                           ),
-                          maxLines: 3,
-                          minLines: 1,
-                          enabled: !_isLoading,
-                          textCapitalization: TextCapitalization.sentences,
-                        ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Il mio processore neurale è andato in fuga solitaria. Non saturare i miei circuiti con le tue paranoie. Torna domani, magari avrai gambe migliori.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.brown.shade800),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        onPressed: _isLoading ? null : _getAdvice,
-                        icon: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Suggestions & Counter
+                        if (_response == null && !_isLoading)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: _exampleQuestions.map((q) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(right: 8),
+                                          child: ActionChip(
+                                            label: Text(q),
+                                            onPressed: () {
+                                              _questionController.text = q;
+                                            },
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
                                 ),
-                              )
-                            : const Icon(Icons.send),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _remainingRequests > 3 ? Colors.green.shade100 : Colors.red.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$_remainingRequests/10',
+                                    style: TextStyle(
+                                      fontSize: 12, 
+                                      fontWeight: FontWeight.bold,
+                                      color: _remainingRequests > 3 ? Colors.green.shade800 : Colors.red.shade800
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        
+                        // Text Field and Button
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _questionController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Chiedi al Biciclista...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(24)),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                maxLines: 3,
+                                minLines: 1,
+                                enabled: !_isLoading,
+                                textCapitalization: TextCapitalization.sentences,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filled(
+                              onPressed: _isLoading ? null : _getAdvice,
+                              icon: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.send),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],

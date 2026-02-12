@@ -308,7 +308,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat(Icons.route, '${widget.track.distance.toStringAsFixed(1)} km', 'Distanza'),
+                _buildStat(Icons.route, '${widget.track.distance.toStringAsFixed(3)} km', 'Distanza'),
                 _buildStat(Icons.terrain, '${widget.track.elevation.toStringAsFixed(0)} m', 'Dislivello'),
                 if (widget.track.duration != null)
                   _buildStat(Icons.timer, '${widget.track.duration} min', 'Durata'),
@@ -406,7 +406,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 color: Theme.of(context).colorScheme.onErrorContainer,
               ),
             ),
-            title: Text('${climb.lengthKm.toStringAsFixed(1)} km'),
+            title: Text('${climb.lengthKm.toStringAsFixed(3)} km'),
             subtitle: Text(
               'Pendenza media: ${climb.averageGradient.toStringAsFixed(1)}% • Max: ${climb.maxGradient.toStringAsFixed(1)}%',
             ),
@@ -598,7 +598,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   widget.track.name,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text('${widget.track.distance.toStringAsFixed(1)} km • ${widget.track.elevation.toStringAsFixed(0)} m'),
+                Text('${widget.track.distance.toStringAsFixed(3)} km • ${widget.track.elevation.toStringAsFixed(0)} m'),
                 const Divider(height: 24),
 
                 // Date picker

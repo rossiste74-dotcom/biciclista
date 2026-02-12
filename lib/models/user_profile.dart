@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'ai_provider.dart';
+import 'user_avatar_config.dart';
 
 class MaintenanceDefinition {
   String? name;
@@ -183,4 +184,8 @@ class UserProfile {
   
   // TO_JSON / FROM_JSON could be useful for Supabase, 
   // but we might handle that in service.
+  UserAvatarConfig? get avatarConfig {
+    if (avatarData == null) return null;
+    return UserAvatarConfig.fromJsonString(avatarData!);
+  }
 }

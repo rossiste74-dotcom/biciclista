@@ -23,10 +23,12 @@ import '../widgets/biciclista_weather.dart';
 import '../widgets/biciclista_weather.dart';
 import '../widgets/biciclista_challenge.dart';
 import '../widgets/biciclista_leaderboard.dart';
+import '../widgets/biomechanics_card.dart'; // Added
 import 'gpx_import_screen.dart';
 import 'leaderboard_screen.dart';
 import 'route_detail_screen.dart';
 import 'route_planner_screen.dart';
+import 'health_activity_list_screen.dart';
 
 /// The main application dashboard centralizing health and ride data
 class DashboardScreen extends StatefulWidget {
@@ -61,6 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _totalKm = 0.0;
   double _weeklyKm = 0.0;
   int _totalRides = 0;
+  double _otherActivitiesKm = 0.0;
   
   // Messages Maps
   Map<String, String> _weatherMessages = {};
@@ -107,6 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _totalKm = await _db.getTotalCompletedKm();
       _weeklyKm = await _db.getWeeklyCompletedKm();
       _totalRides = await _db.getTotalCompletedRidesCount();
+      _otherActivitiesKm = await _db.getOtherActivitiesKm();
 
       // 4. Load Next Ride (prioritize group rides)
       // We now fetch ALL incomplete rides (including past ones) to allow closing them
@@ -228,6 +232,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: 24),
                         const AICoachCard(),
                         const SizedBox(height: 24),
+                        const BiomechanicsCard(), // Added
+                        const SizedBox(height: 24),
                         _buildNextRideSection(),
                         const SizedBox(height: 24),
                         _buildTotalReadinessTrend(),
@@ -271,34 +277,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatsSection() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.directions_bike,
-            value: _totalRides.toString(),
-            label: 'dashboard.total_rides'.tr(),
-            color: Colors.blue,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.directions_bike,
+                value: _totalRides.toString(),
+                label: 'dashboard.total_rides'.tr(),
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.route,
+                value: '${_totalKm.toStringAsFixed(3)} km',
+                label: 'dashboard.total_km'.tr(),
+                color: Colors.green,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HealthActivityListScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.calendar_today,
+                value: '${_weeklyKm.toStringAsFixed(3)} km',
+                label: 'dashboard.weekly_km'.tr(),
+                color: Colors.orange,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.route,
-            value: '${_totalKm.toStringAsFixed(0)} km',
-            label: 'dashboard.total_km'.tr(),
-            color: Colors.green,
+        if (_otherActivitiesKm > 0) ...[
+          const SizedBox(height: 12),
+          _buildStatCard(
+            icon: Icons.fitness_center,
+            value: '${_otherActivitiesKm.toStringAsFixed(3)} km',
+            label: 'Altre Attività',
+            color: Colors.purple,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.calendar_today,
-            value: '${_weeklyKm.toStringAsFixed(0)} km',
-            label: 'dashboard.weekly_km'.tr(),
-            color: Colors.orange,
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -362,41 +389,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatCard({
-    required IconData icon,
-    required String value,
-    required String label,
-    required Color color,
-  }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+  required IconData icon,
+  required String value,
+  required String label,
+  required Color color,
+  VoidCallback? onTap,
+}) {
+  final card = Card(
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
+    ),
+  );
+  
+  if (onTap != null) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: card,
     );
   }
+  
+  return card;
+}
 
   Widget _buildReadinessSection() {
     final score = _profile != null 

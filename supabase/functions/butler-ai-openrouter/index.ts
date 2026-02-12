@@ -23,7 +23,7 @@ const DEFAULT_MODELS = [
 const SPECIALIST_MODEL = "models/gemini-2.5-pro"; // For complex tasks
 
 interface RequestPayload {
-    messages: { role: string; content: string }[];
+    messages: { role: string; content: string; image?: string; images?: string[] }[];
     action?: string; // Optional action routing (e.g. 'naming' -> lite)
 }
 
@@ -61,9 +61,31 @@ serve(async (req) => {
                 };
             } else {
                 const role = msg.role === 'assistant' ? 'model' : 'user';
+                const parts: any[] = [{ text: msg.content }];
+
+                // Handle Multiple Image Input (Base64)
+                if ((msg as any).images && Array.isArray((msg as any).images)) {
+                    for (const imgBase64 of (msg as any).images) {
+                        parts.push({
+                            inlineData: {
+                                mimeType: "image/jpeg",
+                                data: imgBase64
+                            }
+                        });
+                    }
+                } else if ((msg as any).image) {
+                    // Legacy single image support
+                    parts.push({
+                        inlineData: {
+                            mimeType: "image/jpeg",
+                            data: (msg as any).image
+                        }
+                    });
+                }
+
                 geminiContents.push({
                     role: role,
-                    parts: [{ text: msg.content }]
+                    parts: parts
                 });
             }
         }
@@ -78,9 +100,10 @@ serve(async (req) => {
                 "models/gemini-2.5-flash-lite",
                 "models/gemini-2.5-flash"
             ];
-        } else if (action === 'deep_analysis') {
-            // prioritize pro
+        } else if (action === 'deep_analysis' || action === 'biomechanics_analysis') {
+            // prioritize pro/flash 2.0
             modelsToTry = [
+                "models/gemini-2.0-flash-001",
                 SPECIALIST_MODEL,
                 "models/gemini-2.5-flash"
             ];

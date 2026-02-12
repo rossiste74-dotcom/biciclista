@@ -20,6 +20,7 @@ import '../services/database_service.dart';
 import '../models/planned_ride.dart';
 import '../models/bicycle.dart';
 import '../services/notification_service.dart';
+import '../widgets/bike_selection_dialog.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -43,6 +44,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const UnifiedAgendaScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
+
+    // Listen for Notification Tap (Sync Manager)
+    NotificationService().onNotificationTap.listen((payload) {
+      if (payload != null && mounted) {
+        final parts = payload.split('|');
+        final km = double.tryParse(parts[0]) ?? 0.0;
+        final type = parts.length > 1 ? parts[1] : "Attività";
+        
+        showDialog(
+          context: context,
+          builder: (_) => BikeSelectionDialog(distanceKm: km, activityType: type),
+        );
+      }
+    });
   }
   
   @override

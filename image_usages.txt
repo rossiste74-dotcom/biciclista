@@ -1,0 +1,94 @@
+lib/models/bicycle.g.dart:    r'bikeImagePath': PropertySchema(
+lib/models/bicycle.g.dart:      name: r'bikeImagePath',
+lib/models/bicycle.g.dart:    final value = object.bikeImagePath;
+lib/models/bicycle.g.dart:  writer.writeString(offsets[2], object.bikeImagePath);
+lib/models/bicycle.g.dart:  object.bikeImagePath = reader.readStringOrNull(offsets[2]);
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathIsNull() {
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:      bikeImagePathIsNotNull() {
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathEqualTo(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:      bikeImagePathGreaterThan(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathLessThan(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathBetween(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathStartsWith(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathEndsWith(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathContains(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathMatches(
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterFilterCondition> bikeImagePathIsEmpty() {
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:      bikeImagePathIsNotEmpty() {
+lib/models/bicycle.g.dart:        property: r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePath() {
+lib/models/bicycle.g.dart:      return query.addSortBy(r'bikeImagePath', Sort.asc);
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> sortByBikeImagePathDesc() {
+lib/models/bicycle.g.dart:      return query.addSortBy(r'bikeImagePath', Sort.desc);
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePath() {
+lib/models/bicycle.g.dart:      return query.addSortBy(r'bikeImagePath', Sort.asc);
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QAfterSortBy> thenByBikeImagePathDesc() {
+lib/models/bicycle.g.dart:      return query.addSortBy(r'bikeImagePath', Sort.desc);
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, Bicycle, QDistinct> distinctByBikeImagePath(
+lib/models/bicycle.g.dart:      return query.addDistinctBy(r'bikeImagePath',
+lib/models/bicycle.g.dart:  QueryBuilder<Bicycle, String?, QQueryOperations> bikeImagePathProperty() {
+lib/models/bicycle.g.dart:      return query.addPropertyName(r'bikeImagePath');
+lib/models/bicycle.dart:  String? bikeImagePath;
+lib/models/group_ride.dart:  final String? profileImageUrl;
+lib/models/group_ride.dart:    this.profileImageUrl,
+lib/models/group_ride.dart:      profileImageUrl: json['profile_image_url'] as String?,
+lib/models/group_ride.dart:    String? profileImageUrl,
+lib/models/group_ride.dart:      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+lib/models/public_profile.dart:  final String? profileImageUrl;
+lib/models/public_profile.dart:    this.profileImageUrl,
+lib/models/public_profile.dart:      profileImageUrl: json['profile_image_url'] as String?,
+lib/models/public_profile.dart:      'profile_image_url': profileImageUrl,
+lib/models/public_profile.dart:    String? profileImageUrl,
+lib/models/public_profile.dart:      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+lib/screens/biomechanics_screen.dart:  File? _capturedImage;
+lib/screens/biomechanics_screen.dart:    final picker = ImagePicker();
+lib/screens/biomechanics_screen.dart:    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+lib/screens/biomechanics_screen.dart:        _capturedImage = File(photo.path);
+lib/screens/biomechanics_screen.dart:      _capturedImage = null;
+lib/screens/biomechanics_screen.dart:          if (_capturedImage != null)
+lib/screens/biomechanics_screen.dart:                   child: _capturedImage != null 
+lib/screens/biomechanics_screen.dart:                       ? Image.file(
+lib/screens/biomechanics_screen.dart:                           _capturedImage!, 
+lib/screens/route_detail_screen.dart:                child: QrImageView(
+lib/screens/garage_screen.dart:  final _picker = ImagePicker();
+lib/screens/garage_screen.dart:  Future<void> _pickImage(Bicycle bike) async {
+lib/screens/garage_screen.dart:    final source = await showModalBottomSheet<ImageSource>(
+lib/screens/garage_screen.dart:                _buildSourceOption(Icons.camera_alt, 'garage.camera'.tr(), ImageSource.camera, context),
+lib/screens/garage_screen.dart:                _buildSourceOption(Icons.photo_library, 'garage.gallery'.tr(), ImageSource.gallery, context),
+lib/screens/garage_screen.dart:    final XFile? image = await _picker.pickImage(source: source);
+lib/screens/garage_screen.dart:      final savedImage = await File(image.path).copy('${appDir.path}/$fileName');
+lib/screens/garage_screen.dart:      bike.bikeImagePath = savedImage.path;
+lib/screens/garage_screen.dart:  Widget _buildSourceOption(IconData icon, String label, ImageSource source, BuildContext context) {
+lib/screens/garage_screen.dart:                          // ... Image Header ...
+lib/screens/garage_screen.dart:                            onTap: () => _pickImage(bike),
+lib/screens/garage_screen.dart:                                    child: bike.bikeImagePath != null
+lib/screens/garage_screen.dart:                                        ? Image.file(
+lib/screens/garage_screen.dart:                                            File(bike.bikeImagePath!),
+lib/screens/settings_screen.dart:                child: Image.asset(
+lib/screens/public_profile_screen.dart:          backgroundImage: _profile!.profileImageUrl != null
+lib/screens/public_profile_screen.dart:              ? NetworkImage(_profile!.profileImageUrl!)
+lib/screens/public_profile_screen.dart:          child: _profile!.profileImageUrl == null
+lib/screens/group_ride_detail_screen.dart:                profileImageUrl: profile['profile_image_url'],
+lib/screens/group_ride_detail_screen.dart:                  Image.network(iconUrl, width: 30, height: 30, errorBuilder: (_,__,___) => const Icon(Icons.cloud)),
+lib/screens/splash_screen.dart:               child: Image.asset(
+lib/screens/auth_screen.dart:              Image.asset('assets/icon.png', height: 100, errorBuilder: (_,__,___) => const Icon(Icons.directions_bike, size: 100)),
+lib/services/social_service.dart:    String? profileImageUrl,
+lib/services/social_service.dart:        if (profileImageUrl != null) 'profile_image_url': profileImageUrl,
+lib/widgets/biciclista_wisdom.dart:                  child: Image.asset(
+lib/widgets/activity_card.dart:                           profileImageUrl: creator.profileImageUrl,
+lib/widgets/activity_card.dart:                             profileImageUrl: participant.profileImageUrl,
+lib/widgets/activity_card.dart:    String? profileImageUrl, 
+lib/widgets/activity_card.dart:    // 2. Raster Image (URL)
+lib/widgets/activity_card.dart:    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+lib/widgets/activity_card.dart:        backgroundImage: NetworkImage(profileImageUrl),

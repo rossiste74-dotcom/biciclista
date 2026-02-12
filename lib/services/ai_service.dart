@@ -10,7 +10,9 @@ import '../services/database_service.dart';
 import '../services/prompt_service.dart';
 import '../services/supabase_config.dart';
 import 'package:intl/intl.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import '../models/biomechanics_analysis.dart';
 /// Service for AI Coach functionality using Supabase Edge Functions (Butler AI via OpenRouter)
 class AIService {
   final _db = DatabaseService();
@@ -50,21 +52,67 @@ class AIService {
     required String userQuestion,
     bool useHealthContext = true,
   }) async {
+    // 1. Check Daily Limit
+    final canProceed = await _checkDailyLimit();
+    if (!canProceed) {
+      return {
+        'success': false, 
+        'error': 'Limite giornaliero raggiunto. Torna domani, gamba o non gamba.'
+      };
+    }
+
     final profile = await _db.getUserProfile();
     if (profile == null) {
       return {'success': false, 'error': 'Profilo non trovato'};
     }
 
-    // Default to DeepSeek if not specified (conceptually, though function handles routing)
+    // Default to DeepSeek if not specified
     final provider = profile.getAIProvider() ?? AIProvider.deepseek;
 
     final systemPrompt = await _buildSystemPrompt(profile, includeHealthData: useHealthContext);
     
-    return await _callAI(
+    final result = await _callAI(
       provider: provider,
       systemPrompt: systemPrompt,
       userMessage: userQuestion,
     );
+
+    // 2. Increment count on success
+    if (result['success']) {
+      await _incrementDailyCount();
+    }
+    
+    return result;
+  }
+
+  // --- Rate Limiting Helpers ---
+
+  static const int _dailyLimit = 10;
+
+  Future<bool> _checkDailyLimit() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _getDailyKey();
+    final count = prefs.getInt(key) ?? 0;
+    return count < _dailyLimit;
+  }
+
+  Future<void> _incrementDailyCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _getDailyKey();
+    final count = prefs.getInt(key) ?? 0;
+    await prefs.setInt(key, count + 1);
+  }
+
+  Future<int> getRemainingRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _getDailyKey();
+    final count = prefs.getInt(key) ?? 0;
+    return (_dailyLimit - count).clamp(0, _dailyLimit);
+  }
+
+  String _getDailyKey() {
+    final now = DateTime.now();
+    return 'ai_requests_${now.year}_${now.month}_${now.day}';
   }
 
   /// Analyze a planned ride and provide advice
@@ -517,6 +565,124 @@ class AIService {
     } else {
       // Fallback
       return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
+    }
+  }
+  /// Analyze biomechanics from multiple images and generate verdict
+  Future<Map<String, dynamic>> analyzeBiomechanicsFromImages(List<File> imageFiles) async {
+    final profile = await _db.getUserProfile();
+    final provider = profile?.getAIProvider() ?? AIProvider.deepseek;
+
+    // Step 1: Get structured biomechanics data (JSON)
+    final analysisResult = await _callAIWithMultiImages(
+      provider: provider,
+      systemPrompt: await _promptService.getPrompt(AIConfig.keyBiomechanicsEngine),
+      userMessage: '''
+Analyze these cycling posture images and return biomechanics data as JSON.
+The images provided include:
+1. Lateral view with leg extended (Required)
+2. Lateral view with foot at 3 o'clock (Optional)
+3. Frontal or Posterior view (Optional)
+Use all available visual information to calibrate the measurements.
+''',
+      imageFiles: imageFiles,
+      action: 'biomechanics_analysis',
+    );
+
+    if (!analysisResult['success']) {
+      return {'success': false, 'error': analysisResult['error']};
+    }
+
+    // Parse JSON response
+    BiomechanicsAnalysis? analysis;
+    try {
+      final content = analysisResult['content'];
+      // Extract JSON if wrapped in markdown code blocks
+      final jsonString = content.replaceAll(RegExp(r'^```json\n|\n```$'), '').trim();
+      
+      final jsonData = json.decode(jsonString);
+      analysis = BiomechanicsAnalysis.fromJson(jsonData);
+    } catch (e) {
+      print('JSON Parse Error: $e');
+      return {'success': false, 'error': 'Failed to parse biomechanics data: $e'};
+    }
+
+    // Check image quality
+    if (analysis.metadata.imageQualityScore < 0.5) {
+      return {
+        'success': false,
+        'error': 'Foto non utilizzabile. ${analysis.metadata.validationErrors.join(", ")}',
+        'validation_errors': analysis.metadata.validationErrors,
+      };
+    }
+
+    // Step 2: Generate professional verdict with final joke
+    final verdictPrompt = await _promptService.getPrompt(
+      AIConfig.keyBiciclistaVerdetto,
+      {'biometrics_json': json.encode(analysis.biometrics.toJson())}
+    );
+
+    final verdictResult = await _callAI(
+      provider: provider,
+      systemPrompt: verdictPrompt,
+      userMessage: 'Generate the professional verdict.',
+      action: 'biomechanics_verdict',
+    );
+
+    final finalAnalysis = BiomechanicsAnalysis(
+      metadata: analysis.metadata,
+      biometrics: analysis.biometrics,
+      recommendations: analysis.recommendations,
+      visualOverlay: analysis.visualOverlay,
+      verdict: verdictResult['success'] ? verdictResult['content'] : 'Il meccanico è uscito a fumare.',
+      createdAt: DateTime.now(),
+    );
+
+    // Save to DB
+    await _db.saveBiomechanicsAnalysis(finalAnalysis);
+
+    return {
+      'success': true,
+      'analysis': finalAnalysis,
+      'verdict': finalAnalysis.verdict,
+    };
+  }
+
+  /// Helper: Call AI with multiple images (uses Gemini vision via Edge Function)
+  Future<Map<String, dynamic>> _callAIWithMultiImages({
+    required AIProvider provider,
+    required String systemPrompt,
+    required String userMessage,
+    required List<File> imageFiles,
+    String action = 'vision',
+  }) async {
+    try {
+      final List<String> base64Images = [];
+      for (var file in imageFiles) {
+        final bytes = await file.readAsBytes();
+        base64Images.add(base64Encode(bytes));
+      }
+      
+      final payload = {
+        'messages': [
+          {'role': 'system', 'content': systemPrompt},
+          {
+            'role': 'user', 
+            'content': userMessage,
+            'images': base64Images
+          }
+        ],
+        'action': action,
+      };
+
+      final response = await _functions.invoke(
+        'butler-ai-openrouter',
+        body: {'messages': payload['messages'], 'action': action},
+      );
+
+      return _parseResponse(response);
+    } catch (e) {
+      print('AI Vision Error: $e');
+      return {'success': false, 'error': 'Errore analisi visione: $e'};
     }
   }
 }

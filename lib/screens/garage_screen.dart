@@ -509,7 +509,7 @@ class _GarageScreenState extends State<GarageScreen> {
                               child: Stack(
                                 children: [
                                   Center(
-                                    child: bike.bikeImagePath != null
+                                    child: (bike.bikeImagePath != null && bike.bikeImagePath!.isNotEmpty)
                                         ? Image.file(
                                             File(bike.bikeImagePath!),
                                             fit: BoxFit.cover,

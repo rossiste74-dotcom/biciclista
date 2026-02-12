@@ -59,7 +59,8 @@
         "save": "Salva",
         "delete": "Elimina",
         "edit": "Modifica",
-        "understood": "Ho capito"
+        "understood": "Ho capito",
+        "refresh": "Aggiorna"
     },
     "map": {
         "navigation_title": "Navigazione"

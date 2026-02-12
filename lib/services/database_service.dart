@@ -7,6 +7,7 @@ import '../models/planned_ride.dart';
 import '../models/track.dart';
 import '../models/health_snapshot.dart';
 import '../models/alert_rule.dart';
+import '../models/biomechanics_analysis.dart';
 
 /// Singleton service for Cloud-Only database operations via Supabase
 class DatabaseService {
@@ -284,6 +285,47 @@ class DatabaseService {
     return (res as List).map((map) => _mapPlannedRide(map)).toList();
   }
   
+  Future<List<PlannedRide>> getImportedRides() async {
+    final uid = _userId;
+    if (uid == null) return [];
+
+    // Fetch rides with "Health" marker in NAME (since notes column is missing)
+    final res = await _supabase.from('planned_rides')
+        .select()
+        .eq('user_id', uid)
+        .ilike('ride_name', '%(Health)%')
+        .order('ride_date', ascending: false);
+
+    return (res as List).map((map) => _mapPlannedRide(map)).toList();
+  }
+
+  /// Get total kilometers from imported "Other" activities (non-cycling)
+  Future<double> getOtherActivitiesKm() async {
+    final uid = _userId;
+    if (uid == null) return 0.0;
+
+    final res = await _supabase.from('planned_rides')
+        .select()
+        .eq('user_id', uid)
+        .eq('is_completed', true)
+        .ilike('ride_name', '%(Health)%')
+        .order('ride_date', ascending: false);
+
+    final rides = (res as List).map((map) => _mapPlannedRide(map)).toList();
+    
+    // Filter out cycling activities
+    final otherActivities = rides.where((r) {
+      final name = (r.rideName ?? '').toUpperCase();
+      return !name.contains('CYCLING') && !name.contains('BIKING');
+    });
+    
+    double total = 0;
+    for (var r in otherActivities) {
+      total += r.distance;
+    }
+    return total;
+  }
+
   PlannedRide _mapPlannedRide(Map<String, dynamic> map) {
     final r = PlannedRide();
     r.id = map['id']?.toString();
@@ -625,6 +667,55 @@ class DatabaseService {
         'organizers': [],
         'laziest': [],
       };
+    }
+  }
+
+  // ==================== Biomechanics CRUD ====================
+
+  Future<void> saveBiomechanicsAnalysis(BiomechanicsAnalysis analysis) async {
+    final uid = _userId;
+    if (uid == null) return;
+
+    try {
+      await _supabase.from('biomechanics_analyses').insert({
+        'user_id': uid,
+        'analysis_data': analysis.toJson(),
+        'verdict': analysis.verdict ?? '',
+        'bike_type': analysis.metadata.bikeTypeDetected.name.toUpperCase(),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Error saving biomechanics analysis: $e');
+    }
+  }
+
+  Future<BiomechanicsAnalysis?> getLatestBiomechanicsAnalysis() async {
+    final uid = _userId;
+    if (uid == null) return null;
+
+    try {
+      final data = await _supabase
+          .from('biomechanics_analyses')
+          .select()
+          .eq('user_id', uid)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (data == null) return null;
+
+      // Extract model from JSON
+      final analysisData = data['analysis_data'] as Map<String, dynamic>;
+      
+      return BiomechanicsAnalysis.fromJson({
+        ...analysisData,
+        'verdict': data['verdict'],
+        'created_at': data['created_at'],
+        'id': data['id'],
+      });
+    } catch (e) {
+      print('Error fetching latest biomechanics analysis: $e');
+      return null;
     }
   }
 

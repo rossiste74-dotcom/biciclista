@@ -65,14 +65,18 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
           children: [
             Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/butler_avatar.png',
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
+CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: const AssetImage('assets/butler_avatar.png'),
+                  child: const Align(
+                    alignment: Alignment.bottomRight,
+                    child: SizedBox(), // Fallback handled by background image failing gracefully
                   ),
+                  onBackgroundImageError: (_, __) {
+                    // This callback allows us to handle errors without crashing
+                    debugPrint('Error loading butler avatar');
+                  },
                 ),
                 const SizedBox(width: 12),
                 Expanded(

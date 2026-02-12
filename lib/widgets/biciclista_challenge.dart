@@ -103,7 +103,7 @@ class BiciclistaChallenge extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${currentValue.toStringAsFixed(0)} / ${targetValue.toStringAsFixed(0)}',
+                  '${currentValue.toStringAsFixed(3)} / ${targetValue.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.bold,

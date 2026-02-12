@@ -600,7 +600,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       await Share.shareXFiles(
         [XFile(gpxPath, mimeType: 'application/gpx+xml')],
         text: 'Che ne pensi di questa traccia per veri Biciclisti!!! 🚴‍♂️💨 \n\n'
-              '📊 ${widget.plannedRide.distance.toStringAsFixed(1)} km | ⛰️ ${widget.plannedRide.elevation.toInt()} m',
+              '📊 ${widget.plannedRide.distance.toStringAsFixed(3)} km | ⛰️ ${widget.plannedRide.elevation.toInt()} m',
         subject: widget.plannedRide.rideName ?? 'Condivisione Percorso',
       );
 
