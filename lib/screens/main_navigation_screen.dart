@@ -4,7 +4,7 @@ import 'package:gpx/gpx.dart';
 import 'dashboard_screen.dart';
 import 'routes_library_screen.dart';
 import 'settings_screen.dart';
-import 'unified_agenda_screen.dart';
+import 'community_screen.dart';
 import 'discovery_screen.dart';
 import 'package:biciclistico/screens/gpx_import_screen.dart';
 
@@ -12,6 +12,7 @@ import 'manual_ride_screen.dart';
 import 'qr_scan_screen.dart';
 import 'route_planner_screen.dart';
 import 'profile_screen.dart';
+import 'ai_lab_screen.dart'; // Added for Phase 3
 
 import 'garage_screen.dart';
 import '../services/sync_service.dart';
@@ -41,7 +42,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const DashboardScreen(),
       const RoutesLibraryScreen(),
       const GarageScreen(),
-      const UnifiedAgendaScreen(),
+      const CommunityScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
 
@@ -430,7 +431,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 2:
         return const Text('Garage');
       case 3:
-        return const Text('Agenda');
+        return const Text('Community');
       default:
         return const Text('biciclistico');
     }
@@ -475,45 +476,132 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Text(
+                    'biciclistico',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Gestisci la tua passione',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.psychology),
+              title: const Text('Laboratorio AI'),
+              subtitle: const Text('Coach e Biomeccanica'),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AiLabScreen()),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Impostazioni'),
+              onTap: () async {
+                Navigator.pop(context); // Close drawer
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+                if (result == true) {
+                   await _checkExternalActivities();
+                   setState(() {});
+                }
+              },
+            ),
+          ],
+        ),
+      ),
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          if (index == 3) {
-             _crewRefreshNotifier.value++;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.directions_bike_outlined),
-            selectedIcon: Icon(Icons.directions_bike),
-            label: 'Percorsi',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.garage_outlined),
-            selectedIcon: Icon(Icons.garage),
-            label: 'Garage',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Agenda',
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddMenu,
+        elevation: 2,
+        child: const Icon(Icons.add),
       ),
-      floatingActionButton: null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8.0,
+        height: 60.0,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Home')),
+            Expanded(child: _buildNavItem(1, Icons.directions_bike_outlined, Icons.directions_bike, 'Percorsi')),
+            const SizedBox(width: 48), // Spazio per il FAB
+            Expanded(child: _buildNavItem(2, Icons.garage_outlined, Icons.garage, 'Garage')),
+            Expanded(child: _buildNavItem(3, Icons.people_outline, Icons.people, 'Community')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData outlineIcon, IconData solidIcon, String label) {
+    final isSelected = _selectedIndex == index;
+    final color = isSelected 
+        ? Theme.of(context).colorScheme.primary 
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+        if (index == 3) {
+          _crewRefreshNotifier.value++;
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isSelected ? solidIcon : outlineIcon, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
+

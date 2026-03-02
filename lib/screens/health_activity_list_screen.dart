@@ -112,9 +112,7 @@ class _HealthActivityListScreenState extends State<HealthActivityListScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => HealthActivityDetailScreen(
-                activityDate: ride.rideDate,
-                activityType: ride.rideName ?? "Attività",
-                distance: ride.distance,
+                plannedRide: ride,
               ),
             ),
           );

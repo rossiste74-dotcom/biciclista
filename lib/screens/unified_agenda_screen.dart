@@ -9,10 +9,17 @@ import 'group_ride_detail_screen.dart';
 import 'create_group_ride_screen.dart';
 import '../services/configuration_service.dart';
 import '../services/database_service.dart';
+import '../models/planned_ride.dart';
+import 'health_activity_detail_screen.dart';
 
 /// Unified agenda screen showing all user activities (created + joined)
 class UnifiedAgendaScreen extends StatefulWidget {
-  const UnifiedAgendaScreen({super.key});
+  final int initialTabIndex;
+
+  const UnifiedAgendaScreen({
+    super.key,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<UnifiedAgendaScreen> createState() => _UnifiedAgendaScreenState();
@@ -22,13 +29,18 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
   final _crewService = CrewService();
   List<GroupRide> _upcomingActivities = [];
   List<GroupRide> _completedActivities = [];
+  List<PlannedRide> _personalCompletedRides = [];
   bool _isLoading = true;
   late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3, 
+      vsync: this, 
+      initialIndex: widget.initialTabIndex,
+    );
     _loadActivities();
   }
 
@@ -45,6 +57,7 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
     try {
       final activities = await _crewService.getUnifiedActivityAgenda();
       final myCompletedIds = await _db.getCompletedGroupRideIds();
+      final personalActivities = await _db.getCompletedRides();
       
       if (mounted) {
         setState(() {
@@ -73,6 +86,8 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
           _completedActivities = activities.where((a) {
              return myCompletedIds.contains(a.id);
           }).toList();
+          
+          _personalCompletedRides = personalActivities;
           
           _isLoading = false;
         });
@@ -119,7 +134,8 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
                 _buildCompletedTab(),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
+      // Hide FAB on Completed tab
+      floatingActionButton: _tabController.index == 2 ? null : FloatingActionButton(
         heroTag: 'agenda_add_btn',
         onPressed: () async {
           final result = await Navigator.push(
@@ -156,21 +172,118 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
   }
 
   Widget _buildCompletedTab() {
-    if (_completedActivities.isEmpty) return _buildEmptyCompletedState();
+    final List<dynamic> allCompleted = [
+      ..._completedActivities,
+      ..._personalCompletedRides,
+    ];
+
+    if (allCompleted.isEmpty) return _buildEmptyCompletedState();
+
+    // Sort descending by date (most recent first)
+    allCompleted.sort((a, b) {
+      final dateA = (a is GroupRide) ? a.meetingTime : (a as PlannedRide).rideDate;
+      final dateB = (b is GroupRide) ? b.meetingTime : (b as PlannedRide).rideDate;
+      return dateB.compareTo(dateA); 
+    });
 
     return RefreshIndicator(
       onRefresh: _loadActivities,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _completedActivities.length,
+        itemCount: allCompleted.length,
         itemBuilder: (context, index) {
-          final activity = _completedActivities[index];
-          return ActivityCard(
-            activity: activity,
-            showJoinButton: false,
-            onTap: () => _openActivityDetail(activity),
-          );
+          final item = allCompleted[index];
+          if (item is GroupRide) {
+            return ActivityCard(
+              activity: item,
+              showJoinButton: false,
+              onTap: () => _openActivityDetail(item),
+            );
+          } else if (item is PlannedRide) {
+            return _buildPersonalActivityCard(item);
+          }
+          return const SizedBox();
         },
+      ),
+    );
+  }
+
+  Widget _buildPersonalActivityCard(PlannedRide ride) {
+    final dateFormat = DateFormat('dd MMM yyyy - HH:mm');
+    final dateStr = dateFormat.format(ride.rideDate);
+    
+    IconData icon = Icons.directions_run; 
+    Color iconColor = Colors.orange;
+    
+    final nameInput = (ride.rideName ?? "").toUpperCase();
+    if (nameInput.contains("CYCLING") || nameInput.contains("BIKING") || nameInput.contains("CICLISMO") || nameInput.contains("BICI")) {
+      icon = Icons.directions_bike;
+      iconColor = Colors.blue;
+    } else if (nameInput.contains("WALKING") || nameInput.contains("CAMMINATA")) {
+      icon = Icons.directions_walk;
+      iconColor = Colors.green;
+    } else if (nameInput.contains("SWIMMING") || nameInput.contains("NUOTO")) {
+      icon = Icons.pool;
+      iconColor = Colors.cyan;
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HealthActivityDetailScreen(
+                plannedRide: ride,
+              ),
+            ),
+          ).then((_) => _loadActivities());
+        },
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withOpacity(0.1),
+          child: Icon(icon, color: iconColor),
+        ),
+        title: Text(
+          ride.rideName ?? "Attività",
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(dateStr, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
+              if (ride.notes != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  ride.notes!,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              "${ride.distance.toStringAsFixed(1)} km",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (ride.elevation > 0)
+              Text(
+                "${ride.elevation.toStringAsFixed(0)} m",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+          ],
+        ),
       ),
     );
   }

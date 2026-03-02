@@ -14,21 +14,9 @@ import '../services/health_sync_service.dart';
 import '../services/crew_service.dart';
 import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
-import '../widgets/metric_sparkline_chart.dart';
-import '../widgets/ai_coach_card.dart';
 import '../widgets/biciclista_wisdom.dart';
-import '../widgets/biciclista_stats.dart';
-import '../widgets/biciclista_maintenance.dart';
 import '../widgets/biciclista_weather.dart';
-import '../widgets/biciclista_weather.dart';
-import '../widgets/biciclista_challenge.dart';
-import '../widgets/biciclista_leaderboard.dart';
-import '../widgets/biomechanics_card.dart'; // Added
-import 'gpx_import_screen.dart';
-import 'leaderboard_screen.dart';
 import 'route_detail_screen.dart';
-import 'route_planner_screen.dart';
-import 'health_activity_list_screen.dart';
 
 /// The main application dashboard centralizing health and ride data
 class DashboardScreen extends StatefulWidget {
@@ -224,47 +212,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       delegate: SliverChildListDelegate([
                         BiciclistaWisdom(),
                         const SizedBox(height: 24),
-                        _buildStatsSection(),
-                        const SizedBox(height: 24),
-                        _buildBiometricStatsSection(),
+                        _buildWeatherWidget(),
                         const SizedBox(height: 24),
                         _buildReadinessSection(),
                         const SizedBox(height: 24),
-                        const AICoachCard(),
-                        const SizedBox(height: 24),
-                        const BiomechanicsCard(), // Added
-                        const SizedBox(height: 24),
                         _buildNextRideSection(),
-                        const SizedBox(height: 24),
-                        _buildTotalReadinessTrend(),
-                        const SizedBox(height: 24),
-                        _buildTrendsSection(),
-                        const SizedBox(height: 24),
-                        // Il Biciclista widgets at the bottom
-                        BiciclistaStats(
-                          weeklyKm: _weeklyKm,
-                          weeklyRides: _totalRides, // Using total for now, could filter weekly
-                          statsMessages: _statsMessages,
-                        ),
-                        const SizedBox(height: 24),
-                        _buildWeatherWidget(),
-                        const SizedBox(height: 24),
-                        _buildMaintenanceWidget(),
-                        const SizedBox(height: 24),
-                        BiciclistaChallenge(
-                          challengeTitle: 'dashboard.challenge_title'.tr(),
-                          targetValue: 100,
-                          currentValue: _weeklyKm,
-                          challengeMessages: _challengeMessages,
-                        ),
-                        const SizedBox(height: 24),
-                        if (_leaderboardData.isNotEmpty && _leaderboardData['most_active'] != null)
-                          BiciclistaLeaderboard(
-                            leaderboardData: _leaderboardData,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
-                            ),
-                          ),
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -276,165 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsSection() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.directions_bike,
-                value: _totalRides.toString(),
-                label: 'dashboard.total_rides'.tr(),
-                color: Colors.blue,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.route,
-                value: '${_totalKm.toStringAsFixed(3)} km',
-                label: 'dashboard.total_km'.tr(),
-                color: Colors.green,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HealthActivityListScreen(),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.calendar_today,
-                value: '${_weeklyKm.toStringAsFixed(3)} km',
-                label: 'dashboard.weekly_km'.tr(),
-                color: Colors.orange,
-              ),
-            ),
-          ],
-        ),
-        if (_otherActivitiesKm > 0) ...[
-          const SizedBox(height: 12),
-          _buildStatCard(
-            icon: Icons.fitness_center,
-            value: '${_otherActivitiesKm.toStringAsFixed(3)} km',
-            label: 'Altre Attività',
-            color: Colors.purple,
-          ),
-        ],
-      ],
-    );
-  }
 
-  Widget _buildBiometricStatsSection() {
-    if (_profile == null) return const SizedBox.shrink();
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.monitor_weight_outlined,
-            value: '${_profile!.weight.toStringAsFixed(1)} kg',
-            label: 'dashboard.weight'.tr(),
-            color: Colors.purple,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.favorite_border,
-            value: '${_profile!.hrv} ms',
-            label: 'dashboard.hrv'.tr(),
-            color: Colors.red,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.bed_outlined,
-            value: '${_profile!.sleepHours.toStringAsFixed(1)} h',
-            label: 'dashboard.sleep'.tr(),
-            color: Colors.indigo,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTotalReadinessTrend() {
-    if (_readinessTrend.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'dashboard.readiness_trend'.tr(),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        MetricSparklineChart(
-          label: 'Readiness Score',
-          values: _readinessTrend,
-          color: Colors.orange,
-          unit: '',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-  required IconData icon,
-  required String value,
-  required String label,
-  required Color color,
-  VoidCallback? onTap,
-}) {
-  final card = Card(
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
-  
-  if (onTap != null) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: card,
-    );
-  }
-  
-  return card;
-}
 
   Widget _buildReadinessSection() {
     final score = _profile != null 
@@ -520,113 +314,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
   }
 
-  Widget _buildTrendsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'dashboard.trend_7_days'.tr(),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _hrvTrend.length >= 2
-                  ? MetricSparklineChart(
-                      label: 'HRV',
-                      values: _hrvTrend,
-                      color: Colors.blue,
-                      unit: 'ms',
-                    )
-                  : _buildNoDataCard(
-                      'HRV', 
-                      _hrvTrend.isNotEmpty ? '${_hrvTrend.last.toInt()} ms' : 'dashboard.sync_placeholder'.tr(),
-                      isPlaceholder: _hrvTrend.isEmpty,
-                    ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _weightTrend.length >= 2
-                  ? MetricSparklineChart(
-                      label: 'Peso',
-                      values: _weightTrend,
-                      color: Colors.purple,
-                      unit: 'kg',
-                    )
-                  : _buildNoDataCard(
-                      'Peso', 
-                      _weightTrend.isNotEmpty ? '${_weightTrend.last.toStringAsFixed(1)} kg' : 'dashboard.sync_placeholder'.tr(),
-                      isPlaceholder: _weightTrend.isEmpty,
-                    ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
-  Widget _buildNoDataCard(String label, String value, {bool isPlaceholder = true}) {
-    // ... existing code ...
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Column(
-                children: [
-                  Icon(
-                    isPlaceholder ? Icons.show_chart : Icons.insights,
-                    color: isPlaceholder 
-                        ? Theme.of(context).colorScheme.outline 
-                        : Theme.of(context).colorScheme.primary,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    value,
-                    style: isPlaceholder 
-                      ? Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        )
-                      : Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (!isPlaceholder)
-                    Text(
-                      'dashboard.sync_hint'.tr(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                        fontSize: 10,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
+
 
   Widget _buildWeatherWidget() {
     // Use outfit suggestion weather data if available, otherwise defaults
@@ -641,12 +331,5 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMaintenanceWidget() {
-    // Check if there are any bikes with components near limit
-    // For now, show "all OK" - this could be enhanced to check actual bike data
-    return BiciclistaMaintenance(
-      allOk: true,
-      maintenanceMessages: _maintenanceMessages,
-    );
-  }
+
 }

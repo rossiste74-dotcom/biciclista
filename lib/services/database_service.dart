@@ -356,6 +356,8 @@ class DatabaseService {
        'ride_date': ride.rideDate.toIso8601String(),
        'distance': ride.distance,
        'is_completed': ride.isCompleted,
+       'track_id': ride.trackId,
+       'bicycle_id': ride.bicycleId,
        'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', ride.id!);
   }
