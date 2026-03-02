@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -142,45 +143,44 @@ class _HealthActivityDetailScreenState extends State<HealthActivityDetailScreen>
 
   Future<void> _loadTrackRouteData(Track track) async {
     try {
-      File? gpxFile;
-      if (track.gpxFilePath != null) {
+      String? gpxString;
+      
+      if (!kIsWeb && track.gpxFilePath != null) {
         final f = File(track.gpxFilePath!);
-        if (await f.exists()) gpxFile = f;
+        if (await f.exists()) gpxString = await f.readAsString();
       }
-      if (gpxFile == null && track.gpxUrl != null) {
+      if (gpxString == null && track.gpxUrl != null) {
          try {
            final url = await TrackService().getGpxUrl(track);
            if (url != null) {
              final response = await http.get(Uri.parse(url));
              if (response.statusCode == 200) {
-                final dir = await getTemporaryDirectory();
-                final filename = track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
-                final file = File('${dir.path}/$filename');
-                await file.writeAsBytes(response.bodyBytes);
-                gpxFile = file;
-                track.gpxFilePath = file.path;
+                gpxString = utf8.decode(response.bodyBytes);
+                if (!kIsWeb) {
+                  final dir = await getTemporaryDirectory();
+                  final filename = track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
+                  final file = File('${dir.path}/$filename');
+                  await file.writeAsString(gpxString);
+                  track.gpxFilePath = file.path;
+                }
              }
            }
          } catch(e) {
            debugPrint('Error downloading GPX: $e');
          }
       }
-      if (gpxFile == null && track.communityGpxData != null) {
+      if (gpxString == null && track.communityGpxData != null) {
         try {
            final dynamic parsedJson = jsonDecode(track.communityGpxData!);
            final gpx = GpxOptimizer.jsonToGpx(parsedJson);
-           final dir = await getTemporaryDirectory();
-           final filename = 'community_${track.id ?? "temp"}.gpx';
-           final file = File('${dir.path}/$filename');
-           final xmlString = GpxWriter().asString(gpx, pretty: true);
-           await file.writeAsString(xmlString);
-           gpxFile = file;
+           gpxString = GpxWriter().asString(gpx, pretty: true);
         } catch (e) {
            debugPrint('Error parsing community GPX data: $e');
         }
       }
-      if (gpxFile != null) {
-        _routeData = await GpxService().parseGpxFile(gpxFile);
+      
+      if (gpxString != null) {
+        _routeData = await GpxService().parseGpxString(gpxString);
       }
     } catch (e) {
       debugPrint('Error loading track route data: $e');

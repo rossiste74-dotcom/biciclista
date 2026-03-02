@@ -40,6 +40,11 @@ class GpxService {
   /// - 'climbs': List of Climb
   Future<Map<String, dynamic>> parseGpxFile(File gpxFile) async {
     final gpxString = await gpxFile.readAsString();
+    return parseGpxString(gpxString);
+  }
+
+  /// Parse a GPX string and extract route data
+  Future<Map<String, dynamic>> parseGpxString(String gpxString) async {
     final gpx = GpxReader().fromString(gpxString);
 
     if (gpx.trks.isEmpty || gpx.trks.first.trksegs.isEmpty) {

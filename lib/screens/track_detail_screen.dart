@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/gpx_optimizer.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -60,32 +61,33 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
   Future<void> _loadRouteData() async {
     try {
-      File? gpxFile;
+      String? gpxString;
 
       // 1. Try local file path from object
-      if (widget.track.gpxFilePath != null) {
+      if (!kIsWeb && widget.track.gpxFilePath != null) {
         final f = File(widget.track.gpxFilePath!);
         if (await f.exists()) {
-          gpxFile = f;
+          gpxString = await f.readAsString();
         }
       }
 
       // 2. If no local file, try to download from Cloud
-      if (gpxFile == null && widget.track.gpxUrl != null) {
+      if (gpxString == null && widget.track.gpxUrl != null) {
          try {
            final url = await _trackService.getGpxUrl(widget.track);
            if (url != null) {
              // Download
              final response = await http.get(Uri.parse(url));
              if (response.statusCode == 200) {
-                // Save to temp
-                final dir = await getTemporaryDirectory();
-                // Simple sanitize filename
-                final filename = widget.track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
-                final file = File('${dir.path}/$filename');
-                await file.writeAsBytes(response.bodyBytes);
-                gpxFile = file;
-                widget.track.gpxFilePath = file.path; // Update local ref
+                gpxString = utf8.decode(response.bodyBytes);
+                // Save to temp on mobile
+                if (!kIsWeb) {
+                  final dir = await getTemporaryDirectory();
+                  final filename = widget.track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
+                  final file = File('${dir.path}/$filename');
+                  await file.writeAsString(gpxString);
+                  widget.track.gpxFilePath = file.path; // Update local ref
+                }
              }
            }
          } catch(e) {
@@ -94,22 +96,12 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       }
 
       // 3. Fallback: Check for embedded JSON data (community tracks)
-      if (gpxFile == null && widget.track.communityGpxData != null) {
+      if (gpxString == null && widget.track.communityGpxData != null) {
         try {
            debugPrint('Attempting to parse community GPX data...');
            final dynamic parsedJson = jsonDecode(widget.track.communityGpxData!);
            final gpx = GpxOptimizer.jsonToGpx(parsedJson);
-           
-           final dir = await getTemporaryDirectory();
-           final filename = 'community_${widget.track.id ?? "temp"}.gpx';
-           final file = File('${dir.path}/$filename');
-           
-           // Write XML string to file
-           final xmlString = GpxWriter().asString(gpx, pretty: true);
-           await file.writeAsString(xmlString);
-           
-           gpxFile = file;
-           debugPrint('Community GPX converted to file: ${file.path}');
+           gpxString = GpxWriter().asString(gpx, pretty: true);
         } catch (e, stack) {
            debugPrint('Error parsing community GPX data: $e');
            debugPrint(stack.toString());
@@ -119,11 +111,11 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
              );
            }
         }
-      } else if (gpxFile == null && widget.track.gpxUrl == null) {
+      } else if (gpxString == null && widget.track.gpxUrl == null) {
          debugPrint('No GPX file or URL found for track.');
       }
 
-      if (gpxFile == null) {
+      if (gpxString == null) {
         if (mounted) setState(() => _isLoading = false);
         if (_routeData == null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -134,7 +126,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         return;
       }
       
-      _routeData = await _gpxService.parseGpxFile(gpxFile);
+      _routeData = await _gpxService.parseGpxString(gpxString);
       
       if (mounted) {
         setState(() => _isLoading = false);
