@@ -8,11 +8,12 @@ import '../models/planned_ride.dart';
 
 /// Service for synchronizing health data from Apple Health or Google Fit
 class HealthSyncService {
-  final _health = Health();
+  Health? get _health => kIsWeb ? null : Health();
   final _db = DatabaseService();
 
   /// Request permissions for required health data types
   Future<bool> requestPermissions() async {
+    if (kIsWeb) return false;
     // Health Connect is used by default on Android 14+
 
     final types = [
@@ -26,7 +27,7 @@ class HealthSyncService {
     ];
 
     try {
-      final status = await _health.getHealthConnectSdkStatus();
+      final status = await _health!.getHealthConnectSdkStatus();
       debugPrint('Health Connect Status: $status');
 
       if (status == HealthConnectSdkStatus.sdkUnavailable) {
@@ -34,7 +35,7 @@ class HealthSyncService {
          return false;
       }
       
-      return await _health.requestAuthorization(
+      return await _health!.requestAuthorization(
         types,
         permissions: types.map((e) => HealthDataAccess.READ).toList(),
       );
@@ -46,6 +47,8 @@ class HealthSyncService {
 
   /// Synchronize health data for the last 7 days
   Future<void> syncRecentData() async {
+    if (kIsWeb) return;
+    
     final prefs = await SharedPreferences.getInstance();
     final List<HealthDataType> types = [];
 
@@ -64,7 +67,7 @@ class HealthSyncService {
     final startDate = now.subtract(const Duration(days: 7));
     
     try {
-      final healthData = await _health.getHealthDataFromTypes(
+      final healthData = await _health!.getHealthDataFromTypes(
         startTime: startDate,
         endTime: now,
         types: types,
@@ -128,6 +131,13 @@ class HealthSyncService {
   /// Check for new activities (e.g. > 50km ride) since last check 
   /// and trigger notification if found.
   Future<void> checkNewActivities() async {
+    // 0. Auto-sync biometrics in the background on startup
+    try {
+      await syncRecentData();
+    } catch (e) {
+      debugPrint("Background biometric sync failed: $e");
+    }
+
     // 1. Check if already notified today
     final prefs = await SharedPreferences.getInstance();
     
@@ -156,7 +166,7 @@ class HealthSyncService {
     final types = [HealthDataType.WORKOUT];
     
     try {
-      final workouts = await _health.getHealthDataFromTypes(
+      final workouts = await _health!.getHealthDataFromTypes(
         startTime: start,
         endTime: end,
         types: types,

@@ -35,7 +35,7 @@ class HealthActivityDetailScreen extends StatefulWidget {
 }
 
 class _HealthActivityDetailScreenState extends State<HealthActivityDetailScreen> {
-  final Health _health = Health();
+  Health? get _health => kIsWeb ? null : Health();
   bool _isLoading = true;
   
   // Workout details
@@ -68,57 +68,64 @@ class _HealthActivityDetailScreenState extends State<HealthActivityDetailScreen>
       final start = activityDate.subtract(const Duration(minutes: 5));
       final end = activityDate.add(const Duration(hours: 3)); // Most workouts < 3h
       
-      // Get workout data
-      final workouts = await _health.getHealthDataFromTypes(
-        startTime: start,
-        endTime: end,
-        types: [HealthDataType.WORKOUT],
-      );
-      
-      if (workouts.isNotEmpty) {
-        final workout = workouts.first;
+      // Only fetch health data on mobile devices
+      if (!kIsWeb) {
+        // Get workout data
+        final workouts = await _health!.getHealthDataFromTypes(
+          startTime: start,
+          endTime: end,
+          types: [HealthDataType.WORKOUT],
+        );
         
-        // Calculate duration
-        _duration = workout.dateTo.difference(workout.dateFrom);
-        
-        // Calculate avg speed (km/h)
-        if (_duration != null && _duration!.inSeconds > 0) {
-          _avgSpeed = (widget.plannedRide.distance / _duration!.inHours);
+        if (workouts.isNotEmpty) {
+          final workout = workouts.first;
+          
+          // Calculate duration
+          _duration = workout.dateTo.difference(workout.dateFrom);
+          
+          // Calculate avg speed (km/h)
+          if (_duration != null && _duration!.inSeconds > 0) {
+            _avgSpeed = (widget.plannedRide.distance / _duration!.inHours);
+          }
         }
       }
       
       // Try to get heart rate data in the same time range
-      try {
-        final DateTime activityDate = widget.plannedRide.rideDate;
-        final hrData = await _health.getHealthDataFromTypes(
-          startTime: activityDate,
-          endTime: activityDate.add(_duration ?? const Duration(hours: 1)),
-          types: [HealthDataType.HEART_RATE],
-        );
-        
-        if (hrData.isNotEmpty) {
-          final hrValues = hrData.map((e) => (e.value as NumericHealthValue).numericValue.toDouble()).toList();
-          _avgHeartRate = hrValues.reduce((a, b) => a + b) / hrValues.length;
-          _maxHeartRate = hrValues.reduce((a, b) => a > b ? a : b).toDouble();
+      if (!kIsWeb) {
+        try {
+          final DateTime activityDate = widget.plannedRide.rideDate;
+          final hrData = await _health!.getHealthDataFromTypes(
+            startTime: activityDate,
+            endTime: activityDate.add(_duration ?? const Duration(hours: 1)),
+            types: [HealthDataType.HEART_RATE],
+          );
+          
+          if (hrData.isNotEmpty) {
+            final hrValues = hrData.map((e) => (e.value as NumericHealthValue).numericValue.toDouble()).toList();
+            _avgHeartRate = hrValues.reduce((a, b) => a + b) / hrValues.length;
+            _maxHeartRate = hrValues.reduce((a, b) => a > b ? a : b).toDouble();
+          }
+        } catch (e) {
+          debugPrint('Could not fetch heart rate: $e');
         }
-      } catch (e) {
-        debugPrint('Could not fetch heart rate: $e');
       }
       
       // Try to get steps
-      try {
-        final DateTime activityDate = widget.plannedRide.rideDate;
-        final stepsData = await _health.getHealthDataFromTypes(
-          startTime: activityDate,
-          endTime: activityDate.add(_duration ?? const Duration(hours: 1)),
-          types: [HealthDataType.STEPS],
-        );
-        
-        if (stepsData.isNotEmpty) {
-          _steps = stepsData.map((e) => (e.value as NumericHealthValue).numericValue.toInt()).reduce((a, b) => a + b);
+      if (!kIsWeb) {
+        try {
+          final DateTime activityDate = widget.plannedRide.rideDate;
+          final stepsData = await _health!.getHealthDataFromTypes(
+            startTime: activityDate,
+            endTime: activityDate.add(_duration ?? const Duration(hours: 1)),
+            types: [HealthDataType.STEPS],
+          );
+          
+          if (stepsData.isNotEmpty) {
+            _steps = stepsData.map((e) => (e.value as NumericHealthValue).numericValue.toInt()).reduce((a, b) => a + b);
+          }
+        } catch (e) {
+          debugPrint('Could not fetch steps: $e');
         }
-      } catch (e) {
-        debugPrint('Could not fetch steps: $e');
       }
       
       // Load assigned entities if any

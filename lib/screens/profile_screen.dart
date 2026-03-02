@@ -13,6 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
 import 'health_activity_list_screen.dart';
 import 'unified_agenda_screen.dart';
+import 'garage_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -59,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadProfile();
   }
 
@@ -192,6 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           tabs: const [
             Tab(icon: Icon(Icons.insights), text: 'Statistiche'),
             Tab(icon: Icon(Icons.person), text: 'Dati Personali'),
+            Tab(icon: Icon(Icons.garage), text: 'Garage'),
           ],
         ),
       ),
@@ -202,6 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               children: [
                 _buildAnalysisTab(),
                 _buildPersonalDataTab(),
+                const GarageScreen(),
               ],
             ),
     );

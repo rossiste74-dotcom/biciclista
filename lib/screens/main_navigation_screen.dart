@@ -41,7 +41,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _screens = [
       const DashboardScreen(),
       const RoutesLibraryScreen(),
-      const GarageScreen(),
+      const AiLabScreen(),
       const CommunityScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
@@ -429,7 +429,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 1:
         return const Text('Percorsi');
       case 2:
-        return const Text('Garage');
+        return const Text('Laboratorio AI');
       case 3:
         return const Text('Community');
       default:
@@ -476,66 +476,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Text(
-                    'biciclistico',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Gestisci la tua passione',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.psychology),
-              title: const Text('Laboratorio AI'),
-              subtitle: const Text('Coach e Biomeccanica'),
-              onTap: () {
-                Navigator.pop(context); // Close drawer
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AiLabScreen()),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Impostazioni'),
-              onTap: () async {
-                Navigator.pop(context); // Close drawer
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
-                if (result == true) {
-                   await _checkExternalActivities();
-                   setState(() {});
-                }
-              },
-            ),
-          ],
-        ),
-      ),
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
@@ -557,7 +497,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Expanded(child: _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Home')),
             Expanded(child: _buildNavItem(1, Icons.directions_bike_outlined, Icons.directions_bike, 'Percorsi')),
             const SizedBox(width: 48), // Spazio per il FAB
-            Expanded(child: _buildNavItem(2, Icons.garage_outlined, Icons.garage, 'Garage')),
+            Expanded(child: _buildNavItem(2, Icons.psychology_outlined, Icons.psychology, 'AI Lab')),
             Expanded(child: _buildNavItem(3, Icons.people_outline, Icons.people, 'Community')),
           ],
         ),

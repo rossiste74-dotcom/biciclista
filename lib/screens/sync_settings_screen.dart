@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/health_sync_service.dart';
@@ -261,6 +262,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   }
 
   Future<String> _getDebugStats() async {
+    if (kIsWeb) return "Health Connect non è supportato sul Web.";
     final health = Health();
     final now = DateTime.now();
     final start = now.subtract(const Duration(days: 365));
