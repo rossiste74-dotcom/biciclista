@@ -12,3 +12,6 @@
 -dontwarn com.google.mlkit.vision.text.devanagari.**
 -dontwarn com.google.mlkit.vision.text.japanese.**
 -dontwarn com.google.mlkit.vision.text.korean.**
+
+# Flutter Play Store dynamic feature delivery (not used in direct APK installs)
+-dontwarn com.google.android.play.core.**
