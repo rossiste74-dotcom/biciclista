@@ -34,12 +34,22 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
   final _crewRefreshNotifier = ValueNotifier<int>(0);
-  late final List<Widget> _screens;
+
+  // One navigator key per tab so each tab has its own navigation stack
+  // while the bottom bar stays permanently visible.
+  final List<GlobalKey<NavigatorState>> _navigatorKeys = [
+    GlobalKey<NavigatorState>(), // 0 - Dashboard
+    GlobalKey<NavigatorState>(), // 1 - Percorsi
+    GlobalKey<NavigatorState>(), // 2 - AI Lab
+    GlobalKey<NavigatorState>(), // 3 - Community
+  ];
+
+  late final List<Widget> _rootScreens;
 
   @override
   void initState() {
     super.initState();
-    _screens = [
+    _rootScreens = [
       const DashboardScreen(),
       const RoutesLibraryScreen(),
       const AiLabScreen(),
@@ -480,14 +490,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final nav = _navigatorKeys[_selectedIndex].currentState;
+          if (nav != null && nav.canPop()) {
+            nav.pop();
+          }
+        },
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: List.generate(_rootScreens.length, (i) {
+            return Navigator(
+              key: _navigatorKeys[i],
+              onGenerateRoute: (settings) => MaterialPageRoute(
+                builder: (_) => _rootScreens[i],
+                settings: settings,
+              ),
+            );
+          }),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddMenu,
         elevation: 2,
-        child: const Icon(Icons.add),
+        shape: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Image.asset(
+            'assets/icona-3.png',
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -520,9 +555,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         setState(() {
           _selectedIndex = index;
         });
-        if (index == 3) {
-          _crewRefreshNotifier.value++;
-        }
       },
       borderRadius: BorderRadius.circular(16),
       child: Padding(

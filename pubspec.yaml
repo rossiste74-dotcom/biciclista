@@ -124,6 +124,7 @@ flutter:
   assets:
     - assets/icon.png
     - assets/log1.png
+    - assets/icona-3.png
     - assets/butler_avatar.png
     - assets/avatar/base/
     - assets/avatar/hair/
