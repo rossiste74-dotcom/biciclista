@@ -34,6 +34,20 @@ subprojects {
     } else {
         subproject.afterEvaluate {
             configureSdk()
+            
+            // Force JVM Target 17 for Java and Kotlin across all plugins
+            if (subproject.plugins.hasPlugin("com.android.library") || subproject.plugins.hasPlugin("com.android.application")) {
+                val android = subproject.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+                android.compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+            }
+            subproject.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                }
+            }
         }
     }
 }

@@ -133,6 +133,9 @@ CREATE TABLE IF NOT EXISTS planned_rides (
   -- Completion
   is_completed BOOLEAN DEFAULT false,
   
+  -- Community
+  supabase_event_id UUID,
+  
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

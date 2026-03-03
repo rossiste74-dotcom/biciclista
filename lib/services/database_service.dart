@@ -231,6 +231,7 @@ class DatabaseService {
       'elevation': ride.elevation,
       'track_id': ride.trackId, 
       'bicycle_id': ride.bicycleId, 
+      'supabase_event_id': ride.supabaseEventId,
       'is_completed': ride.isCompleted,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
@@ -336,6 +337,7 @@ class DatabaseService {
     r.isCompleted = map['is_completed'] ?? false;
     r.trackId = map['track_id']?.toString();
     r.bicycleId = map['bicycle_id']?.toString();
+    r.supabaseEventId = map['supabase_event_id']?.toString();
     
     if (map['personal_tracks'] != null) {
        // Ideally manually map track if needed, but simplistic for now
@@ -358,6 +360,7 @@ class DatabaseService {
        'is_completed': ride.isCompleted,
        'track_id': ride.trackId,
        'bicycle_id': ride.bicycleId,
+       'supabase_event_id': ride.supabaseEventId,
        'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', ride.id!);
   }

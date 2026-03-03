@@ -22,6 +22,7 @@ import '../models/planned_ride.dart';
 import '../models/bicycle.dart';
 import '../services/notification_service.dart';
 import '../widgets/bike_selection_dialog.dart';
+import '../services/share_intent_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -44,7 +45,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const AiLabScreen(),
       const CommunityScreen(),
     ];
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkExternalActivities());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkExternalActivities();
+      ShareIntentService().init(context);
+    });
 
     // Listen for Notification Tap (Sync Manager)
     NotificationService().onNotificationTap.listen((payload) {

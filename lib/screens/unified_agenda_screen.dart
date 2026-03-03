@@ -11,7 +11,10 @@ import '../services/configuration_service.dart';
 import '../services/database_service.dart';
 import '../models/planned_ride.dart';
 import 'health_activity_detail_screen.dart';
-
+import 'package:image_picker/image_picker.dart';
+import '../services/ocr_service.dart';
+import '../services/link_parser_service.dart';
+import 'manual_ride_screen.dart';
 /// Unified agenda screen showing all user activities (created + joined)
 class UnifiedAgendaScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -41,6 +44,9 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
       vsync: this, 
       initialIndex: widget.initialTabIndex,
     );
+    _tabController.addListener(() {
+      setState(() {});
+    });
     _loadActivities();
   }
 
@@ -134,21 +140,151 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
                 _buildCompletedTab(),
               ],
             ),
-      // Hide FAB on Completed tab
-      floatingActionButton: _tabController.index == 2 ? null : FloatingActionButton(
-        heroTag: 'agenda_add_btn',
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreateGroupRideScreen(),
+      // Show Add FAB on tabs 0 & 1, Import FAB on tab 2
+      floatingActionButton: _tabController.index == 2 
+        ? FloatingActionButton.extended(
+            heroTag: 'agenda_import_btn',
+            onPressed: _showImportOptions,
+            icon: const Icon(Icons.download),
+            label: const Text('Importa'),
+          )
+        : FloatingActionButton(
+            heroTag: 'agenda_add_btn',
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateGroupRideScreen(),
+                ),
+              );
+              if (result == true) _loadActivities();
+            },
+            child: const Icon(Icons.add),
+          ),
+    );
+  }
+
+  void _showImportOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Incolla Link (Strava/Komoot)'),
+              subtitle: const Text('Importa dati da un link'),
+              onTap: () {
+                Navigator.pop(context);
+                _showLinkImportDialog();
+              },
             ),
-          );
-          if (result == true) _loadActivities();
-        },
-        child: const Icon(Icons.add),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Scegli Immagine'),
+              subtitle: const Text('Estrai dati dal riepilogo attività'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picker = ImagePicker();
+                final image = await picker.pickImage(source: ImageSource.gallery);
+                if (image != null) {
+                  _processImportedImage(image.path);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _processImportedImage(String path) async {
+    setState(() => _isLoading = true);
+    final ocrService = OCRService();
+    try {
+      final data = await ocrService.extractRideDataFromImage(path);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _navigateToManualRide(data);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore importazione: $e')));
+      }
+    }
+  }
+
+  void _showLinkImportDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Importa da Link'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'https://...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (controller.text.isNotEmpty) {
+                _processImportedLink(controller.text);
+              }
+            },
+            child: const Text('Importa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processImportedLink(String url) async {
+    setState(() => _isLoading = true);
+    final linkParser = LinkParserService();
+    try {
+      final data = await linkParser.parseUrl(url);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (data != null) {
+           _navigateToManualRide(data);
+        } else {
+           _navigateToManualRide({'notes': url});
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore analisi link: $e')));
+      }
+    }
+  }
+
+  void _navigateToManualRide(Map<String, dynamic> data) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ManualRideScreen(
+          initialName: data['name']?.toString(),
+          initialDistance: data['distance']?.toString(),
+          initialElevation: data['elevation']?.toString(),
+          initialDate: data['date'] as DateTime?,
+          initialHeartRate: data['heartRate'] as int?,
+          initialPower: data['power'] as int?,
+          initialNotes: data['notes']?.toString(),
+        ),
+      ),
+    );
+    if (result == true) _loadActivities();
   }
 
   Widget _buildListTab() {

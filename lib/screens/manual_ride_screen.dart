@@ -4,11 +4,30 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../models/planned_ride.dart';
 import '../models/bicycle.dart';
+import '../models/track.dart';
 import '../services/database_service.dart';
+import '../services/track_service.dart';
 import '../services/ai_service.dart';
 
 class ManualRideScreen extends StatefulWidget {
-  const ManualRideScreen({super.key});
+  final String? initialName;
+  final String? initialDistance;
+  final String? initialElevation;
+  final String? initialNotes;
+  final DateTime? initialDate;
+  final int? initialHeartRate;
+  final int? initialPower;
+
+  const ManualRideScreen({
+    super.key,
+    this.initialName,
+    this.initialDistance,
+    this.initialElevation,
+    this.initialNotes,
+    this.initialDate,
+    this.initialHeartRate,
+    this.initialPower,
+  });
 
   @override
   State<ManualRideScreen> createState() => _ManualRideScreenState();
@@ -16,6 +35,7 @@ class ManualRideScreen extends StatefulWidget {
 
 class _ManualRideScreenState extends State<ManualRideScreen> {
   final _db = DatabaseService();
+  final _trackService = TrackService();
   final _formKey = GlobalKey<FormState>();
   
   DateTime _selectedDate = DateTime.now();
@@ -23,6 +43,8 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   final _distanceController = TextEditingController();
   final _elevationController = TextEditingController();
   final _notesController = TextEditingController();
+  final _hrController = TextEditingController();
+  final _powerController = TextEditingController();
   
   bool _isSearching = false;
   List<dynamic> _searchResults = [];
@@ -31,10 +53,21 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   List<Bicycle> _bicycles = [];
   Bicycle? _selectedBicycle;
 
+  List<Track> _tracks = [];
+  Track? _selectedTrack;
+
   @override
   void initState() {
     super.initState();
     _loadBicycles();
+    _loadTracks();
+    if (widget.initialDate != null) _selectedDate = widget.initialDate!;
+    if (widget.initialName != null) _nameController.text = widget.initialName!;
+    if (widget.initialDistance != null) _distanceController.text = widget.initialDistance!;
+    if (widget.initialElevation != null) _elevationController.text = widget.initialElevation!;
+    if (widget.initialNotes != null) _notesController.text = widget.initialNotes!;
+    if (widget.initialHeartRate != null) _hrController.text = widget.initialHeartRate!.toString();
+    if (widget.initialPower != null) _powerController.text = widget.initialPower!.toString();
   }
 
   Future<void> _loadBicycles() async {
@@ -44,6 +77,13 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       if (bicycles.length == 1) {
         _selectedBicycle = bicycles.first;
       }
+    });
+  }
+
+  Future<void> _loadTracks() async {
+    final tracks = await _trackService.getAllTracks();
+    setState(() {
+      _tracks = tracks;
     });
   }
 
@@ -106,6 +146,8 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       ..rideName = _nameController.text
       ..distance = double.parse(_distanceController.text)
       ..elevation = double.parse(_elevationController.text)
+      ..avgHeartRate = double.tryParse(_hrController.text)
+      ..avgPower = double.tryParse(_powerController.text)
       ..notes = _notesController.text
       ..latitude = _selectedLocation?['latitude']
       ..longitude = _selectedLocation?['longitude'];
@@ -116,6 +158,19 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       final admin = _selectedLocation!['admin1'] ?? '';
       ride.notes = 'Partenza: $locName ($admin)\n\n${_notesController.text}';
     }
+    
+    // Automatically mark as completed if the date is in the past
+    // AND we are importing an activity with data, meaning it's already done.
+    if (_selectedDate.isBefore(DateTime.now())) {
+      ride.isCompleted = true;
+      // Rough calculation of moving time based on an avg speed of 25km/h 
+      // just to have a non-zero value if user imports from link without time
+      if (ride.distance > 0) {
+        final calculatedTime = ((ride.distance / 25.0) * 3600).toInt();
+        ride.movingTime = calculatedTime;
+        ride.avgSpeed = ride.distance / (calculatedTime / 3600.0);
+      }
+    }
 
     // Save bicycle ID if selected
     if (_selectedBicycle != null) {
@@ -124,6 +179,11 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       // Update bicycle total distance
       _selectedBicycle!.totalKilometers += ride.distance;
       await _db.updateBicycle(_selectedBicycle!);
+    }
+    
+    // Save track ID if selected
+    if (_selectedTrack != null) {
+      ride.trackId = _selectedTrack!.id;
     }
 
     // Generate AI Analysis
@@ -220,29 +280,82 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _hrController,
+                              decoration: const InputDecoration(
+                                labelText: 'FC Media (bpm)',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _powerController,
+                              decoration: const InputDecoration(
+                                labelText: 'Potenza Media (W)',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
               if (_bicycles.length > 1) ...[
                 const SizedBox(height: 24),
-                _buildSectionHeader('Bicicletta'),
+                _buildSectionHeader('Equipaggiamento e Traccia'),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: DropdownButtonFormField<Bicycle>(
-                      value: _selectedBicycle,
-                      decoration: const InputDecoration(
-                        labelText: 'Scegli bicicletta',
-                        border: OutlineInputBorder(),
-                      ),
-                      hint: const Text('Seleziona la bicicletta usata'),
-                      items: _bicycles.map((bike) => DropdownMenuItem(
-                        value: bike,
-                        child: Text('${bike.name} (${bike.type})'),
-                      )).toList(),
-                      onChanged: (v) => setState(() => _selectedBicycle = v),
-                      validator: (v) => v == null ? 'Seleziona una bicicletta' : null,
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<Bicycle>(
+                          value: _selectedBicycle,
+                          decoration: const InputDecoration(
+                            labelText: 'Scegli bicicletta',
+                            border: OutlineInputBorder(),
+                          ),
+                          hint: const Text('Seleziona la bicicletta usata'),
+                          items: _bicycles.map((bike) => DropdownMenuItem(
+                            value: bike,
+                            child: Text('${bike.name} (${bike.type})'),
+                          )).toList(),
+                          onChanged: (v) => setState(() => _selectedBicycle = v),
+                          validator: (v) => v == null ? 'Seleziona una bicicletta' : null,
+                        ),
+                        if (_tracks.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<Track>(
+                            value: _selectedTrack,
+                            decoration: const InputDecoration(
+                              labelText: 'Traccia Salvata (Opzionale)',
+                              hintText: 'Associa a un tuo percorso salvato',
+                              border: OutlineInputBorder(),
+                            ),
+                            isExpanded: true,
+                            items: [
+                              const DropdownMenuItem<Track>(
+                                value: null,
+                                child: Text('Nessuna traccia'),
+                              ),
+                              ..._tracks.map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t.name),
+                              )),
+                            ],
+                            onChanged: (v) => setState(() => _selectedTrack = v),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
