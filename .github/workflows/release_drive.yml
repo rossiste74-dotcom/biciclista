@@ -1,0 +1,68 @@
+name: Release APK to Drive and Supabase
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Get current app version
+        id: get_version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build APK
+        # We use github.run_number to ensure the build number is always incremented
+        run: flutter build apk --release --build-number ${{ github.run_number }}
+
+      - name: Upload to Google Drive
+        uses: adityak74/google-drive-upload-git-action@main
+        id: upload_drive
+        with:
+          credentials: ${{ secrets.CREDENTIALS_JSON }}
+          filename: build/app/outputs/flutter-apk/app-release.apk
+          folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          name: "Biciclista_v${{ steps.get_version.outputs.version }}_b${{ github.run_number }}.apk" 
+          overwrite: "true"
+
+      - name: Update Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          FILE_ID: ${{ steps.upload_drive.outputs.fileId }}
+        run: |
+          DOWNLOAD_URL="https://drive.google.com/uc?export=download&id=$FILE_ID"
+          
+          curl -X POST "$SUPABASE_URL/rest/v1/app_versions" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{
+              \"version_name\": \"${{ steps.get_version.outputs.version }}\",
+              \"build_number\": ${{ github.run_number }},
+              \"apk_url\": \"$DOWNLOAD_URL\",
+              \"release_notes\": \"Nuovi sentieri disponibili!\"
+            }"

@@ -100,7 +100,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
         final item = items[index];
         final rank = item['rank'] as int;
         final name = item['name'] as String? ?? 'Sconosciuto';
-        final value = item['value'];
+        final rawValue = item['value'];
+        final value = rawValue is num ? rawValue.toStringAsFixed(0) : rawValue.toString();
         final isTop3 = rank <= 3;
 
         return Card(

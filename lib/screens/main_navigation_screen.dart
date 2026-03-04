@@ -23,6 +23,7 @@ import '../models/bicycle.dart';
 import '../services/notification_service.dart';
 import '../widgets/bike_selection_dialog.dart';
 import '../services/share_intent_service.dart';
+import '../services/update_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -58,6 +59,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExternalActivities();
       ShareIntentService().init(context);
+      
+      // Controllo aggiornamenti all'avvio
+      UpdateService().checkForUpdates(context);
     });
 
     // Listen for Notification Tap (Sync Manager)
@@ -515,9 +519,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddMenu,
         elevation: 2,
+        backgroundColor: Colors.black,
         shape: const CircleBorder(),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(2.0),
           child: Image.asset(
             'assets/icona-3.png',
             fit: BoxFit.contain,
