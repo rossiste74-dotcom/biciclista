@@ -15,6 +15,7 @@ import 'sync_settings_screen.dart';
 import '../services/configuration_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
+import '../services/update_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -161,100 +162,23 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.system_update_alt),
-            title: const Text('Scarica Aggiornamento'),
-            subtitle: const Text('Apri la mail con l\'ultima build'),
+            title: const Text('Cerca Aggiornamenti'),
+            subtitle: const Text('Verifica la presenza di nuove build della crew'),
             onTap: () async {
-              // Get logged-in user email
-              final userEmail = Supabase.instance.client.auth.currentUser?.email ?? '';
-              const subject = '[rossiste74-dotcom/biciclista] Build Android APK workflow run';
-
-              // Try Gmail app first (Android)
-              final gmailUrl = Uri(
-                scheme: 'googlegmail',
-                path: '//co',
-                queryParameters: {
-                  'to': userEmail,
-                  'subject': subject,
-                },
+              // Avvia il controllo manuale mostrando caricamento
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
               );
 
-              // Fallback: Gmail web search
-              final gmailWebUrl = Uri.parse(
-                'https://mail.google.com/mail/u/0/#search/${Uri.encodeComponent(subject)}',
-              );
+              await UpdateService().checkForUpdates(context, manualCheck: true);
 
-              // Fallback: generic mailto for other mail apps
-              final mailtoUrl = Uri(
-                scheme: 'mailto',
-                queryParameters: {
-                  'subject': subject,
-                },
-              );
-
-              try {
-                if (await canLaunchUrl(gmailUrl)) {
-                  await launchUrl(gmailUrl, mode: LaunchMode.externalApplication);
-                } else if (context.mounted) {
-                  // Fallback: show a dialog with user's email and instructions
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      icon: const Icon(Icons.mail_outline, size: 40),
-                      title: const Text('Apri la tua casella email'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Non è stato possibile aprire Gmail automaticamente.\n\n'
-                            'Apri manualmente la mail:',
-                          ),
-                          const SizedBox(height: 12),
-                          if (userEmail.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                userEmail,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          const SizedBox(height: 12),
-                          const Text('e cerca il messaggio con oggetto:'),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              '[rossiste74-dotcom/biciclista] Build Android APK workflow run',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text('Scarica l\'APK allegato e installalo.'),
-                        ],
-                      ),
-                      actions: [
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Capito!'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Errore: $e')),
-                  );
-                }
+              // Chiudi il caricamento
+              if (context.mounted) {
+                Navigator.of(context).pop();
               }
             },
           ),

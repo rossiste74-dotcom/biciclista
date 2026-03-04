@@ -8,9 +8,16 @@ class UpdateService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Controlla se è disponibile un nuovo aggiornamento guardando la tabella app_versions
-  Future<void> checkForUpdates(BuildContext context) async {
+  Future<void> checkForUpdates(BuildContext context, {bool manualCheck = false}) async {
     // Check update on Android only, because the CI/CD uploads an APK
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid) {
+      if (manualCheck && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aggiornamento in-app disponibile solo su Android.')),
+        );
+      }
+      return;
+    }
 
     try {
       // 1. Legge la versione e il build number locali
@@ -25,21 +32,46 @@ class UpdateService {
           .limit(1)
           .maybeSingle();
 
-      if (response == null) return;
+      if (response == null) {
+        if (manualCheck && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Sei già all\'ultima versione della crew! 🚴')),
+           );
+        }
+        return;
+      }
 
       final latestBuildNumber = response['build_number'] as int?;
       final apkUrl = response['apk_url'] as String?;
 
-      if (latestBuildNumber == null || apkUrl == null || apkUrl.isEmpty) return;
+      if (latestBuildNumber == null || apkUrl == null || apkUrl.isEmpty) {
+         if (manualCheck && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Nessuna build disponibile al momento.')),
+           );
+         }
+         return;
+      }
 
       // 3. Confronta i build number
       if (latestBuildNumber > currentBuildNumber) {
         if (context.mounted) {
           _showUpdateDialog(context, apkUrl, response['version_name']?.toString());
         }
+      } else {
+        if (manualCheck && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Sei già all\'ultima versione della crew! 🚴')),
+           );
+        }
       }
     } catch (e) {
       debugPrint('Errore durante il controllo aggiornamenti: $e');
+      if (manualCheck && context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Errore: impossibile verificare gli aggiornamenti ($e)')),
+         );
+      }
     }
   }
 
