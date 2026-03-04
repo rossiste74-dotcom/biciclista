@@ -46,7 +46,7 @@ jobs:
           echo "b64_creds=$encoded" >> $GITHUB_OUTPUT
 
       - name: Upload to Google Drive
-        uses: roismail/google-drive-upload-action@v2
+        uses: adityak74/google-drive-upload-git-action@main
         id: upload_drive
         with:
           credentials: ${{ steps.prep_creds.outputs.b64_creds }}
