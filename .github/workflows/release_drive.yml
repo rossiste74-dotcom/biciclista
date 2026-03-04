@@ -37,31 +37,30 @@ jobs:
         # We use github.run_number to ensure the build number is always incremented
         run: flutter build apk --release --build-number ${{ github.run_number }}
 
-      - name: Prep Credentials
-        id: prep_creds
-        run: |
-          # The action expects base64 encoded credentials. If the secret is raw JSON, encode it here.
-          encoded=$(echo -n '${{ secrets.CREDENTIALS_JSON }}' | base64 -w 0)
-          echo "::add-mask::$encoded"
-          echo "b64_creds=$encoded" >> $GITHUB_OUTPUT
-
-      - name: Upload to Google Drive
-        uses: adityak74/google-drive-upload-git-action@main
-        id: upload_drive
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
-          credentials: ${{ steps.prep_creds.outputs.b64_creds }}
-          filename: build/app/outputs/flutter-apk/app-release.apk
-          folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          name: "Biciclista_v${{ steps.get_version.outputs.version }}_b${{ github.run_number }}.apk" 
-          overwrite: "true"
+          tag_name: "v${{ steps.get_version.outputs.version }}-b${{ github.run_number }}"
+          name: "Biciclista Release v${{ steps.get_version.outputs.version }} (Build ${{ github.run_number }})"
+          files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          FILE_ID: ${{ steps.upload_drive.outputs.fileId }}
         run: |
-          DOWNLOAD_URL="https://drive.google.com/uc?export=download&id=$FILE_ID"
+          # Formattiamo l'URL di download diretto dell'asset pubblicato su GitHub
+          # L'URL di Github Releases per gli asset caricati è tipicamente:
+          # https://github.com/[OWNER]/[REPO]/releases/download/[TAG_NAME]/[FILE_NAME]
+          
+          REPO="${{ github.repository }}"
+          TAG="v${{ steps.get_version.outputs.version }}-b${{ github.run_number }}"
+          DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/app-release.apk"
           
           curl -X POST "$SUPABASE_URL/rest/v1/app_versions" \
             -H "apikey: $SUPABASE_KEY" \
@@ -72,5 +71,5 @@ jobs:
               \"version_name\": \"${{ steps.get_version.outputs.version }}\",
               \"build_number\": ${{ github.run_number }},
               \"apk_url\": \"$DOWNLOAD_URL\",
-              \"release_notes\": \"Nuovi sentieri disponibili!\"
+              \"release_notes\": \"Nuovi sentieri disponibili nella versione ${{ steps.get_version.outputs.version }}!\"
             }"
