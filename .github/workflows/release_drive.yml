@@ -47,8 +47,19 @@ jobs:
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Decode Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > android/app/release-key.jks
+
       - name: Build APK
         # We use github.run_number to ensure the build number is always incremented
+        env:
+          KEYSTORE_FILE: "release-key.jks"
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build apk --release --build-number ${{ github.run_number }}
 
       - name: Create GitHub Release
