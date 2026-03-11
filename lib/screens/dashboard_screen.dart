@@ -16,7 +16,16 @@ import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
 import '../widgets/biciclista_wisdom.dart';
 import '../widgets/biciclista_weather.dart';
+import '../widgets/dashboard/personal_stats_card.dart';
+import '../widgets/dashboard/upcoming_activities_slider.dart';
+import '../widgets/dashboard/community_stats_widget.dart';
+import '../widgets/dashboard/ai_lab_shortcut.dart';
+import '../widgets/dashboard/mission_planner_shortcut.dart';
+import '../widgets/dashboard/community_feed_widget.dart';
 import 'route_detail_screen.dart';
+import 'biomechanics_screen.dart';
+import 'ai_coach_screen.dart';
+import '../widgets/dashboard/yearly_stats_chart.dart';
 
 /// The main application dashboard centralizing health and ride data
 class DashboardScreen extends StatefulWidget {
@@ -40,6 +49,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   UserProfile? _profile;
   PlannedRide? _nextRide;
+  List<PlannedRide> _communityRides = [];
+  List<MonthlyStats> _monthlyStats = [];
   OutfitSuggestion? _outfitSuggestion;
   
   List<double> _hrvTrend = [];
@@ -187,6 +198,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         
         // 7. Load Leaderboard
         _leaderboardData = await _db.getLeaderboard();
+
+        // 8. Load Community Upcoming Rides
+        _communityRides = await _db.getCommunityUpcomingRides();
+
+        // 9. Load Monthly Stats for chart
+        final rawMonthly = await _db.getMonthlyStats();
+        _monthlyStats = rawMonthly.map((m) => MonthlyStats(
+          month: DateTime.tryParse(m['month_date'] as String? ?? '') ?? DateTime.now(),
+          km: (m['total_km'] as num?)?.toDouble() ?? 0.0,
+          elevation: (m['total_elevation'] as num?)?.toDouble() ?? 0.0,
+        )).toList();
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {
@@ -198,6 +220,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_profile == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
+    final role = _profile!.role;
+
     return Scaffold(
       body: SafeArea(
         child: _isLoading 
@@ -210,13 +238,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(16),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
+                        // Role Title (Optional: adds flair)
+                        Row(
+                          children: [
+                            role.iconWidget(height: 28),
+                            const SizedBox(width: 8),
+                            Text(
+                              _profile?.name ?? role.name,
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // 1. Top Section (Common)
                         BiciclistaWisdom(),
+                        const SizedBox(height: 16),
+                        YearlyStatsChart(data: _monthlyStats),
+                        const SizedBox(height: 16),
+                        UpcomingActivitiesSlider(
+                          myNextRide: _nextRide,
+                          upcomingRides: _communityRides,
+                          onJoin: (ride) => _openRouteDetail(),
+                          onNavigate: _nextRide?.latitude != null ? _openRouteDetail : null,
+                          onComplete: _nextRide != null ? () => _handleCompleteRide(_nextRide!) : null,
+                        ),
                         const SizedBox(height: 24),
-                        _buildWeatherWidget(),
-                        const SizedBox(height: 24),
-                        _buildReadinessSection(),
-                        const SizedBox(height: 24),
-                        _buildNextRideSection(),
+                        
+                        // 2. Middle Section (Adaptive)
+
+
+                        if (role == UserRole.gregario) ...[
+                          AiLabShortcutWidget(
+                            onBiomechanicalTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const BiomechanicsScreen()),
+                            ),
+                            onAssistantTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AICoachScreen()),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -312,6 +376,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
           if (result == true) _loadAllData();
         }
+  }
+
+  Future<void> _handleCompleteRide(PlannedRide ride) async {
+    try {
+      ride.isCompleted = true;
+      await _db.updatePlannedRide(ride);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uscita completata! 🎉')),
+        );
+        await _loadAllData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
+        );
+      }
+    }
   }
 
 

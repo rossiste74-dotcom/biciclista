@@ -1,6 +1,50 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'ai_provider.dart';
 import 'user_avatar_config.dart';
+
+enum UserRole {
+  presidente,
+  capitano,
+  gregario,
+}
+
+extension UserRoleExtension on UserRole {
+  String get name {
+    switch (this) {
+      case UserRole.presidente: return 'Presidente';
+      case UserRole.capitano: return 'Capitano';
+      case UserRole.gregario: return 'Gregario';
+    }
+  }
+
+  String get icon {
+    switch (this) {
+      case UserRole.presidente: return '🏆🚵'; // Moto/Bici d'oro
+      case UserRole.capitano: return '🚵';   // MTB
+      case UserRole.gregario: return '🛺';   // Triciclo (Tuk-tuk)
+    }
+  }
+
+  Widget iconWidget({double height = 24.0}) {
+    switch (this) {
+      case UserRole.presidente:
+        return Image.asset('assets/ranks/presidente.png', height: height);
+      case UserRole.capitano:
+        return Image.asset('assets/ranks/capitano.png', height: height);
+      case UserRole.gregario:
+        return Image.asset('assets/ranks/gregario.png', height: height);
+    }
+  }
+  
+  static UserRole fromString(String value) {
+    switch (value.toLowerCase()) {
+      case 'presidente': return UserRole.presidente;
+      case 'capitano': return UserRole.capitano;
+      default: return UserRole.gregario;
+    }
+  }
+}
 
 class MaintenanceDefinition {
   String? name;
@@ -12,6 +56,9 @@ class MaintenanceDefinition {
 class UserProfile {
   // Supabase UUID
   String id = '';
+  
+  /// User's role in the community
+  UserRole role = UserRole.gregario;
 
   /// Maintenance definitions for all bikes
   List<MaintenanceDefinition> maintenanceDefinitions = [];

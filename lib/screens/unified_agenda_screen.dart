@@ -112,8 +112,8 @@ class _UnifiedAgendaScreenState extends State<UnifiedAgendaScreen> with TickerPr
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // title: removed (handled by MainNavigationScreen)
-        toolbarHeight: 0, // Collapse toolbar to just show TabBar
+        title: const Text('La Mia Agenda'),
+        leading: const BackButton(),
         bottom: TabBar(
           controller: _tabController,
           tabs: [

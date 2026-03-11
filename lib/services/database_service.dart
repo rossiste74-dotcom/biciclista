@@ -52,6 +52,7 @@ class DatabaseService {
       p.hrv = data['hrv'] ?? 0;
       p.sleepHours = (data['sleep_hours'] ?? 0.0).toDouble();
       p.thermalSensitivity = data['thermal_sensitivity'] ?? 3;
+      p.role = UserRoleExtension.fromString(data['role'] ?? 'Gregario');
       
       // Handle JSON fields (Supabase returns Map/List, Model expects String)
       final avatarJson = data['avatar_data'];
@@ -94,6 +95,7 @@ class DatabaseService {
         'hrv': profile.hrv.toInt(),
         'sleep_hours': profile.sleepHours.toDouble(),
         'thermal_sensitivity': profile.thermalSensitivity.toInt(),
+        'role': profile.role.name,
         'avatar_data': profile.avatarData != null ? json.decode(profile.avatarData!) : null,
         'health_history': profile.healthHistory != null ? json.decode(profile.healthHistory!) : null,
         'last_health_sync': profile.lastHealthSync?.toIso8601String(),
@@ -107,7 +109,7 @@ class DatabaseService {
 
   Future<void> updateUserProfile(UserProfile profile) async => saveUserProfile(profile);
 
-  /// Get all user profiles for the Crew tab
+  /// Get all user profiles for the Crew tab (with stats from planned_rides)
   Future<List<UserProfile>> getAllProfiles() async {
     try {
       final res = await _supabase.from('profiles').select().order('name', ascending: true);
@@ -119,6 +121,7 @@ class DatabaseService {
         p.gender = data['gender'];
         p.age = data['age'] ?? 30;
         p.weight = (data['weight'] ?? 70.0).toDouble();
+        p.role = UserRoleExtension.fromString(data['role'] ?? 'Gregario');
         
         final avatarJson = data['avatar_data'];
         if (avatarJson != null) {
@@ -130,6 +133,31 @@ class DatabaseService {
     } catch (e) {
       print('Error fetching all profiles: $e');
       return [];
+    }
+  }
+
+  /// Crew with aggregated ride statistics (calls get_crew_with_stats RPC)
+  Future<List<Map<String, dynamic>>> getCrewWithStats() async {
+    try {
+      final res = await _supabase.rpc('get_crew_with_stats');
+      return List<Map<String, dynamic>>.from(res as List);
+    } catch (e) {
+      print('Error fetching crew with stats: $e');
+      return [];
+    }
+  }
+
+  /// Update role of any user (only allowed for Capitano/Presidente via RLS)
+  Future<bool> updateUserRole(String targetUserId, UserRole newRole) async {
+    try {
+      await _supabase
+          .from('profiles')
+          .update({'role': newRole.name})
+          .eq('user_id', targetUserId);
+      return true;
+    } catch (e) {
+      print('Error updating user role: $e');
+      return false;
     }
   }
 
@@ -233,6 +261,8 @@ class DatabaseService {
       'bicycle_id': ride.bicycleId, 
       'supabase_event_id': ride.supabaseEventId,
       'is_completed': ride.isCompleted,
+      'latitude': ride.latitude,
+      'longitude': ride.longitude,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -270,6 +300,27 @@ class DatabaseService {
         .order('ride_date', ascending: true);
         
     return (res as List).map((map) => _mapPlannedRide(map)).toList();
+  }
+
+  /// Get upcoming rides created by OTHER community users (for the dashboard community slider)
+  Future<List<PlannedRide>> getCommunityUpcomingRides() async {
+    try {
+      final res = await _supabase.rpc('get_community_upcoming_rides');
+      return (res as List).map((map) {
+        final r = PlannedRide();
+        r.id = map['id'] as String?;
+        r.rideName = map['ride_name'] as String? ?? 'Uscita Community';
+        r.rideDate = DateTime.tryParse(map['ride_date'] as String? ?? '') ?? DateTime.now();
+        r.distance = (map['distance'] as num?)?.toDouble() ?? 0.0;
+        r.elevation = (map['elevation'] as num?)?.toDouble() ?? 0.0;
+        r.latitude = (map['start_latitude'] as num?)?.toDouble();
+        r.longitude = (map['start_longitude'] as num?)?.toDouble();
+        return r;
+      }).toList();
+    } catch (e) {
+      print('Error fetching community upcoming rides: $e');
+      return [];
+    }
   }
 
   Future<List<PlannedRide>> getIncompleteRides() async {
@@ -361,6 +412,8 @@ class DatabaseService {
        'track_id': ride.trackId,
        'bicycle_id': ride.bicycleId,
        'supabase_event_id': ride.supabaseEventId,
+       'latitude': ride.latitude,
+       'longitude': ride.longitude,
        'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', ride.id!);
   }
@@ -416,6 +469,17 @@ class DatabaseService {
     return total;
   }
   
+  /// Monthly km + elevation from the last 12 months (calls get_my_monthly_stats RPC)
+  Future<List<Map<String, dynamic>>> getMonthlyStats() async {
+    try {
+      final res = await _supabase.rpc('get_my_monthly_stats');
+      return List<Map<String, dynamic>>.from(res as List);
+    } catch (e) {
+      print('Error fetching monthly stats: $e');
+      return [];
+    }
+  }
+
   Future<double> getTotalCompletedKm() async {
      final rides = await getCompletedRides();
      double total = 0;
@@ -430,6 +494,45 @@ class DatabaseService {
      if (uid == null) return 0;
      final count = await _supabase.from('planned_rides').count().eq('user_id', uid).eq('is_completed', true);
      return count;
+  }
+  
+  /// Ottieni tutte le attività concluse pubbliche della community, con le coordinate della traccia associata.
+  Future<List<PlannedRide>> getCommunityCompletedRides() async {
+    try {
+      // Usiamo una RPC (Remote Procedure Call) Postgres per bypassare in modo sicuro
+      // le policy RLS su personal_tracks e profiles.
+      final res = await _supabase.rpc('get_community_completed_activities');
+
+      final List<PlannedRide> rides = [];
+      for (var map in (res as List)) {
+         final ride = PlannedRide();
+         ride.id = map['ride_id']?.toString();
+         ride.rideName = map['ride_name'];
+         
+         if (map['ride_date'] != null) {
+            ride.rideDate = DateTime.parse(map['ride_date']);
+         } else {
+            ride.rideDate = DateTime.now();
+         }
+         
+         ride.distance = (map['distance'] ?? 0).toDouble();
+         ride.elevation = (map['elevation'] ?? 0).toDouble();
+         ride.isCompleted = true; // by definition of the query
+         
+         // Dati uniti (Join)
+         ride.notes = map['author_name']; // Usiamo questo campo temporaneamente per l'UI
+         
+         if (map['start_latitude'] != null && map['start_longitude'] != null) {
+            ride.latitude = (map['start_latitude'] as num).toDouble();
+            ride.longitude = (map['start_longitude'] as num).toDouble();
+            rides.add(ride);
+         }
+      }
+      return rides;
+    } catch (e) {
+      print('Error fetching community completed rides: $e');
+      return [];
+    }
   }
   
   // ==================== HealthSnapshot CRUD ====================

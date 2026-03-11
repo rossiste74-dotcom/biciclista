@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/user_profile.dart';
 import '../models/user_avatar_config.dart';
@@ -18,11 +20,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
   bool _isLoading = true;
   Map<String, dynamic> _data = {
     'most_active': [],
-    'organizers': [], // Actually cartographers now
+    'organizers': [],
     'laziest': [],
-    'crew': [],
   };
-
+  List<Map<String, dynamic>> _crew = [];
+  UserProfile? _currentUser;
 
   @override
   void initState() {
@@ -34,11 +36,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final res = await _db.getFullLeaderboard();
-    final crew = await _db.getAllProfiles();
+    final crew = await _db.getCrewWithStats();
+    final me = await _db.getUserProfile();
     if (mounted) {
       setState(() {
         _data = res;
-        _data['crew'] = crew;
+        _crew = crew;
+        _currentUser = me;
         _isLoading = false;
       });
     }
@@ -58,10 +62,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
         bottom: TabBar(
           controller: _tabController,
           tabs: [
+            const Tab(icon: Icon(Icons.groups), text: 'Crew'),
             Tab(icon: const Icon(Icons.directions_bike), text: 'leaderboard.most_active_title'.tr()),
             Tab(icon: const Icon(Icons.map), text: 'leaderboard.cartographer_title'.tr()),
             Tab(icon: const Icon(Icons.weekend), text: 'leaderboard.laziest_title'.tr()),
-            const Tab(icon: Icon(Icons.groups), text: 'Crew'),
           ],
         ),
       ),
@@ -70,10 +74,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           : TabBarView(
               controller: _tabController,
               children: [
+                _buildCrewList(),
                 _buildList(_data['most_active'] ?? [], 'km', Colors.yellow.shade700),
                 _buildList(_data['organizers'] ?? [], 'leaderboard.unit_tracks'.tr(), Colors.blue.shade700),
                 _buildList(_data['laziest'] ?? [], 'km', Colors.orange.shade700, ascending: true),
-                _buildCrewGrid(_data['crew'] ?? []),
               ],
             ),
     );
@@ -152,48 +156,150 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
     );
   }
 
-  Widget _buildCrewGrid(List<dynamic> users) {
-    if (users.isEmpty) {
+  Widget _buildCrewList() {
+    if (_crew.isEmpty) {
       return Center(child: Text('leaderboard.no_data'.tr()));
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.75, // Adjust for avatar + text
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        final user = users[index] as UserProfile;
-        final avatarConfig = UserAvatarConfig.fromJsonString(user.avatarData ?? '');
-        
-        return Column(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade300, width: 2),
-                ),
-                padding: const EdgeInsets.all(8),
-                child: AvatarPreview(config: avatarConfig, size: 100),
+    final canManageRoles = _currentUser?.role == UserRole.capitano ||
+        _currentUser?.role == UserRole.presidente;
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _crew.length,
+        itemBuilder: (context, index) {
+          final member = _crew[index];
+          final name = member['name'] as String? ?? 'Sconosciuto';
+          final roleStr = member['role'] as String? ?? 'Gregario';
+          final role = UserRoleExtension.fromString(roleStr);
+          final totalKm = (member['total_km'] as num?)?.toDouble() ?? 0.0;
+          final rideCount = (member['ride_count'] as num?)?.toInt() ?? 0;
+          final lastRideRaw = member['last_ride_date'] as String?;
+          final lastRide = lastRideRaw != null ? DateTime.tryParse(lastRideRaw) : null;
+          final avatarJson = member['avatar_data'];
+          final avatarStr = avatarJson != null
+              ? (avatarJson is String ? avatarJson : json.encode(avatarJson))
+              : null;
+          final avatarConfig = avatarStr != null
+              ? UserAvatarConfig.fromJsonString(avatarStr)
+              : null;
+          final isMe = member['user_id'] == _currentUser?.id;
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: isMe ? 3 : 1,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: CircleAvatar(
+                radius: 28,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: avatarConfig != null
+                    ? ClipOval(child: AvatarPreview(config: avatarConfig, size: 56))
+                    : const Icon(Icons.person, size: 28),
               ),
+              title: Row(
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  role.iconWidget(height: 20),
+                  if (isMe) ...[  
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'tu',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.route, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text('${totalKm.toStringAsFixed(0)} km', style: const TextStyle(fontSize: 12)),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.celebration, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text('$rideCount uscite', style: const TextStyle(fontSize: 12)),
+                    if (lastRide != null) ...[
+                      const SizedBox(width: 12),
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('dd/MM/yy').format(lastRide),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+              trailing: (canManageRoles && !isMe && role != UserRole.presidente)
+                  ? PopupMenuButton<UserRole>(
+                      icon: const Icon(Icons.more_vert),
+                      tooltip: 'Gestisci ruolo',
+                      onSelected: (newRole) async {
+                        final userId = member['user_id'] as String?;
+                        if (userId == null) return;
+                        final ok = await _db.updateUserRole(userId, newRole);
+                        if (ok && mounted) {
+                          await _loadData();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('$name è ora '),
+                                newRole.iconWidget(height: 16),
+                                Text(' ${newRole.name}'),
+                              ],
+                            )),
+                          );
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (role != UserRole.capitano)
+                          const PopupMenuItem(
+                            value: UserRole.capitano,
+                            child: Row(children: [
+                              Text('⭐ ', style: TextStyle(fontSize: 18)),
+                              Text('Promuovi a Capitano'),
+                            ]),
+                          ),
+                        if (role != UserRole.gregario)
+                          const PopupMenuItem(
+                            value: UserRole.gregario,
+                            child: Row(children: [
+                              Text('🚴 ', style: TextStyle(fontSize: 18)),
+                              Text('Retrocedi a Gregario'),
+                            ]),
+                          ),
+                      ],
+                    )
+                  : null,
             ),
-            const SizedBox(height: 8),
-            Text(
-              user.name ?? 'Unknown',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

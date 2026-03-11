@@ -514,6 +514,41 @@ Analisi effettuata con il Butler AI di Biciclista.
             ),
           ),
 
+          // 1.5 Foto analizzate
+          if (hasImage) 
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      "FOTO ANALIZZATE:",
+                      style: GoogleFonts.bebasNeue(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _capturedImages.where((img) => img != null).length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final captured = _capturedImages.where((img) => img != null).toList();
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(captured[index]!, width: 90, height: 120, fit: BoxFit.cover),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // 2. Visual Overlay (Only if image is available from current session)
           if (hasImage && _analysis != null && _analysis!.visualOverlay.points.isNotEmpty)
             Container(

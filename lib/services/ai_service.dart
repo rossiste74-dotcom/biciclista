@@ -421,6 +421,16 @@ class AIService {
       final readiness = _calculateReadinessScore(profile);
       userData.writeln('- Readiness Score: $readiness/100');
 
+      // Ruolo
+      userData.writeln('\n**Ruolo Utente:** ${profile.role.name}');
+      if (profile.role == UserRole.presidente) {
+         userData.writeln('ISTRUZIONE CRITICA: Rivolgiti all\'utente chiamandolo ESCLUSIVAMENTE "Signor Presidente" o "Sua Eccellenza". Mostrati estremamente deferente, servizievole e lusinghiero ("I ragazzi sono pronti per lei"). Puoi includere del leggero sarcasmo britannico se lo ritieni opportuno.');
+      } else if (profile.role == UserRole.capitano) {
+         userData.writeln('ISTRUZIONE CRITICA: Rivolgiti all\'utente come "Capitano". Usa un tono rispettoso ma cameratesco, tattico e motivazionale.');
+      } else {
+         userData.writeln('ISTRUZIONE CRITICA: L\'utente è un "Gregario" (livello base). Rivolgiti a lui chiamandolo "Gregario". Usa un tono severo, prendendolo in giro in modo sarcastico sulle sue prestazioni ("Vedi di non farti staccare anche stavolta", "Meno scuse, pedala!").');
+      }
+
       // Dati Bici (Manutenzione)
       final bikes = await _db.getAllBicycles();
       if (bikes.isNotEmpty) {

@@ -89,6 +89,7 @@ dependencies:
   receive_sharing_intent: ^1.8.1
   google_mlkit_text_recognition: ^0.15.1
   html: ^0.15.6
+  flutter_map_marker_cluster: ^8.2.2
 
 
 dev_dependencies:
@@ -131,6 +132,7 @@ flutter:
     - assets/avatar/helmets/
     - assets/avatar/jerseys/
     - assets/avatar/glasses/
+    - assets/ranks/
     - assets/translations/
 
 flutter_launcher_icons:

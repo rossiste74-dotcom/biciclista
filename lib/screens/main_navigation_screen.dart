@@ -4,7 +4,7 @@ import 'package:gpx/gpx.dart';
 import 'dashboard_screen.dart';
 import 'routes_library_screen.dart';
 import 'settings_screen.dart';
-import 'community_screen.dart';
+import 'leaderboard_screen.dart';
 import 'discovery_screen.dart';
 import 'package:biciclistico/screens/gpx_import_screen.dart';
 
@@ -13,6 +13,7 @@ import 'qr_scan_screen.dart';
 import 'route_planner_screen.dart';
 import 'profile_screen.dart';
 import 'ai_lab_screen.dart'; // Added for Phase 3
+import 'unified_agenda_screen.dart';
 
 import 'garage_screen.dart';
 import '../services/sync_service.dart';
@@ -54,7 +55,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const DashboardScreen(),
       const RoutesLibraryScreen(),
       const AiLabScreen(),
-      const CommunityScreen(),
+      const LeaderboardScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExternalActivities();
@@ -461,6 +462,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       appBar: AppBar(
         title: _buildAppBarTitle(),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UnifiedAgendaScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,

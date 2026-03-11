@@ -1,14 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../services/database_service.dart';
+import '../models/user_profile.dart';
 import 'unified_agenda_screen.dart';
 import 'discovery_screen.dart';
 import 'leaderboard_screen.dart';
+import 'crew_management_screen.dart';
 
-class CommunityScreen extends StatelessWidget {
+class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
 
   @override
+  State<CommunityScreen> createState() => _CommunityScreenState();
+}
+
+class _CommunityScreenState extends State<CommunityScreen> {
+  final _db = DatabaseService();
+  UserProfile? _profile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await _db.getUserProfile();
+    if (mounted) {
+      setState(() {
+        _profile = profile;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -27,18 +59,6 @@ class CommunityScreen extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 24),
-          _buildActionCard(
-            context,
-            title: 'La Tua Agenda',
-            subtitle: 'Uscite programmate, crew e storico attività',
-            icon: Icons.calendar_month,
-            color: Colors.blue,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UnifiedAgendaScreen()),
-            ),
-          ),
-          const SizedBox(height: 16),
           _buildActionCard(
             context,
             title: 'Esplora (Discovery)',
@@ -62,6 +82,20 @@ class CommunityScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
             ),
           ),
+          if (_profile?.role == UserRole.presidente) ...[
+            const SizedBox(height: 16),
+            _buildActionCard(
+              context,
+              title: 'Gestione Crew (Admin)',
+              subtitle: 'Supervisiona e promuovi i membri',
+              icon: Icons.admin_panel_settings,
+              color: Colors.redAccent,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CrewManagementScreen()),
+              ),
+            ),
+          ],
         ],
       ),
     );
