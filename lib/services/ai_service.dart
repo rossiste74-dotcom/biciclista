@@ -623,9 +623,71 @@ class AIService {
         }
       }
       return 'avg';
+    }
+  }
+
+  /// Generate a dynamic comic scenario based on community performance
+  Future<String> generateDailyComicScenario() async {
+    try {
+      final level = await getCommunityActivityLevel();
+      
+      // Milan coordinates as default center for community stats
+      const lat = 45.4642; 
+      const lon = 9.1900;
+      const radiusKm = 50.0;
+
+      final stats = await Supabase.instance.client.rpc('get_community_stats', params: {
+        'lat': lat,
+        'lon': lon,
+        'radius_km': radiusKm,
+      });
+
+      final statsStr = stats != null 
+          ? "Media Km: ${stats['avg_km']}, Utenti Attivi: ${stats['active_users']}, Bici Prevalente: ${stats['popular_type']}"
+          : "Statistiche non disponibili.";
+
+      final systemPrompt = '''
+Sei un autore di fumetti specializzato in ciclismo amatoriale italiano. 
+Il tuo compito è scrivere la sceneggiatura per la striscia quotidiana "ANONIMA CICLISTI".
+
+REGOLE STILISTICHE:
+${ComicPrompts.graphicalStyle}
+
+PERSONAGGI:
+${ComicPrompts.characterBase}
+
+DATI ATTUALI DELLA COMMUNITY:
+$statsStr
+Livello Attività rilevato: $level
+
+ISTRUZIONI:
+Genera una sceneggiatura per 3 vignette basata sui dati della community. 
+Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo. 
+Includi sempre una punchline comica nell'ultima vignetta.
+Formatta l'output come:
+Vignetta 1: [Descrizione visiva] - Dialogo: "..."
+Vignetta 2: [Descrizione visiva] - Dialogo: "..."
+Vignetta 3: [Descrizione visiva] - Dialogo: "..."
+''';
+
+      final response = await Supabase.instance.client.functions.invoke(
+        'butler-ai-openrouter',
+        body: {
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': 'Genera la striscia di oggi basandoti sulla performance della crew.'}
+          ],
+        },
+      );
+
+      final data = response.data;
+      if (data != null && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
+        return data['choices'][0]['message']['content'];
+      }
+      return "Impossibile generare la storia oggi. Il disegnatore è andato a scalare lo Stelvio.";
     } catch (e) {
-      print('[AIService] Warning: Falling back to "avg" for comics. Error: $e');
-      return 'avg';
+      print('[AIService] Error generating comic scenario: $e');
+      return "Errore nella generazione della striscia.";
     }
   }
   /// Analyze biomechanics from multiple images and generate verdict
