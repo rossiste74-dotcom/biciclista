@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/biomechanics_analysis.dart';
+import '../models/comic_prompts.dart';
 /// Service for AI Coach functionality using Supabase Edge Functions (Butler AI via OpenRouter)
 class AIService {
   final _db = DatabaseService();
@@ -622,6 +623,9 @@ class AIService {
           return 'pro';
         }
       }
+      return 'avg';
+    } catch (e) {
+      print('[AIService] Warning: Falling back to "avg" for comics. Error: $e');
       return 'avg';
     }
   }

@@ -129,40 +129,42 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor, // App background color
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-             // Pop-out Logo Container
-             Container(
-               padding: const EdgeInsets.all(24),
-               width: logoSize,
-               height: logoSize,
-               child: Image.asset(
-                   'assets/log1.png',
-                   fit: BoxFit.contain,
-               ),
-             ),
-             const SizedBox(height: 40),
-              
-             // Random Funny Quote
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 32),
-               child: Text(
-                 '"$_randomQuote"',
-                 textAlign: TextAlign.center,
-                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                   fontSize: 24,
-                   fontStyle: FontStyle.italic,
-                   color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               // Pop-out Logo Container
+               Container(
+                 padding: const EdgeInsets.all(24),
+                 width: logoSize,
+                 height: logoSize,
+                 child: Image.asset(
+                     'assets/log1.png',
+                     fit: BoxFit.contain,
                  ),
                ),
-             ),
-             
-
-             
-             const SizedBox(height: 60),
-             const CircularProgressIndicator()
-          ],
+               const SizedBox(height: 40),
+                
+               // Random Funny Quote
+               Padding(
+                 padding: const EdgeInsets.symmetric(horizontal: 32),
+                 child: Text(
+                   '"$_randomQuote"',
+                   textAlign: TextAlign.center,
+                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                     fontSize: 24,
+                     fontStyle: FontStyle.italic,
+                     color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                   ),
+                 ),
+               ),
+               
+  
+               
+               const SizedBox(height: 60),
+               const CircularProgressIndicator()
+            ],
+          ),
         ),
       ),
     );

@@ -11,9 +11,14 @@ class ComicPrompts {
 
   static const String characterBase = '''
 Basato sulla foto di riferimento del gruppo "MTB CREW":
-- Protagonista: Uomo con barba, casco bianco, occhiali scuri, maglia "MTB CREW" con palma.
-- Spalla 1: Uomo con casco arancio acceso.
-- Spalla 2: Uomo con maglia verde "PASSOSCURO".
+- Protagonista:"Il PRESIDENTE" Uomo con barba, casco bianco con piccola ananas sulla fronte, occhiali scuri, maglia "MTB CREW" con palma.
+- Spalla 1:"MarcoTrek" Uomo con casco Rosso acceso smpre pronto a scattare in fuga, magliagerde con strisce nera alta e palma mtbCrew al centre.
+- Spalla 2:"EnzoChar" il nonno un 10 marcie in più..... ci parli in partenza al giro e ti stacca dopo 2 km. se ti dice bene lo rivedi al bar all'arrivo.Maglia giallo nera MtbCrew
+- Spalla 3:"E-Davide" Il e-bike robotico maglia bianco con riferimenti al tricolore.
+- Spalla 4:"Dany" DanySucciaruota , maglia nera con palma mtbCrew al centre e occhiali scuri , sempre pronto a fare foto ai compagni di squadra e in conduzione è sempre lì a ruota di chi sta davanti. 
+- Spalla 5:"Pante"  un tipo magro alto con occhiali scuri e maglia nera con palma mtbCrew al centre, con ogni tipo di tecnologia addosso per fare filmati.
+- Spalla 6:"Marc-Tancio" il bicilcista zainetto..Tancio il ciclista che non deve chiedere mai! .... Ma che c'avrà mai dentro?  .maglia nero verde con palma mtbCrew al centre.
+- Spalla 7:"VaLentino - il fantino" maglia nera verde con scritta "arsenium" .......senza parole!! 
 - Gruppo: Altri ciclisti amatoriali del gruppo originale.
 ''';
 
