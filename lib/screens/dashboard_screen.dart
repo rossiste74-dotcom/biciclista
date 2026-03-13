@@ -22,6 +22,7 @@ import '../widgets/dashboard/community_stats_widget.dart';
 import '../widgets/dashboard/ai_lab_shortcut.dart';
 import '../widgets/dashboard/mission_planner_shortcut.dart';
 import '../widgets/dashboard/community_feed_widget.dart';
+import '../widgets/dashboard/anonima_ciclisti_strip.dart';
 import 'route_detail_screen.dart';
 import 'biomechanics_screen.dart';
 import 'ai_coach_screen.dart';
@@ -252,6 +253,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: 16),
                         // 1. Top Section (Common)
                         BiciclistaWisdom(),
+                        const SizedBox(height: 16),
+                        const AnonimaCiclistiStrip(),
                         const SizedBox(height: 16),
                         YearlyStatsChart(data: _monthlyStats),
                         const SizedBox(height: 16),

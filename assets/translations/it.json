@@ -164,5 +164,11 @@
         "quarter_left": "A metà! Adesso non mollare proprio sul più bello.",
         "almost_there": "Quasi arrivato! Manca poco, stringi i denti!",
         "completed": "Complimenti! Vedi che quando ti impegni?"
+    },
+    "strip": {
+        "subtitle_avg": "La striscia quotidiana",
+        "subtitle_lazy": "Speciale: Equipaggio in letargo 🛋️",
+        "subtitle_pro": "Speciale: Gambe in fiamme! 🔥",
+        "footer": "La motivazione è facoltativa."
     }
 }

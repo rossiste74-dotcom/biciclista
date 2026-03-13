@@ -134,6 +134,7 @@ flutter:
     - assets/avatar/glasses/
     - assets/ranks/
     - assets/translations/
+    - assets/comics/
 
 flutter_launcher_icons:
   android: "launcher_icon"

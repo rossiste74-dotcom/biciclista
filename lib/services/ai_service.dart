@@ -577,6 +577,57 @@ class AIService {
       return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
     }
   }
+  /// Get Daily Comic Strip path based on community stats
+  Future<String> getDailyComicPath() async {
+    try {
+      final activityLevel = await getCommunityActivityLevel();
+      
+      switch (activityLevel) {
+        case 'lazy':
+          return 'assets/comics/comic_lazy.png';
+        case 'pro':
+          return 'assets/comics/comic_pro.png';
+        default:
+          return 'assets/comics/comic_avg.png';
+      }
+    } catch (e) {
+      print('Error selecting daily comic: $e');
+      return 'assets/comics/comic_avg.png';
+    }
+  }
+
+  /// Determine community activity level from Supabase
+  Future<String> getCommunityActivityLevel() async {
+    try {
+      // Milan coordinates as default center for community stats
+      const lat = 45.4642; 
+      const lon = 9.1900;
+      const radiusKm = 50.0;
+
+      final dynamic response = await Supabase.instance.client.rpc('get_community_stats', params: {
+        'lat': lat,
+        'lon': lon,
+        'radius_km': radiusKm,
+      });
+
+      if (response != null && response is Map) {
+        final avgKm = (response['avg_km'] as num?)?.toDouble() ?? 0.0;
+        final activeUsers = (response['active_users'] as num?)?.toInt() ?? 0;
+        
+        print('[AIService] Community: avg_km=$avgKm, active_users=$activeUsers');
+
+        if (activeUsers < 2 || avgKm < 20) {
+          return 'lazy';
+        } else if (avgKm > 60) {
+          return 'pro';
+        }
+      }
+      return 'avg';
+    } catch (e) {
+      print('[AIService] Warning: Falling back to "avg" for comics. Error: $e');
+      return 'avg';
+    }
+  }
   /// Analyze biomechanics from multiple images and generate verdict
   Future<Map<String, dynamic>> analyzeBiomechanicsFromImages(List<File> imageFiles) async {
     final profile = await _db.getUserProfile();
