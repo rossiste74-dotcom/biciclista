@@ -578,22 +578,37 @@ class AIService {
       return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
     }
   }
-  /// Get Daily Comic Strip path based on community stats
-  Future<String> getDailyComicPath() async {
+  /// Get Daily Comic Strip paths based on community stats (3 panels story)
+  Future<List<String>> getDailyComicPaths() async {
     try {
       final activityLevel = await getCommunityActivityLevel();
       
+      // We expect 3 panels for each level: comic_{level}_1.png, comic_{level}_2.png, comic_{level}_3.png
+      // For now, we use the single existing static image if the numbered ones aren't available
+      // but we prepare the list for the multi-page widget.
       switch (activityLevel) {
         case 'lazy':
-          return 'assets/comics/comic_lazy.png';
+          return [
+            'assets/comics/comic_lazy.png',
+            'assets/comics/comic_lazy.png',
+            'assets/comics/comic_lazy.png',
+          ];
         case 'pro':
-          return 'assets/comics/comic_pro.png';
+          return [
+            'assets/comics/comic_pro.png',
+            'assets/comics/comic_pro.png',
+            'assets/comics/comic_pro.png',
+          ];
         default:
-          return 'assets/comics/comic_avg.png';
+          return [
+            'assets/comics/story_1.png',
+            'assets/comics/story_2.png',
+            'assets/comics/story_3.png',
+          ];
       }
     } catch (e) {
-      print('Error selecting daily comic: $e');
-      return 'assets/comics/comic_avg.png';
+      print('[AIService] Error selecting daily comic paths: $e');
+      return ['assets/comics/comic_avg.png'];
     }
   }
 
@@ -665,13 +680,22 @@ $statsStr
 Livello Attività rilevato: $level
 
 ISTRUZIONI:
-Genera una sceneggiatura per 3 vignette basata sui dati della community. 
-Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo. 
-Includi sempre una punchline comica nell'ultima vignetta.
-Formatta l'output come:
-Vignetta 1: [Descrizione visiva] - Dialogo: "..."
-Vignetta 2: [Descrizione visiva] - Dialogo: "..."
-Vignetta 3: [Descrizione visiva] - Dialogo: "..."
+Genera una STORIA COMPLETA divisa in 3 IMMAGINI (PANNELLI).
+Ogni immagine DEVE contenere ESATTAMENTE 3 VIGNETTE (totale 9 vignette per la storia).
+Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo MTB. 
+Includi sempre una punchline comica nel pannello finale.
+
+Formatta l'output in modo chiaro:
+TITOLO STORIA: [Titolo della giornata]
+
+IMMAGINE 1: [Descrizione visiva generale]
+- Vignetta 1: [Descrizione] - Dialogo: "..."
+- Vignetta 2: [Descrizione] - Dialogo: "..."
+- Vignetta 3: [Descrizione] - Dialogo: "..."
+
+IMMAGINE 2: [Descrizione visiva generale]
+- Vignetta 1: [Descrizione] - Dialogo: "..."
+... e così via per la IMMAGINE 3.
 ''';
 
       final response = await Supabase.instance.client.functions.invoke(

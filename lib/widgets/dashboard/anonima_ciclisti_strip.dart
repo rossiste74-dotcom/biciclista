@@ -12,26 +12,35 @@ class AnonimaCiclistiStrip extends StatefulWidget {
 
 class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
   final _aiService = AIService();
-  String? _comicPath;
+  List<String> _comicPaths = [];
+  int _currentPage = 0;
   String _activityLevel = 'avg';
   bool _isLoading = true;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _loadComic();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadComic() async {
     try {
-      final path = await _aiService.getDailyComicPath();
+      final paths = await _aiService.getDailyComicPaths();
       final level = await _aiService.getCommunityActivityLevel();
       
-      debugPrint('[ComicStrip] Loading path: $path, Activity Level: $level');
+      debugPrint('[ComicStrip] Loading paths: $paths, Activity Level: $level');
       
       if (mounted) {
         setState(() {
-          _comicPath = path;
+          _comicPaths = paths;
           _activityLevel = level;
           _isLoading = false;
         });
@@ -45,9 +54,9 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
   }
 
   Future<void> _shareComic() async {
-    if (_comicPath == null) return;
+    if (_comicPaths.isEmpty) return;
     
-    // In a real app, we might need to share the file bytes or a URL.
+    final currentComic = _comicPaths[_currentPage];
     // For assets, we typically share the image with a message.
     await Share.share(
       'Guarda la striscia di oggi dell\'Anonima Ciclisti! 😂 #biciclista #cyclinglife',
@@ -139,19 +148,68 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (_comicPath != null)
-              Image.asset(
-                _comicPath!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: const Center(
-                      child: Icon(Icons.broken_image_outlined, size: 48),
+            else if (_comicPaths.isNotEmpty)
+              Stack(
+                children: [
+                  SizedBox(
+                    height: 250,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _comicPaths.length,
+                      onPageChanged: (index) => setState(() => _currentPage = index),
+                      itemBuilder: (context, index) {
+                        return Image.asset(
+                          _comicPaths[index],
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 200,
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: const Center(
+                                child: Icon(Icons.broken_image_outlined, size: 48),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                  if (_comicPaths.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _comicPaths.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 6,
+                            width: _currentPage == index ? 20 : 6,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index 
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Swipe hints
+                  if (_currentPage == 0 && _comicPaths.length > 1)
+                    Positioned(
+                      right: 12,
+                      top: 0,
+                      bottom: 0,
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                      ),
+                    ),
+                ],
               )
             else
               const SizedBox(
