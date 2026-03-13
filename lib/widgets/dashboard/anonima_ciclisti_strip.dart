@@ -55,6 +55,26 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
     );
   }
 
+  String _getLocalizedSubtitle() {
+    final key = 'strip.subtitle_$_activityLevel';
+    final localized = key.tr();
+    if (localized == key) {
+      // Fallback if key not found in assets yet
+      switch (_activityLevel) {
+        case 'lazy': return 'Speciale: Equipaggio in letargo 🛋️';
+        case 'pro': return 'Speciale: Gambe in fiamme! 🔥';
+        default: return 'La striscia quotidiana';
+      }
+    }
+    return localized;
+  }
+
+  String _getLocalizedFooter() {
+    const key = 'strip.footer';
+    final localized = key.tr();
+    return (localized == key) ? 'La motivazione è facoltativa.' : localized;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -94,7 +114,7 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                           ),
                         ),
                         Text(
-                          'strip.subtitle_$_activityLevel'.tr(),
+                          _getLocalizedSubtitle(),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -142,7 +162,7 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
               color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               child: Text(
-                'strip.footer'.tr(),
+                _getLocalizedFooter(),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontStyle: FontStyle.italic,
