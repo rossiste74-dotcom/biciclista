@@ -24,16 +24,19 @@ serve(async (req) => {
     // Initialize Supabase Client for storage
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Call Gemini Imagen 3
-    // Note: Model ID might vary, using a standard stable one
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
+    // Use Gemini 2.5 Flash Image (Nano Banana) which supports image generation in free/preview tier
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        instances: [{ prompt: prompt }],
-        parameters: { sampleCount: 1 }
+        contents: [{ 
+          parts: [{ text: `Generate a comic-style image based on this scenario: ${prompt}` }] 
+        }],
+        generationConfig: {
+          temperature: 1.0,
+        }
       }),
     });
 
@@ -43,10 +46,17 @@ serve(async (req) => {
       throw new Error(data.error.message);
     }
 
-    const base64Image = data.predictions?.[0]?.bytesBase64Encoded;
+    // Parse image from multimodal output
+    // Looking for content.parts[1].inlineData or similar if it's the second part
+    const candidate = data.candidates?.[0];
+    const imagePart = candidate?.content?.parts?.find((p: any) => p.inlineData);
+    const base64Image = imagePart?.inlineData?.data;
+
     if (!base64Image) {
       console.error("Gemini Response:", JSON.stringify(data));
-      throw new Error('Fallback: No image data returned from Gemini');
+      // Fallback: If no image part found, maybe it errored out or returned text only
+      const textResponse = candidate?.content?.parts?.[0]?.text;
+      throw new Error(`Fallback: Model did not return an image. Response text: ${textResponse ?? 'empty'}`);
     }
 
     // Convert base64 to Uint8Array

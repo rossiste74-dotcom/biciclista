@@ -132,6 +132,16 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
     return (localized == key) ? 'La motivazione è facoltativa.' : localized;
   }
 
+  Widget _buildErrorPlaceholder(BuildContext context) {
+    return Container(
+      height: 200,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Center(
+        child: Icon(Icons.broken_image_outlined, size: 48),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -197,18 +207,34 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_comicPath != null)
-              Image.asset(
-                _comicPath!,
-                key: ValueKey(_comicPath! + DateTime.now().millisecondsSinceEpoch.toString()),
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: const Center(
-                      child: Icon(Icons.broken_image_outlined, size: 48),
-                    ),
-                  );
+              Builder(
+                builder: (context) {
+                  final isNetwork = _comicPath!.startsWith('http');
+                  final imageKey = ValueKey(_comicPath! + DateTime.now().millisecondsSinceEpoch.toString());
+                  
+                  if (isNetwork) {
+                    return Image.network(
+                      _comicPath!,
+                      key: imageKey,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 200,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          child: const Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(context),
+                    );
+                  } else {
+                    return Image.asset(
+                      _comicPath!,
+                      key: imageKey,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(context),
+                    );
+                  }
                 },
               )
             else

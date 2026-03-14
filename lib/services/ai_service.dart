@@ -584,10 +584,17 @@ class AIService {
   /// Get Daily Comic Strip path based on community stats (Single 9-vignette strip)
   Future<String> getDailyComicPath() async {
     try {
-      final customPrompt = await _db.getDailyComicPrompt(DateTime.now());
+      final date = DateTime.now();
+      
+      // 1. Check for a generated image in the cloud first
+      final cloudImageUrl = await _db.getDailyComicImage(date);
+      if (cloudImageUrl != null && cloudImageUrl.isNotEmpty) {
+        return cloudImageUrl;
+      }
+
+      // 2. Fallback to existing logic if no cloud image is generated yet
+      final customPrompt = await _db.getDailyComicPrompt(date);
       if (customPrompt != null) {
-        // If a leader has provided a prompt, return the custom story asset.
-        // In a cloud environment, this would be a URL to the generated image.
         return 'assets/comics/story_9v_custom.png';
       }
 
@@ -645,9 +652,13 @@ class AIService {
       if (dbCharacters.isNotEmpty) {
         final buffer = StringBuffer();
         for (var c in dbCharacters) {
-          // Prioritize AI-generated visual description from photo, fallback to manual description
-          final desc = c.visualDescription ?? c.description;
-          buffer.writeln("- ${c.name}: $desc");
+          // Separate physical traits from behavioral traits
+          final physicalTraits = c.visualDescription ?? "Tratti standard da ciclista, casco e occhiali.";
+          final personalityTraits = c.description;
+          
+          buffer.writeln("- ${c.name}:");
+          buffer.writeln("  * ASPETTO FISICO (da usare per la coerenza visiva): $physicalTraits");
+          buffer.writeln("  * CARATTERE E COMPORTAMENTO: $personalityTraits");
         }
         charactersSection = buffer.toString();
       } else {
@@ -692,6 +703,10 @@ La striscia deve contenere ESATTAMENTE 9 VIGNETTE, ma NON usare una griglia fiss
 Usa uno SCHEMA DINAMICO E CASUALE per le dimensioni dei riquadri (esempio: 2x1x3x2x1).
 Lo schema deve essere fluido e cinematico.
 
+Istruzioni per la coerenza dei personaggi:
+- Per ogni personaggio menzionato, usa i dettagli dell'ASPETTO FISICO per descrivere minuziosamente come appare in OGNI VIGNETTA (essenziale per l'Image Generator).
+- Usa i tratti del CARATTERE E COMPORTAMENTO per definire le loro espressioni, i dialoghi, le battute e le reazioni emotive.
+
 Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo MTB. 
 Includi sempre una punchline comica nel pannello finale.
 
@@ -711,7 +726,7 @@ DESCRIZIONE GENERALE: [Tema della striscia]
   Future<String> generateDailyComicScenario() async {
     final systemPrompt = await getFullDailyComicPrompt();
     final result = await _callAI(
-      provider: AIProvider.deepseek, // Default, the function might override
+      provider: AIProvider.gemini,
       systemPrompt: systemPrompt,
       userMessage: 'Genera la striscia di oggi basandoti sulla performance della crew.',
       action: 'comic_scenario',
@@ -849,17 +864,26 @@ Sii conciso, massimo 30 parole.
   /// Force a regeneration of the daily comic based on current data/prompts
   Future<bool> regenerateDailyComic() async {
     try {
+      // 1. Generate the 9-vignette script (scenario)
       final scenario = await generateDailyComicScenario();
-      print('[AIService] New Scenario Generated: $scenario');
+      if (scenario.contains('Errore')) return false;
       
-      // In a real system, we would then call an image generation API 
-      // with this scenario string and update the image entry in Storage/DB.
-      // For this simulation, we simulate the work being done.
-      await Future.delayed(const Duration(seconds: 3)); 
+      debugPrint('[AIService] New Scenario Generated. Requesting Image...');
+
+      // 2. Generate the image using the scenario as a prompt
+      // We call the same 'generate-image' function used for portraits
+      final imageUrl = await generateCharacterPortrait(scenario);
       
-      return true;
+      if (imageUrl != null) {
+        // 3. Save to DB for today
+        await _db.saveDailyComicImage(DateTime.now(), imageUrl, scenario);
+        debugPrint('[AIService] Daily Comic Regenerated and Saved: $imageUrl');
+        return true;
+      }
+      
+      return false;
     } catch (e) {
-      print('[AIService] Error during comic regeneration: $e');
+      debugPrint('[AIService] Error during comic regeneration: $e');
       return false;
     }
   }

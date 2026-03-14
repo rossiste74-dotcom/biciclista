@@ -839,19 +839,33 @@ class DatabaseService {
 
   // ==================== Daily Comic Prompts ====================
 
-  Future<String?> getDailyComicPrompt(DateTime date) async {
+  Future<String?> getDailyComicImage(DateTime date) async {
     final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final data = await _supabase
           .from('daily_comic_prompts')
-          .select('prompt')
+          .select('generated_image_url')
           .eq('date', dateStr)
           .maybeSingle();
       
-      return data?['prompt'] as String?;
+      return data?['generated_image_url'] as String?;
     } catch (e) {
-      print('Error fetching daily comic prompt: $e');
+      print('Error fetching daily comic image: $e');
       return null;
+    }
+  }
+
+  Future<void> saveDailyComicImage(DateTime date, String imageUrl, String scenario) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      await _supabase.from('daily_comic_prompts').upsert({
+        'date': dateStr,
+        'generated_image_url': imageUrl,
+        'scenario': scenario,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Error saving daily comic image: $e');
     }
   }
 
@@ -870,6 +884,22 @@ class DatabaseService {
     } catch (e) {
       print('Error saving daily comic prompt: $e');
       rethrow;
+    }
+  }
+
+  Future<String?> getDailyComicPrompt(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      final data = await _supabase
+          .from('daily_comic_prompts')
+          .select('prompt')
+          .eq('date', dateStr)
+          .maybeSingle();
+      
+      return data?['prompt'] as String?;
+    } catch (e) {
+      print('Error fetching daily comic prompt: $e');
+      return null;
     }
   }
 

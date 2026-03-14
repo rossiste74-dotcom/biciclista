@@ -10,16 +10,27 @@ class ComicPrompts {
 ''';
 
   static const String characterBase = '''
-Basato sulla foto di riferimento del gruppo "MTB CREW" tutti i ciclisti usano biciclette MTB. 
-- Protagonista:"Il PRESIDENTE" Uomo con barba, casco bianco con piccola ananas sulla fronte, occhiali scuri, maglia "MTB CREW" con palma.
-- Spalla 1:"MarcoTrek" Uomo con casco Rosso acceso smpre pronto a scattare in fuga, magliagerde con strisce nera alta e palma mtbCrew al centre.
-- Spalla 2:"EnzoChar" il nonno un 10 marcie in più..... ci parli in partenza al giro e ti stacca dopo 2 km. se ti dice bene lo rivedi al bar all'arrivo.Maglia giallo nera MtbCrew
-- Spalla 3:"E-Davide" Il e-bike robotico maglia bianco con riferimenti al tricolore.
-- Spalla 4:"Dany" DanySucciaruota , maglia nera con palma mtbCrew al centre e occhiali scuri è sempre lì a ruota di chi sta davanti. 
-- Spalla 5:"Pante"  un tipo magro alto con occhiali scuri e maglia nera con palma mtbCrew al centre, con ogni tipo di tecnologia addosso per fare filmati.
-- Spalla 6:"Marc-Tancio" il bicilcista zainetto..Tancio il ciclista che non deve chiedere mai! .... Ma che c'avrà mai dentro?  .maglia nero verde con palma mtbCrew al centre.
-- Spalla 7:"VaLentino - il fantino" maglia nera verde con scritta "arsenium" ma quando pedali
-- Gruppo: Altri ciclisti amatoriali del gruppo originale.
+- IL PRESIDENTE:
+  * ASPETTO FISICO: Uomo con barba, casco bianco con piccola ananas sulla fronte, occhiali scuri, maglia "MTB CREW" con palma.
+  * CARATTERE: Protagonista autoritario ma goffo, ossessionato dalle regole della crew.
+- MARCOTREK:
+  * ASPETTO FISICO: Uomo con casco Rosso acceso, maglia verde con strisce nere.
+  * CARATTERE: Sempre pronto a scattare in fuga, competitivo.
+- ENZOCHAR:
+  * ASPETTO FISICO: Ciclista anziano ma atletico, maglia giallo-nera MtbCrew.
+  * CARATTERE: Il veterano che distrugge tutti in salita senza sforzo.
+- E-DAVIDE:
+  * ASPETTO FISICO: maglia bianco-tricolore, sguardi tecnologici.
+  * CARATTERE: Il ciclista motorizzato, metà uomo e metà batteria.
+- DANY SUCCIARUOTA:
+  * ASPETTO FISICO: Maglia nera con palma, costantemente in scia a qualcuno.
+  * CARATTERE: Opportunista del pedale, non prende mai il vento in faccia.
+- PANTE:
+  * ASPETTO FISICO: Alto e magro, occhiali scuri, maglia nera, coperto di telecamere e sensori.
+  * CARATTERE: Regista ossessivo della crew, registra ogni caduta.
+- MARC-TANCIO:
+  * ASPETTO FISICO: Maglia nero-verde, zaino enorme e misterioso sulle spalle.
+  * CARATTERE: Carico di ogni pezzo di ricambio esistente, silenzioso.
 ''';
 
   static const String promptAvg = '''
