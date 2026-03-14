@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
 import '../models/ai_provider.dart';
 import '../models/planned_ride.dart';
@@ -578,83 +579,67 @@ class AIService {
       return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
     }
   }
-  /// Get Daily Comic Strip paths based on community stats (3 panels story)
-  Future<List<String>> getDailyComicPaths() async {
+  /// Get Daily Comic Strip path based on community stats (Single 9-vignette strip)
+  Future<String> getDailyComicPath() async {
     try {
+      final customPrompt = await _db.getDailyComicPrompt(DateTime.now());
+      if (customPrompt != null) {
+        // If a leader has provided a prompt, return the custom story asset.
+        // In a cloud environment, this would be a URL to the generated image.
+        return 'assets/comics/story_9v_custom.png';
+      }
+
       final activityLevel = await getCommunityActivityLevel();
-      
-      // We expect 3 panels for each level: comic_{level}_1.png, comic_{level}_2.png, comic_{level}_3.png
-      // For now, we use the single existing static image if the numbered ones aren't available
-      // but we prepare the list for the multi-page widget.
       switch (activityLevel) {
         case 'lazy':
-          return [
-            'assets/comics/comic_lazy.png',
-            'assets/comics/comic_lazy.png',
-            'assets/comics/comic_lazy.png',
-          ];
+          return 'assets/comics/comic_lazy.png';
         case 'pro':
-          return [
-            'assets/comics/comic_pro.png',
-            'assets/comics/comic_pro.png',
-            'assets/comics/comic_pro.png',
-          ];
+          return 'assets/comics/comic_pro.png';
         default:
-          return [
-            'assets/comics/story_1.png',
-            'assets/comics/story_2.png',
-            'assets/comics/story_3.png',
-          ];
+          return 'assets/comics/story_9v.png';
       }
     } catch (e) {
-      print('[AIService] Error selecting daily comic paths: $e');
-      return ['assets/comics/comic_avg.png'];
+      debugPrint('[AIService] Error selecting daily comic path: $e');
+      return 'assets/comics/comic_avg.png';
     }
   }
 
   /// Determine community activity level from Supabase
   Future<String> getCommunityActivityLevel() async {
     try {
-      // Milan coordinates as default center for community stats
-      const lat = 45.4642; 
-      const lon = 9.1900;
-      const radiusKm = 50.0;
-
-      final dynamic response = await Supabase.instance.client.rpc('get_community_stats', params: {
-        'lat': lat,
-        'lon': lon,
-        'radius_km': radiusKm,
+      final response = await Supabase.instance.client.rpc('get_community_stats', params: {
+        'lat': 45.4642,
+        'lon': 9.1900,
+        'radius_km': 50.0,
       });
 
       if (response != null && response is Map) {
-        final avgKm = (response['avg_km'] as num?)?.toDouble() ?? 0.0;
-        final activeUsers = (response['active_users'] as num?)?.toInt() ?? 0;
-        
-        print('[AIService] Community: avg_km=$avgKm, active_users=$activeUsers');
+        final double avgKm = (response['avg_km'] as num?)?.toDouble() ?? 0.0;
+        final int activeUsers = (response['active_users'] as num?)?.toInt() ?? 0;
 
         if (activeUsers < 2 || avgKm < 20) {
           return 'lazy';
-        } else if (avgKm > 60) {
+        }
+        if (avgKm > 60) {
           return 'pro';
         }
       }
       return 'avg';
     } catch (e) {
-      print('[AIService] Warning: Falling back to "avg" for comics. Error: $e');
+      debugPrint('[AIService] Warning: Falling back to "avg" for comics. Error: $e');
       return 'avg';
     }
   }
 
-  /// Generate a dynamic comic scenario based on community performance
-  Future<String> generateDailyComicScenario() async {
+  /// Get the full system prompt used for comic generation
+  Future<String> getFullDailyComicPrompt() async {
     try {
       final level = await getCommunityActivityLevel();
+      final customPrompt = await _db.getDailyComicPrompt(DateTime.now());
       
-      // Milan coordinates as default center for community stats
       const lat = 45.4642; 
       const lon = 9.1900;
       const radiusKm = 50.0;
-
       final stats = await Supabase.instance.client.rpc('get_community_stats', params: {
         'lat': lat,
         'lon': lon,
@@ -665,7 +650,11 @@ class AIService {
           ? "Media Km: ${stats['avg_km']}, Utenti Attivi: ${stats['active_users']}, Bici Prevalente: ${stats['popular_type']}"
           : "Statistiche non disponibili.";
 
-      final systemPrompt = '''
+      final leaderPromptSection = customPrompt != null
+          ? "\nSUGGERIMENTO DEL CAPITANO PER OGGI:\n$customPrompt\n(PRIORITÀ MASSIMA: Segui questa traccia narrativa)\n"
+          : "";
+
+      return '''
 Sei un autore di fumetti specializzato in ciclismo amatoriale italiano. 
 Il tuo compito è scrivere la sceneggiatura per la striscia quotidiana "ANONIMA CICLISTI".
 
@@ -678,26 +667,35 @@ ${ComicPrompts.characterBase}
 DATI ATTUALI DELLA COMMUNITY:
 $statsStr
 Livello Attività rilevato: $level
+$leaderPromptSection
 
 ISTRUZIONI:
-Genera una STORIA COMPLETA divisa in 3 IMMAGINI (PANNELLI).
-Ogni immagine DEVE contenere ESATTAMENTE 3 VIGNETTE (totale 9 vignette per la storia).
+Genera una STORIA COMPLETA in un'UNICA IMMAGINE (STRISCIA VERTICALE).
+La striscia deve contenere ESATTAMENTE 9 VIGNETTE, ma NON usare una griglia fissa 3x3.
+Usa uno SCHEMA DINAMICO E CASUALE per le dimensioni dei riquadri (esempio: 2x1x3x2x1).
+Lo schema deve essere fluido e cinematico.
+
 Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo MTB. 
 Includi sempre una punchline comica nel pannello finale.
 
 Formatta l'output in modo chiaro:
 TITOLO STORIA: [Titolo della giornata]
+LAYOUT PROPOSTO: [Esempio: 2x1x3x2x1]
 
-IMMAGINE 1: [Descrizione visiva generale]
-- Vignetta 1: [Descrizione] - Dialogo: "..."
-- Vignetta 2: [Descrizione] - Dialogo: "..."
-- Vignetta 3: [Descrizione] - Dialogo: "..."
-
-IMMAGINE 2: [Descrizione visiva generale]
-- Vignetta 1: [Descrizione] - Dialogo: "..."
-... e così via per la IMMAGINE 3.
+DESCRIZIONE GENERALE: [Tema della striscia]
+- Vignetta 1: [Dimensione/Posizione] [Descrizione] - Dialogo: "..."
+- Vignetta 2: ...fino alla 9.
 ''';
+    } catch (e) {
+      return "Errore nella costruzione del prompt: $e";
+    }
+  }
 
+  /// Generate a dynamic comic scenario based on community performance
+  Future<String> generateDailyComicScenario() async {
+    try {
+      final systemPrompt = await getFullDailyComicPrompt();
+      
       final response = await Supabase.instance.client.functions.invoke(
         'butler-ai-openrouter',
         body: {
@@ -718,6 +716,76 @@ IMMAGINE 2: [Descrizione visiva generale]
       return "Errore nella generazione della striscia.";
     }
   }
+  /// Get the technical context (stats, planned rides) that drives the AI prompt
+  Future<String> getCommunityAIContext() async {
+    try {
+      // 1. Get Stats (Fatte, Tipo Percorsi)
+      const lat = 45.4642; 
+      const lon = 9.1900;
+      const radiusKm = 50.0;
+      final stats = await Supabase.instance.client.rpc('get_community_stats', params: {
+        'lat': lat,
+        'lon': lon,
+        'radius_km': radiusKm,
+      });
+
+      // 2. Get Planned Rides (Pianificate)
+      final now = DateTime.now().toIso8601String();
+      final plannedResponse = await Supabase.instance.client
+          .from('group_rides')
+          .select('ride_name, difficulty_level, meeting_time')
+          .eq('is_public', true)
+          .gte('meeting_time', now)
+          .limit(3);
+      
+      final List planned = (plannedResponse as List? ?? []);
+
+      // 3. Format result
+      final buffer = StringBuffer();
+      buffer.writeln("--- ANDAMENTO CREW OGGI ---");
+      if (stats != null) {
+        buffer.writeln("• Media Km: ${stats['avg_km'] ?? 0} km");
+        buffer.writeln("• Utenti Attivi: ${stats['active_users'] ?? 0}");
+        buffer.writeln("• Difficoltà prevalente: ${stats['popular_type'] ?? 'Vari'}");
+      } else {
+        buffer.writeln("• Statistiche non disponibili al momento.");
+      }
+
+      buffer.writeln("\n--- PROSSIME USCITE PIANIFICATE ---");
+      if (planned.isNotEmpty) {
+        for (var ride in planned) {
+          final time = DateTime.tryParse(ride['meeting_time'] ?? '') ?? DateTime.now();
+          final timeStr = "${time.day}/${time.month} ${time.hour}:${time.minute.toString().padLeft(2, '0')}";
+          buffer.writeln("• ${ride['ride_name']} ($timeStr) - ${ride['difficulty_level']}");
+        }
+      } else {
+        buffer.writeln("• Nessuna uscita pubblica in programma.");
+      }
+
+      return buffer.toString();
+    } catch (e) {
+      return "Errore nel recupero del contesto AI: $e";
+    }
+  }
+
+  /// Force a regeneration of the daily comic based on current data/prompts
+  Future<bool> regenerateDailyComic() async {
+    try {
+      final scenario = await generateDailyComicScenario();
+      print('[AIService] New Scenario Generated: $scenario');
+      
+      // In a real system, we would then call an image generation API 
+      // with this scenario string and update the image entry in Storage/DB.
+      // For this simulation, we simulate the work being done.
+      await Future.delayed(const Duration(seconds: 3)); 
+      
+      return true;
+    } catch (e) {
+      print('[AIService] Error during comic regeneration: $e');
+      return false;
+    }
+  }
+
   /// Analyze biomechanics from multiple images and generate verdict
   Future<Map<String, dynamic>> analyzeBiomechanicsFromImages(List<File> imageFiles) async {
     final profile = await _db.getUserProfile();

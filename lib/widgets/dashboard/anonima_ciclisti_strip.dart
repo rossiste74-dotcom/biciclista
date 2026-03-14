@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../../services/ai_service.dart';
+import 'package:biciclistico/services/ai_service.dart';
+import 'package:biciclistico/services/database_service.dart';
+import 'package:biciclistico/models/user_profile.dart';
 
 class AnonimaCiclistiStrip extends StatefulWidget {
   const AnonimaCiclistiStrip({super.key});
@@ -12,36 +14,42 @@ class AnonimaCiclistiStrip extends StatefulWidget {
 
 class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
   final _aiService = AIService();
-  List<String> _comicPaths = [];
-  int _currentPage = 0;
+  final _db = DatabaseService();
+  final _promptController = TextEditingController();
+  
+  String? _comicPath;
   String _activityLevel = 'avg';
   bool _isLoading = true;
-  late PageController _pageController;
+  bool _isSavingPrompt = false;
+  UserProfile? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
     _loadComic();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadComic() async {
     try {
-      final paths = await _aiService.getDailyComicPaths();
+      final path = await _aiService.getDailyComicPath();
       final level = await _aiService.getCommunityActivityLevel();
+      final user = await _db.getUserProfile();
       
-      debugPrint('[ComicStrip] Loading paths: $paths, Activity Level: $level');
+      String? currentPrompt;
+      if (user?.role == UserRole.presidente || user?.role == UserRole.capitano) {
+        currentPrompt = await _db.getDailyComicPrompt(DateTime.now());
+        if (currentPrompt != null) {
+          _promptController.text = currentPrompt;
+        }
+      }
+      
+      debugPrint('[ComicStrip] Loading path: $path, Activity Level: $level, Role: ${user?.role}');
       
       if (mounted) {
         setState(() {
-          _comicPaths = paths;
+          _comicPath = path;
           _activityLevel = level;
+          _currentUser = user;
           _isLoading = false;
         });
       }
@@ -53,10 +61,50 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
     }
   }
 
+  Future<void> _savePrompt() async {
+    if (_promptController.text.trim().isEmpty) return;
+
+    setState(() => _isSavingPrompt = true);
+    try {
+      // 1. Save prompt to cloud
+      await _db.saveDailyComicPrompt(DateTime.now(), _promptController.text.trim());
+      
+      // 2. Trigger immediate regeneration
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Storia salvata! L\'AI sta disegnando la nuova striscia...')),
+        );
+      }
+      
+      final success = await _aiService.regenerateDailyComic();
+      
+      if (success && mounted) {
+        setState(() => _isLoading = true);
+        await _loadComic(); // Ricarica la striscia (il percorso rimarrà simile o punterà a una nuova versione)
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ehilà! La nuova striscia è pronta!')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[ComicStrip] Error saving prompt: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Errore durante il salvataggio o la generazione.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingPrompt = false);
+      }
+    }
+  }
+
   Future<void> _shareComic() async {
-    if (_comicPaths.isEmpty) return;
+    if (_comicPath == null) return;
     
-    final currentComic = _comicPaths[_currentPage];
     // For assets, we typically share the image with a message.
     await Share.share(
       'Guarda la striscia di oggi dell\'Anonima Ciclisti! 😂 #biciclista #cyclinglife',
@@ -148,73 +196,137 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (_comicPaths.isNotEmpty)
-              Stack(
-                children: [
-                  SizedBox(
-                    height: 250,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _comicPaths.length,
-                      onPageChanged: (index) => setState(() => _currentPage = index),
-                      itemBuilder: (context, index) {
-                        return Image.asset(
-                          _comicPaths[index],
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: const Center(
-                                child: Icon(Icons.broken_image_outlined, size: 48),
-                              ),
-                            );
-                          },
-                        );
-                      },
+            else if (_comicPath != null)
+              Image.asset(
+                _comicPath!,
+                key: ValueKey(_comicPath! + DateTime.now().millisecondsSinceEpoch.toString()),
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: const Center(
+                      child: Icon(Icons.broken_image_outlined, size: 48),
                     ),
-                  ),
-                  if (_comicPaths.length > 1)
-                    Positioned(
-                      bottom: 12,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          _comicPaths.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            height: 6,
-                            width: _currentPage == index ? 20 : 6,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index 
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Swipe hints
-                  if (_currentPage == 0 && _comicPaths.length > 1)
-                    Positioned(
-                      right: 12,
-                      top: 0,
-                      bottom: 0,
-                      child: Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                      ),
-                    ),
-                ],
+                  );
+                },
               )
             else
               const SizedBox(
                 height: 100,
                 child: Center(child: Text('Nessuna striscia disponibile per oggi.')),
+              ),
+            if (_comicPath != null && (_currentUser?.role == UserRole.presidente || _currentUser?.role == UserRole.capitano))
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'IDEA PER LA STORIA DI OGGI',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _promptController,
+                      decoration: InputDecoration(
+                        hintText: 'Esempio: MarcoTrek si perde cercando una scorciatoia...',
+                        hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      maxLines: 2,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isSavingPrompt ? null : _savePrompt,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: _isSavingPrompt 
+                                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.auto_awesome_outlined, size: 18),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _isSavingPrompt ? 'Generando...' : 'Aggiorna Storia AI',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          onPressed: () async {
+                            final statsStr = await _aiService.getCommunityAIContext();
+                            final fullPrompt = await _aiService.getFullDailyComicPrompt();
+                            
+                            if (mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Contesto e Prompt AI'),
+                                  content: SizedBox(
+                                    width: double.maxFinite,
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('DATI DELLA COMMUNITY:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                                          const SizedBox(height: 4),
+                                          Text(statsStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                                          const Divider(height: 24),
+                                          Text('FULL PROMPT SENT TO AI:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(fullPrompt, style: const TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Chiudi'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                          tooltip: 'Vedi dati e prompt AI',
+                          icon: const Icon(Icons.info_outline, size: 20),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),

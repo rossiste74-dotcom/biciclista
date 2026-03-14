@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'link_parser_service.dart';
 import 'ocr_service.dart';
@@ -14,6 +15,8 @@ class ShareIntentService {
   bool _isProcessing = false;
 
   void init(BuildContext context) {
+    if (kIsWeb) return; // Feature not supported on Web
+    
     // Listen to media sharing while app is open
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       if (value.isNotEmpty && context.mounted) {

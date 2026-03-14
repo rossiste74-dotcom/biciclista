@@ -834,4 +834,40 @@ class DatabaseService {
     _maintenanceMessages = null;
     _challengeMessages = null;
   }
+
+  // ==================== Daily Comic Prompts ====================
+
+  Future<String?> getDailyComicPrompt(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      final data = await _supabase
+          .from('daily_comic_prompts')
+          .select('prompt')
+          .eq('date', dateStr)
+          .maybeSingle();
+      
+      return data?['prompt'] as String?;
+    } catch (e) {
+      print('Error fetching daily comic prompt: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveDailyComicPrompt(DateTime date, String prompt) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final uid = _userId;
+    if (uid == null) return;
+
+    try {
+      await _supabase.from('daily_comic_prompts').upsert({
+        'date': dateStr,
+        'prompt': prompt,
+        'author_id': uid,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Error saving daily comic prompt: $e');
+      rethrow;
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,7 +11,7 @@ class UpdateService {
   /// Controlla se è disponibile un nuovo aggiornamento guardando la tabella app_versions
   Future<void> checkForUpdates(BuildContext context, {bool manualCheck = false}) async {
     // Check update on Android only, because the CI/CD uploads an APK
-    if (!Platform.isAndroid) {
+    if (kIsWeb || !Platform.isAndroid) {
       if (manualCheck && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Aggiornamento in-app disponibile solo su Android.')),
