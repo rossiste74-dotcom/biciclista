@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class PersonalStatsCard extends StatelessWidget {
   final double monthlyKm;
@@ -23,16 +22,36 @@ class PersonalStatsCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem(context, Icons.directions_bike, '${monthlyKm.toStringAsFixed(1)} Km', 'Mese Corrente'),
-            _buildStatItem(context, Icons.landscape, '${elevation.toStringAsFixed(0)} m', 'Dislivello'),
-            _buildStatItem(context, Icons.auto_awesome, eleganceGrade, 'Eleganza'),
+            _buildStatItem(
+              context,
+              Icons.directions_bike,
+              '${monthlyKm.toStringAsFixed(1)} Km',
+              'Mese Corrente',
+            ),
+            _buildStatItem(
+              context,
+              Icons.landscape,
+              '${elevation.toStringAsFixed(0)} m',
+              'Dislivello',
+            ),
+            _buildStatItem(
+              context,
+              Icons.auto_awesome,
+              eleganceGrade,
+              'Eleganza',
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(BuildContext context, IconData icon, String value, String label) {
+  Widget _buildStatItem(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -40,9 +59,9 @@ class PersonalStatsCard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,

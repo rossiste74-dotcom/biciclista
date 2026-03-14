@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 import '../models/clothing_item.dart';
 import '../models/planned_ride.dart';
 import '../models/outfit_suggestion.dart';
@@ -16,12 +15,8 @@ import '../widgets/readiness_score_card.dart';
 import '../widgets/next_ride_preview_card.dart';
 import '../widgets/biciclista_wisdom.dart';
 import '../widgets/biciclista_weather.dart';
-import '../widgets/dashboard/personal_stats_card.dart';
 import '../widgets/dashboard/upcoming_activities_slider.dart';
-import '../widgets/dashboard/community_stats_widget.dart';
 import '../widgets/dashboard/ai_lab_shortcut.dart';
-import '../widgets/dashboard/mission_planner_shortcut.dart';
-import '../widgets/dashboard/community_feed_widget.dart';
 import '../widgets/dashboard/anonima_ciclisti_strip.dart';
 import 'route_detail_screen.dart';
 import 'biomechanics_screen.dart';
@@ -46,31 +41,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   StreamSubscription? _profileSubscription;
   StreamSubscription? _ridesSubscription;
-  
+
   bool _isLoading = true;
   UserProfile? _profile;
   PlannedRide? _nextRide;
   List<PlannedRide> _communityRides = [];
   List<MonthlyStats> _monthlyStats = [];
   OutfitSuggestion? _outfitSuggestion;
-  
+
   List<double> _hrvTrend = [];
   List<double> _weightTrend = [];
   List<double> _sleepTrend = [];
   List<double> _readinessTrend = [];
-  
+
   // Stats
   double _totalKm = 0.0;
   double _weeklyKm = 0.0;
   int _totalRides = 0;
   double _otherActivitiesKm = 0.0;
-  
+
   // Messages Maps
   Map<String, String> _weatherMessages = {};
   Map<String, String> _statsMessages = {};
   Map<String, String> _maintenanceMessages = {};
   Map<String, String> _challengeMessages = {};
-  
+
   // Leaderboard
   Map<String, dynamic> _leaderboardData = {};
 
@@ -78,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadAllData();
-    
+
     // Auto-refresh when profile or rides change
     _profileSubscription = _db.watchUserProfile().listen((_) => _loadAllData());
     _ridesSubscription = _db.watchPlannedRides().listen((_) => _loadAllData());
@@ -93,17 +88,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadAllData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // 1. Load Profile (Primary source for health data)
       _profile = await _db.getUserProfile();
-      
+
       if (_profile != null) {
         // 2. Derive Trends from Profile History
         _hrvTrend = _biometricService.getHrvTrendFromProfile(_profile!);
         _weightTrend = _biometricService.getWeightTrendFromProfile(_profile!);
         _sleepTrend = _biometricService.getSleepTrendFromProfile(_profile!);
-        _readinessTrend = _biometricService.getReadinessTrendFromProfile(_profile!);
+        _readinessTrend = _biometricService.getReadinessTrendFromProfile(
+          _profile!,
+        );
       }
 
       // 3. Load Ride Stats
@@ -116,19 +113,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // We now fetch ALL incomplete rides (including past ones) to allow closing them
       final incompletePersonal = await _db.getIncompleteRides();
       List<dynamic> allUpcoming = [...incompletePersonal];
-      
+
       // Fetch group rides from Crew
       try {
         final groupRides = await _crewService.getMyGroupRides();
         // Show group rides from last 12 hours (so you can join slightly late) + future
         final cutoff = DateTime.now().subtract(const Duration(hours: 12));
-        final relevantGroupRides = groupRides.where((gr) => gr.meetingTime.isAfter(cutoff)).toList();
+        final relevantGroupRides = groupRides
+            .where((gr) => gr.meetingTime.isAfter(cutoff))
+            .toList();
         allUpcoming.addAll(relevantGroupRides);
       } catch (e) {
         debugPrint('Error fetching group rides: $e');
       }
-      
-      // Sort by date. 
+
+      // Sort by date.
       // For past rides, users likely want to deal with the oldest incomplete first?
       // Or the most recent?
       // "Next Ride" usually implies the one closest to now (or closest future).
@@ -136,13 +135,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Let's sort simply by date ascending. Past rides will show up first.
       if (allUpcoming.isNotEmpty) {
         allUpcoming.sort((a, b) {
-          final dateA = a is PlannedRide ? a.rideDate : (a as dynamic).meetingTime;
-          final dateB = b is PlannedRide ? b.rideDate : (b as dynamic).meetingTime;
+          final dateA = a is PlannedRide
+              ? a.rideDate
+              : (a as dynamic).meetingTime;
+          final dateB = b is PlannedRide
+              ? b.rideDate
+              : (b as dynamic).meetingTime;
           return dateA.compareTo(dateB);
         });
-        
+
         final nextActivity = allUpcoming.first;
-        
+
         // Convert GroupRide to PlannedRide for display compatibility
         if (nextActivity is! PlannedRide) {
           final gr = nextActivity as dynamic; // GroupRide
@@ -157,19 +160,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         } else {
           _nextRide = nextActivity;
         }
-        
+
         // 5. Fetch Weather & Suggestions
         if (_profile != null) {
           try {
             final lat = _nextRide!.latitude ?? 45.4642;
             final lng = _nextRide!.longitude ?? 9.1900;
-            
+
             final weather = await _weatherService.getForecast(
               lat: lat,
               lng: lng,
               date: _nextRide!.rideDate,
             );
-            
+
             _outfitSuggestion = _outfitService.suggestOutfit(
               weather: weather,
               thermalSensitivity: _profile!.thermalSensitivity,
@@ -189,27 +192,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
             debugPrint('Weather fetch failed: $e');
           }
         }
-        }
+      }
 
-        // 6. Load Dashboard Messages
-        _weatherMessages = await _db.getWeatherMessages();
-        _statsMessages = await _db.getStatsMessages();
-        _maintenanceMessages = await _db.getMaintenanceMessages();
-        _challengeMessages = await _db.getChallengeMessages();
-        
-        // 7. Load Leaderboard
-        _leaderboardData = await _db.getLeaderboard();
+      // 6. Load Dashboard Messages
+      _weatherMessages = await _db.getWeatherMessages();
+      _statsMessages = await _db.getStatsMessages();
+      _maintenanceMessages = await _db.getMaintenanceMessages();
+      _challengeMessages = await _db.getChallengeMessages();
 
-        // 8. Load Community Upcoming Rides
-        _communityRides = await _db.getCommunityUpcomingRides();
+      // 7. Load Leaderboard
+      _leaderboardData = await _db.getLeaderboard();
 
-        // 9. Load Monthly Stats for chart
-        final rawMonthly = await _db.getMonthlyStats();
-        _monthlyStats = rawMonthly.map((m) => MonthlyStats(
-          month: DateTime.tryParse(m['month_date'] as String? ?? '') ?? DateTime.now(),
-          km: (m['total_km'] as num?)?.toDouble() ?? 0.0,
-          elevation: (m['total_elevation'] as num?)?.toDouble() ?? 0.0,
-        )).toList();
+      // 8. Load Community Upcoming Rides
+      _communityRides = await _db.getCommunityUpcomingRides();
+
+      // 9. Load Monthly Stats for chart
+      final rawMonthly = await _db.getMonthlyStats();
+      _monthlyStats = rawMonthly
+          .map(
+            (m) => MonthlyStats(
+              month:
+                  DateTime.tryParse(m['month_date'] as String? ?? '') ??
+                  DateTime.now(),
+              km: (m['total_km'] as num?)?.toDouble() ?? 0.0,
+              elevation: (m['total_elevation'] as num?)?.toDouble() ?? 0.0,
+            ),
+          )
+          .toList();
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {
@@ -224,81 +233,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_profile == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    
+
     final role = _profile!.role;
 
     return Scaffold(
       body: SafeArea(
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadAllData,
-              child: CustomScrollView(
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        // Role Title (Optional: adds flair)
-                        Row(
-                          children: [
-                            role.iconWidget(height: 28),
-                            const SizedBox(width: 8),
-                            Text(
-                              _profile?.name ?? role.name,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // 1. Top Section (Common)
-                        BiciclistaWisdom(),
-                        const SizedBox(height: 16),
-                        const AnonimaCiclistiStrip(),
-                        const SizedBox(height: 16),
-                        YearlyStatsChart(data: _monthlyStats),
-                        const SizedBox(height: 16),
-                        UpcomingActivitiesSlider(
-                          myNextRide: _nextRide,
-                          upcomingRides: _communityRides,
-                          onJoin: (ride) => _openRouteDetail(),
-                          onNavigate: _nextRide?.latitude != null ? _openRouteDetail : null,
-                          onComplete: _nextRide != null ? () => _handleCompleteRide(_nextRide!) : null,
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // 2. Middle Section (Adaptive)
-
-
-                        if (role == UserRole.gregario) ...[
-                          AiLabShortcutWidget(
-                            onBiomechanicalTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const BiomechanicsScreen()),
-                            ),
-                            onAssistantTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AICoachScreen()),
-                            ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadAllData,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // Role Title (Optional: adds flair)
+                          Row(
+                            children: [
+                              role.iconWidget(height: 28),
+                              const SizedBox(width: 8),
+                              Text(
+                                _profile?.name ?? role.name,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
-                        ],
-                        
-                        const SizedBox(height: 100),
-                      ]),
+                          // 1. Top Section (Common)
+                          BiciclistaWisdom(),
+                          const SizedBox(height: 16),
+                          const AnonimaCiclistiStrip(),
+                          const SizedBox(height: 16),
+                          YearlyStatsChart(data: _monthlyStats),
+                          const SizedBox(height: 16),
+                          UpcomingActivitiesSlider(
+                            myNextRide: _nextRide,
+                            upcomingRides: _communityRides,
+                            onJoin: (ride) => _openRouteDetail(),
+                            onNavigate: _nextRide?.latitude != null
+                                ? _openRouteDetail
+                                : null,
+                            onComplete: _nextRide != null
+                                ? () => _handleCompleteRide(_nextRide!)
+                                : null,
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 2. Middle Section (Adaptive)
+                          if (role == UserRole.gregario) ...[
+                            AiLabShortcutWidget(
+                              onBiomechanicalTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BiomechanicsScreen(),
+                                ),
+                              ),
+                              onAssistantTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AICoachScreen(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          const SizedBox(height: 100),
+                        ]),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
       ),
     );
   }
 
-
-
   Widget _buildReadinessSection() {
-    final score = _profile != null 
+    final score = _profile != null
         ? _biometricService.calculateReadinessFromProfile(_profile!)
         : 0;
 
@@ -315,9 +329,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'dashboard.last_update'.tr(args: [DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!)]),
+              'dashboard.last_update'.tr(
+                args: [
+                  DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!),
+                ],
+              ),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -333,12 +353,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onNavigate: () => _openRouteDetail(),
       onTerminate: () async {
         if (_nextRide == null) return;
-        
+
         final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Hai finito?'),
-            content: const Text('Vuoi segnare questa pedalata come completata?'),
+            content: const Text(
+              'Vuoi segnare questa pedalata come completata?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -353,32 +375,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
 
         if (confirm == true) {
-           // Mark as completed
-           // Clone to modify
-           final updated = _nextRide!;
-           updated.isCompleted = true;
-           await _db.updatePlannedRide(updated);
-           
-           if (mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Pedalata completata! Grandissimo! 🚴‍♂️')),
-             );
-           }
-           _loadAllData();
+          // Mark as completed
+          // Clone to modify
+          final updated = _nextRide!;
+          updated.isCompleted = true;
+          await _db.updatePlannedRide(updated);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Pedalata completata! Grandissimo! 🚴‍♂️'),
+              ),
+            );
+          }
+          _loadAllData();
         }
       },
     );
   }
 
   Future<void> _openRouteDetail() async {
-        if (_nextRide != null) {
-          final result = await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => RouteDetailScreen(plannedRide: _nextRide!),
-            ),
-          );
-          if (result == true) _loadAllData();
-        }
+    if (_nextRide != null) {
+      final result = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => RouteDetailScreen(plannedRide: _nextRide!),
+        ),
+      );
+      if (result == true) _loadAllData();
+    }
   }
 
   Future<void> _handleCompleteRide(PlannedRide ride) async {
@@ -386,29 +410,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ride.isCompleted = true;
       await _db.updatePlannedRide(ride);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Uscita completata! 🎉')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Uscita completata! 🎉')));
         await _loadAllData();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
-
-
-
-
 
   Widget _buildWeatherWidget() {
     // Use outfit suggestion weather data if available, otherwise defaults
     final temp = _outfitSuggestion?.temperature ?? 15.0;
     final windSpeed = _outfitSuggestion?.windSpeed ?? 0.0;
-    
+
     return BiciclistaWeather(
       temperature: temp,
       isRaining: false, // Could be enhanced with weather service
@@ -416,6 +436,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       weatherMessages: _weatherMessages,
     );
   }
-
-
 }

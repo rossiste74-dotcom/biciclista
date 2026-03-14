@@ -15,7 +15,10 @@ class CommunityTracksService {
   // ==================== PUBLISH & MANAGE TRACKS ====================
 
   /// Find track by creator and name (for linking deletion)
-  Future<CommunityTrack?> findTrackByCreatorAndName(String userId, String trackName) async {
+  Future<CommunityTrack?> findTrackByCreatorAndName(
+    String userId,
+    String trackName,
+  ) async {
     try {
       final response = await _supabase
           .from('community_tracks')
@@ -28,7 +31,7 @@ class CommunityTracksService {
       // Fetch full object or just return dummy with ID?
       // Better fetch basic info to be safe, but ID is enough for deletion.
       // Let's re-fetch or construct. But response only has ID if I select ID.
-      // Let's just return a partial object or string? 
+      // Let's just return a partial object or string?
       // Changed return type to Future<String?>? No, safer to return object.
       // Let's just fetch *
       final fullResponse = await _supabase
@@ -38,7 +41,7 @@ class CommunityTracksService {
           .eq('track_name', trackName)
           .limit(1)
           .maybeSingle();
-      
+
       if (fullResponse == null) return null;
       return CommunityTrack.fromJson(fullResponse);
     } catch (e) {
@@ -54,12 +57,12 @@ class CommunityTracksService {
           .from('saved_tracks')
           .count(CountOption.exact)
           .eq('track_id', trackId);
-          
-      if (savedCount != null && savedCount > 0) return false;
 
-      // 2. Check usages (Group Rides - implied by crew_service logic or planned_rides? 
+      if (savedCount > 0) return false;
+
+      // 2. Check usages (Group Rides - implied by crew_service logic or planned_rides?
       // Note: Group rides usually copy data or link. If they link, we should check.
-      // Assuming 'community_rides' or similar link? 
+      // Assuming 'community_rides' or similar link?
       // In this app, rides are in 'group_rides' table (via CrewService).
       // Let's check 'group_rides'.
       final ridesCount = await _supabase
@@ -67,7 +70,7 @@ class CommunityTracksService {
           .count(CountOption.exact)
           .eq('community_track_id', trackId);
 
-      if (ridesCount != null && ridesCount > 0) return false;
+      if (ridesCount > 0) return false;
 
       // 3. Delete
       await deleteTrack(trackId);
@@ -103,8 +106,8 @@ class CommunityTracksService {
       // Extract start coordinates
       double? startLat;
       double? startLon;
-      if (gpx.trks.isNotEmpty && 
-          gpx.trks.first.trksegs.isNotEmpty && 
+      if (gpx.trks.isNotEmpty &&
+          gpx.trks.first.trksegs.isNotEmpty &&
           gpx.trks.first.trksegs.first.trkpts.isNotEmpty) {
         final firstPoint = gpx.trks.first.trksegs.first.trkpts.first;
         startLat = firstPoint.lat;
@@ -154,10 +157,7 @@ class CommunityTracksService {
   /// Delete track
   Future<void> deleteTrack(String trackId) async {
     try {
-      await _supabase
-          .from('community_tracks')
-          .delete()
-          .eq('id', trackId);
+      await _supabase.from('community_tracks').delete().eq('id', trackId);
     } catch (e) {
       throw Exception('Error deleting track: $e');
     }
@@ -366,10 +366,7 @@ class CommunityTracksService {
   /// Remove saved track
   Future<void> removeSavedTrack(String savedTrackId) async {
     try {
-      await _supabase
-          .from('saved_tracks')
-          .delete()
-          .eq('id', savedTrackId);
+      await _supabase.from('saved_tracks').delete().eq('id', savedTrackId);
     } catch (e) {
       throw Exception('Error removing saved track: $e');
     }
@@ -405,7 +402,9 @@ class CommunityTracksService {
           'distance': trackData['distance'],
           'elevation': trackData['elevation'],
           'difficulty_level': trackData['difficulty_level'],
-          'gpx_data': trackData['gpx_data'] is Map ? jsonEncode(trackData['gpx_data']) : trackData['gpx_data'],
+          'gpx_data': trackData['gpx_data'] is Map
+              ? jsonEncode(trackData['gpx_data'])
+              : trackData['gpx_data'],
         });
       }).toList();
     } catch (e) {
@@ -497,7 +496,8 @@ class CommunityTracksService {
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
 
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(_toRadians(lat1)) *
             cos(_toRadians(lat2)) *
             sin(dLon / 2) *

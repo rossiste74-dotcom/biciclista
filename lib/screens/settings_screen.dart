@@ -2,21 +2,18 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../services/backup_service.dart';
-import 'profile_screen.dart';
 import 'clothing_settings_screen.dart';
 import 'maintenance_settings_screen.dart';
 import 'navigation_settings_screen.dart';
 import 'ai_settings_screen.dart';
 import 'user_guide_screen.dart';
 
-
 import 'integration_settings_screen.dart';
 import 'sync_settings_screen.dart';
-import '../services/configuration_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_screen.dart';
+import 'comic_characters_screen.dart';
+import '../services/database_service.dart';
+import '../models/user_profile.dart';
 import '../services/update_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -26,18 +23,20 @@ class SettingsScreen extends StatelessWidget {
     final backupService = BackupService();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Impostazioni'),
-      ),
+      appBar: AppBar(title: const Text('Impostazioni')),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.checkroom),
             title: const Text('Soglie Abbigliamento'),
-            subtitle: const Text('Personalizza le temperature del "Biciclista"'),
+            subtitle: const Text(
+              'Personalizza le temperature del "Biciclista"',
+            ),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ClothingSettingsScreen()),
+              MaterialPageRoute(
+                builder: (context) => const ClothingSettingsScreen(),
+              ),
             ),
           ),
           ListTile(
@@ -46,7 +45,9 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('GPS, bussola e alert di sicurezza'),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const NavigationSettingsScreen()),
+              MaterialPageRoute(
+                builder: (context) => const NavigationSettingsScreen(),
+              ),
             ),
           ),
           const Divider(),
@@ -57,7 +58,9 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('Gestisci intervalli e nuovi componenti'),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MaintenanceSettingsScreen()),
+              MaterialPageRoute(
+                builder: (context) => const MaintenanceSettingsScreen(),
+              ),
             ),
           ),
           const Divider(),
@@ -69,12 +72,38 @@ class SettingsScreen extends StatelessWidget {
             onTap: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AISettingsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const AISettingsScreen(),
+                ),
               );
               // If AI config changed, pop with result
               if (result == true && context.mounted) {
                 Navigator.pop(context, true);
               }
+            },
+          ),
+          FutureBuilder<UserProfile?>(
+            future: DatabaseService().getUserProfile(),
+            builder: (context, snapshot) {
+              final user = snapshot.data;
+              if (user != null &&
+                  (user.role == UserRole.presidente ||
+                      user.role == UserRole.capitano)) {
+                return ListTile(
+                  leading: const Icon(Icons.groups_outlined),
+                  title: const Text('Gestione Personaggi Fumetto'),
+                  subtitle: const Text(
+                    'Personalizza i protagonisti dell\'Anonima Ciclisti',
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ComicCharactersScreen(),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
           const Divider(),
@@ -91,7 +120,9 @@ class SettingsScreen extends StatelessWidget {
                 await backupService.exportBackup();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Backup esportato con successo')),
+                    const SnackBar(
+                      content: Text('Backup esportato con successo'),
+                    ),
                   );
                 }
               } catch (e) {
@@ -115,11 +146,13 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.monitor_heart_outlined),
             title: const Text('Attività e Salute (Health Connect)'),
             subtitle: const Text('Configura quali dati sincronizzare'),
-             onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SyncSettingsScreen()),
-                );
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SyncSettingsScreen(),
+                ),
+              );
             },
           ),
           ListTile(
@@ -127,13 +160,15 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Connetti Strava & Komoot'),
             subtitle: const Text('Sincronizza le tue attività'),
             onTap: () async {
-               final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const IntegrationSettingsScreen()),
-               );
-               if (result == true && context.mounted) {
-                  Navigator.pop(context, true);
-               }
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const IntegrationSettingsScreen(),
+                ),
+              );
+              if (result == true && context.mounted) {
+                Navigator.pop(context, true);
+              }
             },
           ),
           const Divider(),
@@ -141,7 +176,9 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.help_outline),
             title: const Text('Guida all\'Utilizzo'),
-            subtitle: const Text('Scopri come usare l\'app e i dati biometrici'),
+            subtitle: const Text(
+              'Scopri come usare l\'app e i dati biometrici',
+            ),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const UserGuideScreen()),
@@ -163,15 +200,16 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.system_update_alt),
             title: const Text('Cerca Aggiornamenti'),
-            subtitle: const Text('Verifica la presenza di nuove build della crew'),
+            subtitle: const Text(
+              'Verifica la presenza di nuove build della crew',
+            ),
             onTap: () async {
               // Avvia il controllo manuale mostrando caricamento
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (ctx) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                builder: (ctx) =>
+                    const Center(child: CircularProgressIndicator()),
               );
 
               await UpdateService().checkForUpdates(context, manualCheck: true);
@@ -193,7 +231,8 @@ class SettingsScreen extends StatelessWidget {
                 child: Image.asset(
                   'assets/log1.png',
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -210,14 +249,17 @@ class SettingsScreen extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
-  Future<void> _confirmImport(BuildContext context, BackupService service) async {
+  Future<void> _confirmImport(
+    BuildContext context,
+    BackupService service,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -247,25 +289,28 @@ class SettingsScreen extends StatelessWidget {
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
         final content = await file.readAsString();
-        
+
         try {
           await service.importBackup(content);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Database ripristinato! Per favore riavvia l\'app.')),
+              const SnackBar(
+                content: Text(
+                  'Database ripristinato! Per favore riavvia l\'app.',
+                ),
+              ),
             );
           }
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Importazione fallita: $e')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Importazione fallita: $e')));
           }
         }
       }
     }
   }
-
-
 }
+
 // End of file

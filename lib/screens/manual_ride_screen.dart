@@ -37,7 +37,7 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   final _db = DatabaseService();
   final _trackService = TrackService();
   final _formKey = GlobalKey<FormState>();
-  
+
   DateTime _selectedDate = DateTime.now();
   final _nameController = TextEditingController();
   final _distanceController = TextEditingController();
@@ -45,11 +45,11 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   final _notesController = TextEditingController();
   final _hrController = TextEditingController();
   final _powerController = TextEditingController();
-  
+
   bool _isSearching = false;
   List<dynamic> _searchResults = [];
   Map<String, dynamic>? _selectedLocation;
-  
+
   List<Bicycle> _bicycles = [];
   Bicycle? _selectedBicycle;
 
@@ -63,11 +63,16 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
     _loadTracks();
     if (widget.initialDate != null) _selectedDate = widget.initialDate!;
     if (widget.initialName != null) _nameController.text = widget.initialName!;
-    if (widget.initialDistance != null) _distanceController.text = widget.initialDistance!;
-    if (widget.initialElevation != null) _elevationController.text = widget.initialElevation!;
-    if (widget.initialNotes != null) _notesController.text = widget.initialNotes!;
-    if (widget.initialHeartRate != null) _hrController.text = widget.initialHeartRate!.toString();
-    if (widget.initialPower != null) _powerController.text = widget.initialPower!.toString();
+    if (widget.initialDistance != null)
+      _distanceController.text = widget.initialDistance!;
+    if (widget.initialElevation != null)
+      _elevationController.text = widget.initialElevation!;
+    if (widget.initialNotes != null)
+      _notesController.text = widget.initialNotes!;
+    if (widget.initialHeartRate != null)
+      _hrController.text = widget.initialHeartRate!.toString();
+    if (widget.initialPower != null)
+      _powerController.text = widget.initialPower!.toString();
   }
 
   Future<void> _loadBicycles() async {
@@ -102,13 +107,15 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
         initialTime: TimeOfDay.fromDateTime(_selectedDate),
       );
       if (time != null) {
-        setState(() => _selectedDate = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          time.hour,
-          time.minute,
-        ));
+        setState(
+          () => _selectedDate = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          ),
+        );
       }
     }
   }
@@ -122,7 +129,7 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
     setState(() => _isSearching = true);
     try {
       final url = Uri.parse(
-        'https://geocoding-api.open-meteo.com/v1/search?name=${Uri.encodeComponent(query)}&count=5&language=it&format=json'
+        'https://geocoding-api.open-meteo.com/v1/search?name=${Uri.encodeComponent(query)}&count=5&language=it&format=json',
       );
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -151,19 +158,19 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       ..notes = _notesController.text
       ..latitude = _selectedLocation?['latitude']
       ..longitude = _selectedLocation?['longitude'];
-      
+
     // Use the location name as a note prefix if provided
     if (_selectedLocation != null) {
-      final locName = _selectedLocation!['name']; 
+      final locName = _selectedLocation!['name'];
       final admin = _selectedLocation!['admin1'] ?? '';
       ride.notes = 'Partenza: $locName ($admin)\n\n${_notesController.text}';
     }
-    
+
     // Automatically mark as completed if the date is in the past
     // AND we are importing an activity with data, meaning it's already done.
     if (_selectedDate.isBefore(DateTime.now())) {
       ride.isCompleted = true;
-      // Rough calculation of moving time based on an avg speed of 25km/h 
+      // Rough calculation of moving time based on an avg speed of 25km/h
       // just to have a non-zero value if user imports from link without time
       if (ride.distance > 0) {
         final calculatedTime = ((ride.distance / 25.0) * 3600).toInt();
@@ -175,12 +182,12 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
     // Save bicycle ID if selected
     if (_selectedBicycle != null) {
       ride.bicycleId = _selectedBicycle!.id;
-      
+
       // Update bicycle total distance
       _selectedBicycle!.totalKilometers += ride.distance;
       await _db.updateBicycle(_selectedBicycle!);
     }
-    
+
     // Save track ID if selected
     if (_selectedTrack != null) {
       ride.trackId = _selectedTrack!.id;
@@ -195,7 +202,7 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      
+
       try {
         final analysis = await aiService.analyzeRide(ride);
         ride.aiAnalysis = analysis;
@@ -218,9 +225,7 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuovo Percorso Manuale'),
-      ),
+      appBar: AppBar(title: const Text('Nuovo Percorso Manuale')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -248,7 +253,12 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.calendar_today),
                         title: const Text('Data e Ora'),
-                        subtitle: Text(DateFormat('EEEE, d MMMM y - HH:mm', 'it_IT').format(_selectedDate)),
+                        subtitle: Text(
+                          DateFormat(
+                            'EEEE, d MMMM y - HH:mm',
+                            'it_IT',
+                          ).format(_selectedDate),
+                        ),
                         trailing: const Icon(Icons.edit),
                         onTap: _selectDateTime,
                       ),
@@ -263,7 +273,8 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                                 border: OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
+                              validator: (v) =>
+                                  v!.isEmpty ? 'Obbligatorio' : null,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -275,7 +286,8 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                                 border: OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? 'Obbligatorio' : null,
+                              validator: (v) =>
+                                  v!.isEmpty ? 'Obbligatorio' : null,
                             ),
                           ),
                         ],
@@ -319,23 +331,29 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                     child: Column(
                       children: [
                         DropdownButtonFormField<Bicycle>(
-                          value: _selectedBicycle,
+                          initialValue: _selectedBicycle,
                           decoration: const InputDecoration(
                             labelText: 'Scegli bicicletta',
                             border: OutlineInputBorder(),
                           ),
                           hint: const Text('Seleziona la bicicletta usata'),
-                          items: _bicycles.map((bike) => DropdownMenuItem(
-                            value: bike,
-                            child: Text('${bike.name} (${bike.type})'),
-                          )).toList(),
-                          onChanged: (v) => setState(() => _selectedBicycle = v),
-                          validator: (v) => v == null ? 'Seleziona una bicicletta' : null,
+                          items: _bicycles
+                              .map(
+                                (bike) => DropdownMenuItem(
+                                  value: bike,
+                                  child: Text('${bike.name} (${bike.type})'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedBicycle = v),
+                          validator: (v) =>
+                              v == null ? 'Seleziona una bicicletta' : null,
                         ),
                         if (_tracks.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           DropdownButtonFormField<Track>(
-                            value: _selectedTrack,
+                            initialValue: _selectedTrack,
                             decoration: const InputDecoration(
                               labelText: 'Traccia Salvata (Opzionale)',
                               hintText: 'Associa a un tuo percorso salvato',
@@ -347,12 +365,15 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                                 value: null,
                                 child: Text('Nessuna traccia'),
                               ),
-                              ..._tracks.map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text(t.name),
-                              )),
+                              ..._tracks.map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t.name),
+                                ),
+                              ),
                             ],
-                            onChanged: (v) => setState(() => _selectedTrack = v),
+                            onChanged: (v) =>
+                                setState(() => _selectedTrack = v),
                           ),
                         ],
                       ],
@@ -366,13 +387,24 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                 decoration: InputDecoration(
                   labelText: 'Cerca città di partenza...',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _isSearching ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2))) : null,
+                  suffixIcon: _isSearching
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
                   border: const OutlineInputBorder(),
                   hintText: 'es. Milano, Roma...',
-                  helperText: _selectedLocation != null 
-                    ? 'Selezionato: ${_selectedLocation!['name']}'
-                    : 'Cerca una località per avere le previsioni meteo',
-                  helperStyle: TextStyle(color: _selectedLocation != null ? Colors.green : null),
+                  helperText: _selectedLocation != null
+                      ? 'Selezionato: ${_selectedLocation!['name']}'
+                      : 'Cerca una località per avere le previsioni meteo',
+                  helperStyle: TextStyle(
+                    color: _selectedLocation != null ? Colors.green : null,
+                  ),
                 ),
                 onChanged: _searchLocation,
               ),
@@ -380,7 +412,9 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
                 Container(
                   margin: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -431,9 +465,9 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

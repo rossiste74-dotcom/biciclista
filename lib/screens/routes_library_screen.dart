@@ -65,27 +65,32 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
   Future<void> _loadMyTracks() async {
     // Only show loading indicator if list is empty
     if (_myTracks.isEmpty) setState(() => _isLoadingMy = true);
-    
+
     try {
       // 1. Fetch Personal Tracks
       var personalTracks = await _trackService.getAllTracks();
 
       // 2. Fetch Saved Community Tracks
       var savedTracks = await _communityService.getMySavedTracks();
-      
+
       // 3. Convert SavedTrack -> Track
       var convertedSavedTracks = savedTracks.map((s) {
         return Track()
-          ..id = s.trackId // Use original track ID
+          ..id = s
+              .trackId // Use original track ID
           ..name = s.displayName
-          ..description = s.notes // Use notes as description or keep null
+          ..description = s
+              .notes // Use notes as description or keep null
           ..distance = s.distance ?? 0
           ..elevation = s.elevation ?? 0
-          ..createdAt = s.savedAt // Use saved date for sorting
+          ..createdAt = s
+              .savedAt // Use saved date for sorting
           ..updatedAt = s.savedAt
           ..source = 'community_saved'
           ..communityTrackId = s.trackId
-          ..difficultyLevel = s.difficultyLevel != null ? int.tryParse(s.difficultyLevel!) : null // Approximate mapping
+          ..difficultyLevel = s.difficultyLevel != null
+              ? int.tryParse(s.difficultyLevel!)
+              : null // Approximate mapping
           ..communityGpxData = s.gpxData; // Important: Pass JSON data
       }).toList();
 
@@ -108,9 +113,9 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
         setState(() => _isLoadingMy = false);
         // Only show error if list is empty
         if (_myTracks.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Errore caricamento: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Errore caricamento: $e')));
         }
       }
     }
@@ -140,7 +145,6 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -151,10 +155,7 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildMyTracksTab(),
-          _buildCommunityTab(),
-        ],
+        children: [_buildMyTracksTab(), _buildCommunityTab()],
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'routes_add_fab',
@@ -179,7 +180,9 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const GpxImportScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const GpxImportScreen(),
+                  ),
                 ).then((result) {
                   if (result == true) _loadMyTracks();
                 });
@@ -205,7 +208,9 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const RoutePlannerScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const RoutePlannerScreen(),
+                  ),
                 ).then((result) {
                   if (result == true) _loadMyTracks();
                 });
@@ -305,8 +310,8 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                     child: Text(
                       track.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   _buildTerrainChip(track.terrainType),
@@ -354,104 +359,104 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _buildCreatorAvatar(track),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        track.trackName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      if (track.creatorName != null)
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _buildCreatorAvatar(track),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'di ${track.creatorName}',
+                          track.trackName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                    ],
+                        if (track.creatorName != null)
+                          Text(
+                            'di ${track.creatorName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _buildDifficultyChip(track.difficultyLevel),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.straighten, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${track.distance.toStringAsFixed(1)} km',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(width: 16),
-                Icon(Icons.terrain, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${track.elevation.toStringAsFixed(0)} m',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const Spacer(),
-                Icon(Icons.people, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${track.usageCount}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    await _communityService.saveTrackToLab(track.id);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Percorso salvato nei "Miei"! 🎉'),
-                        ),
-                      );
-                      _loadMyTracks(); // Refresh my tracks
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Errore: $e')),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.bookmark_add),
-                label: const Text('Salva nei Miei'),
+                  const SizedBox(width: 8),
+                  _buildDifficultyChip(track.difficultyLevel),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.straighten, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${track.distance.toStringAsFixed(1)} km',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.terrain, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${track.elevation.toStringAsFixed(0)} m',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const Spacer(),
+                  Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${track.usageCount}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await _communityService.saveTrackToLab(track.id);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Percorso salvato nei "Miei"! 🎉'),
+                          ),
+                        );
+                        _loadMyTracks(); // Refresh my tracks
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.bookmark_add),
+                  label: const Text('Salva nei Miei'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildTerrainChip(String terrainType) {
     final labels = ['Strada', 'Gravel', 'MTB', 'Misto'];
     final colors = [Colors.blue, Colors.orange, Colors.green, Colors.purple];
-    
+
     int index = 0;
     switch (terrainType) {
       case 'road':
@@ -469,10 +474,7 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
     }
 
     return Chip(
-      label: Text(
-        labels[index],
-        style: const TextStyle(fontSize: 12),
-      ),
+      label: Text(labels[index], style: const TextStyle(fontSize: 12)),
       backgroundColor: colors[index].withOpacity(0.2),
       padding: EdgeInsets.zero,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -509,16 +511,16 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
             const SizedBox(height: 24),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[500],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -540,17 +542,25 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
         final gpx = GpxOptimizer.jsonToGpx(track.gpxData!);
         if (gpx.trks.isNotEmpty && gpx.trks.first.trksegs.isNotEmpty) {
           final points = gpx.trks.first.trksegs.first.trkpts;
-          
-          routePoints = points.map((p) => {
-            'lat': p.lat!,
-            'lng': p.lon!,
-          }).toList();
 
-          elevationProfile = points.where((p) => p.ele != null).map((p) => p.ele!).toList();
+          routePoints = points
+              .map((p) => {'lat': p.lat!, 'lng': p.lon!})
+              .toList();
+
+          elevationProfile = points
+              .where((p) => p.ele != null)
+              .map((p) => p.ele!)
+              .toList();
 
           if (routePoints.isNotEmpty) {
-            startPoint = LatLng(routePoints.first['lat']!, routePoints.first['lng']!);
-            endPoint = LatLng(routePoints.last['lat']!, routePoints.last['lng']!);
+            startPoint = LatLng(
+              routePoints.first['lat']!,
+              routePoints.first['lng']!,
+            );
+            endPoint = LatLng(
+              routePoints.last['lat']!,
+              routePoints.last['lng']!,
+            );
             middlePoint = LatLng(
               routePoints[routePoints.length ~/ 2]['lat']!,
               routePoints[routePoints.length ~/ 2]['lng']!,
@@ -572,16 +582,19 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
         expand: false,
         builder: (context, scrollController) => SingleChildScrollView(
           controller: scrollController,
-          padding: EdgeInsets.zero, // Zero padding for map to reach edges if wanted, or keep standard
+          padding: EdgeInsets
+              .zero, // Zero padding for map to reach edges if wanted, or keep standard
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               // Map Preview (Top)
+              // Map Preview (Top)
               if (routePoints.isNotEmpty)
                 SizedBox(
                   height: 250,
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                     child: RouteMapWidget(
                       routePoints: routePoints,
                       startPoint: startPoint,
@@ -592,7 +605,7 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                     ),
                   ),
                 ),
-              
+
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -601,7 +614,10 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                     Row(
                       children: [
                         Expanded(
-                          child: Text(track.trackName, style: Theme.of(context).textTheme.headlineSmall),
+                          child: Text(
+                            track.trackName,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
                         ),
                         _buildCreatorAvatar(track),
                       ],
@@ -611,20 +627,33 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                         padding: const EdgeInsets.only(top: 4, bottom: 16),
                         child: Text(
                           'Creato da: ${track.creatorName}',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic,
+                              ),
                         ),
                       ),
-                    
+
                     // Stats Grid
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildDetailStat(Icons.straighten, '${track.distance.toStringAsFixed(1)} km', 'Distanza'),
-                        _buildDetailStat(Icons.terrain, '${track.elevation.toStringAsFixed(0)} m', 'Dislivello'),
-                        _buildDetailStat(Icons.timer, _formatDuration(track.duration), 'Durata'),
+                        _buildDetailStat(
+                          Icons.straighten,
+                          '${track.distance.toStringAsFixed(1)} km',
+                          'Distanza',
+                        ),
+                        _buildDetailStat(
+                          Icons.terrain,
+                          '${track.elevation.toStringAsFixed(0)} m',
+                          'Dislivello',
+                        ),
+                        _buildDetailStat(
+                          Icons.timer,
+                          _formatDuration(track.duration),
+                          'Durata',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -633,7 +662,10 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                     if (elevationProfile.isNotEmpty) ...[
                       const Text(
                         'Altimetria',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -648,16 +680,18 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
 
                     const Divider(),
                     const SizedBox(height: 16),
-                    if (track.description != null && track.description!.isNotEmpty) ...[
+                    if (track.description != null &&
+                        track.description!.isNotEmpty) ...[
                       Text(
                         'Descrizione',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(track.description!),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -667,7 +701,11 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
                             await _communityService.saveTrackToLab(track.id);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Percorso salvato nei "Miei"! 🎉')),
+                                const SnackBar(
+                                  content: Text(
+                                    'Percorso salvato nei "Miei"! 🎉',
+                                  ),
+                                ),
                               );
                               _loadMyTracks();
                             }
@@ -703,10 +741,7 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
           value,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -722,17 +757,17 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
   Widget _buildCreatorAvatar(CommunityTrack track) {
     if (track.creatorAvatarData != null) {
       try {
-        final config = UserAvatarConfig.fromJson(jsonDecode(track.creatorAvatarData!));
+        final config = UserAvatarConfig.fromJson(
+          jsonDecode(track.creatorAvatarData!),
+        );
         return Container(
-          width: 40, 
+          width: 40,
           height: 40,
           decoration: BoxDecoration(
-             shape: BoxShape.circle,
-             color: Theme.of(context).colorScheme.surfaceVariant,
+            shape: BoxShape.circle,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
-          child: ClipOval(
-            child: AvatarPreview(config: config), 
-          ),
+          child: ClipOval(child: AvatarPreview(config: config)),
         );
       } catch (e) {
         debugPrint('Error parsing avatar: $e');
@@ -740,8 +775,12 @@ class _RoutesLibraryScreenState extends State<RoutesLibraryScreen>
     }
     return CircleAvatar(
       radius: 20,
-      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-      child: Icon(Icons.person, size: 24, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.person,
+        size: 24,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

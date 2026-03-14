@@ -23,7 +23,8 @@ class BiomechanicsScreen extends StatefulWidget {
 }
 
 class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
-  int _currentStep = 0; // 0: Intro/LastResult, 1: Guide/Capture, 2: Analyzing, 3: Result
+  int _currentStep =
+      0; // 0: Intro/LastResult, 1: Guide/Capture, 2: Analyzing, 3: Result
   final List<File?> _capturedImages = [null, null, null];
   String _verdict = "";
   BiomechanicsAnalysis? _analysis;
@@ -73,7 +74,7 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
   Future<void> _pickImage(ImageSource source, int index) async {
     final picker = ImagePicker();
     final XFile? photo = await picker.pickImage(source: source);
-    
+
     if (photo != null) {
       setState(() {
         _capturedImages[index] = File(photo.path);
@@ -82,7 +83,10 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
   }
 
   Future<void> _analyzeBiomechanics() async {
-    final imagesToAnalyze = _capturedImages.where((img) => img != null).cast<File>().toList();
+    final imagesToAnalyze = _capturedImages
+        .where((img) => img != null)
+        .cast<File>()
+        .toList();
     if (imagesToAnalyze.isEmpty) return;
 
     setState(() {
@@ -90,7 +94,9 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
     });
 
     // Call AI Service
-    final result = await _aiService.analyzeBiomechanicsFromImages(imagesToAnalyze);
+    final result = await _aiService.analyzeBiomechanicsFromImages(
+      imagesToAnalyze,
+    );
 
     if (mounted) {
       if (result['success']) {
@@ -103,7 +109,10 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
       } else {
         // Handle Error
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'] ?? "Errore sconosciuto"), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(result['error'] ?? "Errore sconosciuto"),
+            backgroundColor: Colors.red,
+          ),
         );
         setState(() {
           _currentStep = 1; // Go back
@@ -116,14 +125,14 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
     // Simple heuristic: if any recommendation is NOT 'NONE', it's "bad" enough to warrant attention
     final knee = analysis.biometrics.kneeExtensionAngle;
     if (knee < 135 || knee > 155) return true;
-    
+
     final recs = analysis.recommendations;
-    if (recs.saddleHeight.action != AdjustmentAction.none || 
+    if (recs.saddleHeight.action != AdjustmentAction.none ||
         recs.saddleForeAft.action != AdjustmentAction.none ||
         recs.handlebarStack.action != AdjustmentAction.none) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -143,8 +152,9 @@ class _BiomechanicsScreenState extends State<BiomechanicsScreen> {
 
     final biometrics = _analysis!.biometrics;
     final bikeType = _analysis!.metadata.bikeTypeDetected.name.toUpperCase();
-    
-    final shareText = '''
+
+    final shareText =
+        '''
 🚴 BIOMECCANICA BICICLISTA 🚴
 Analisi Posturale AI - $bikeType
 
@@ -180,17 +190,15 @@ Analisi effettuata con il Butler AI di Biciclista.
         backgroundColor: Colors.grey[850],
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          Expanded(child: _buildBody()),
-        ],
-      ),
+      body: Column(children: [Expanded(child: _buildBody())]),
     );
   }
 
   Widget _buildBody() {
     if (_isLoadingLatest) {
-      return const Center(child: CircularProgressIndicator(color: Colors.redAccent));
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.redAccent),
+      );
     }
 
     switch (_currentStep) {
@@ -213,15 +221,26 @@ Analisi effettuata con il Butler AI di Biciclista.
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.camera_alt_outlined, size: 80, color: Colors.white70),
+          const Icon(
+            Icons.camera_alt_outlined,
+            size: 80,
+            color: Colors.white70,
+          ),
           const SizedBox(height: 24),
           Text(
             "Analisi biomeccanica professionale tramite AI. Carica una foto laterale per ricevere un feedback tecnico e correzioni posturali.",
-            style: GoogleFonts.roboto(fontSize: 16, color: Colors.white70, height: 1.5),
+            style: GoogleFonts.roboto(
+              fontSize: 16,
+              color: Colors.white70,
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          Text("SELEZIONA TIPO BICI:", style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white)),
+          Text(
+            "SELEZIONA TIPO BICI:",
+            style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white),
+          ),
           const SizedBox(height: 16),
           _buildBikeTypeSelector(),
           const SizedBox(height: 48),
@@ -234,7 +253,7 @@ Analisi effettuata con il Butler AI di Biciclista.
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
             onPressed: () => setState(() => _currentStep = 1),
-          )
+          ),
         ],
       ),
     );
@@ -268,7 +287,14 @@ Analisi effettuata con il Butler AI di Biciclista.
           children: [
             Icon(icon, color: Colors.white, size: 28),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),
@@ -286,24 +312,39 @@ Analisi effettuata con il Butler AI di Biciclista.
               style: GoogleFonts.bebasNeue(fontSize: 28, color: Colors.white),
             ),
           ),
-          
+
           // 3 Photo Boxes Row
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildPhotoSlot(0, "LATERALE", "Gamba estesa", isRequired: true),
+                _buildPhotoSlot(
+                  0,
+                  "LATERALE",
+                  "Gamba estesa",
+                  isRequired: true,
+                ),
                 const SizedBox(width: 12),
-                _buildPhotoSlot(1, "LATERALE", "Piede ore 3", isRequired: false),
+                _buildPhotoSlot(
+                  1,
+                  "LATERALE",
+                  "Piede ore 3",
+                  isRequired: false,
+                ),
                 const SizedBox(width: 12),
-                _buildPhotoSlot(2, "FRONTALE", "Allineamento", isRequired: false),
+                _buildPhotoSlot(
+                  2,
+                  "FRONTALE",
+                  "Allineamento",
+                  isRequired: false,
+                ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Instruction Card
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -321,7 +362,10 @@ Analisi effettuata con il Butler AI di Biciclista.
                   Text(
                     "La prima foto è obbligatoria. Le altre sono opzionali ma consigliate per una precisione millimetrica.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14),
+                    style: GoogleFonts.roboto(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -336,14 +380,21 @@ Analisi effettuata con il Butler AI di Biciclista.
               width: double.infinity,
               height: 60,
               child: ElevatedButton.icon(
-                onPressed: _capturedImages[0] != null ? _analyzeBiomechanics : null,
+                onPressed: _capturedImages[0] != null
+                    ? _analyzeBiomechanics
+                    : null,
                 icon: const Icon(Icons.analytics_outlined),
-                label: Text("AVVIA ANALISI", style: GoogleFonts.bebasNeue(fontSize: 22)),
+                label: Text(
+                  "AVVIA ANALISI",
+                  style: GoogleFonts.bebasNeue(fontSize: 22),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey[700],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -353,7 +404,12 @@ Analisi effettuata con il Butler AI di Biciclista.
     );
   }
 
-  Widget _buildPhotoSlot(int index, String label, String sublabel, {bool isRequired = false}) {
+  Widget _buildPhotoSlot(
+    int index,
+    String label,
+    String sublabel, {
+    bool isRequired = false,
+  }) {
     final image = _capturedImages[index];
     return GestureDetector(
       onTap: () => _showImageSourceActionSheet(index),
@@ -366,26 +422,46 @@ Analisi effettuata con il Butler AI di Biciclista.
               color: Colors.grey[850],
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isRequired && image == null ? Colors.redAccent.withOpacity(0.5) : Colors.white24,
+                color: isRequired && image == null
+                    ? Colors.redAccent.withOpacity(0.5)
+                    : Colors.white24,
                 width: 2,
               ),
-              image: image != null ? DecorationImage(image: FileImage(image), fit: BoxFit.cover) : null,
+              image: image != null
+                  ? DecorationImage(image: FileImage(image), fit: BoxFit.cover)
+                  : null,
             ),
-            child: image == null 
+            child: image == null
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo, color: isRequired ? Colors.redAccent : Colors.white38, size: 32),
+                      Icon(
+                        Icons.add_a_photo,
+                        color: isRequired ? Colors.redAccent : Colors.white38,
+                        size: 32,
+                      ),
                       const SizedBox(height: 8),
-                      Text(isRequired ? "OBBLIGATORIO" : "OPZIONALE", 
-                        style: TextStyle(fontSize: 10, color: isRequired ? Colors.redAccent : Colors.white38, fontWeight: FontWeight.bold)),
+                      Text(
+                        isRequired ? "OBBLIGATORIO" : "OPZIONALE",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isRequired ? Colors.redAccent : Colors.white38,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   )
                 : const SizedBox(),
           ),
           const SizedBox(height: 8),
-          Text(label, style: GoogleFonts.bebasNeue(color: Colors.white, fontSize: 16)),
-          Text(sublabel, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          Text(
+            label,
+            style: GoogleFonts.bebasNeue(color: Colors.white, fontSize: 16),
+          ),
+          Text(
+            sublabel,
+            style: const TextStyle(color: Colors.white54, fontSize: 11),
+          ),
         ],
       ),
     );
@@ -395,14 +471,19 @@ Analisi effettuata con il Butler AI di Biciclista.
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text("Scatta Foto", style: TextStyle(color: Colors.white)),
+              title: const Text(
+                "Scatta Foto",
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera, index);
@@ -410,7 +491,10 @@ Analisi effettuata con il Butler AI di Biciclista.
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text("Scegli dalla Libreria", style: TextStyle(color: Colors.white)),
+              title: const Text(
+                "Scegli dalla Libreria",
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery, index);
@@ -419,7 +503,10 @@ Analisi effettuata con il Butler AI di Biciclista.
             if (_capturedImages[index] != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.redAccent),
-                title: const Text("Rimuovi Foto", style: TextStyle(color: Colors.redAccent)),
+                title: const Text(
+                  "Rimuovi Foto",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() => _capturedImages[index] = null);
@@ -451,11 +538,16 @@ Analisi effettuata con il Butler AI di Biciclista.
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: captured.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(captured[index]!, width: 90, height: 120, fit: BoxFit.cover),
+                  child: Image.file(
+                    captured[index]!,
+                    width: 90,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
                 );
               },
             ),
@@ -486,9 +578,15 @@ Analisi effettuata con il Butler AI di Biciclista.
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   const Icon(Icons.history, color: Colors.blueAccent, size: 16),
-                   const SizedBox(width: 8),
-                   Text("ULTIMA ANALISI SALVATA", style: GoogleFonts.bebasNeue(color: Colors.blueAccent, fontSize: 14)),
+                  const Icon(Icons.history, color: Colors.blueAccent, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    "ULTIMA ANALISI SALVATA",
+                    style: GoogleFonts.bebasNeue(
+                      color: Colors.blueAccent,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -499,33 +597,61 @@ Analisi effettuata con il Butler AI di Biciclista.
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBE6), // Paper color
-              boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4))],
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Text("CASA DEL CICLISTA - ANALISI", style: GoogleFonts.courierPrime(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black))),
+                Center(
+                  child: Text(
+                    "CASA DEL CICLISTA - ANALISI",
+                    style: GoogleFonts.courierPrime(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
                 const Divider(color: Colors.black),
                 const SizedBox(height: 10),
-                Text(_verdict, style: GoogleFonts.courierPrime(fontSize: 14, color: Colors.black, height: 1.2)),
+                Text(
+                  _verdict,
+                  style: GoogleFonts.courierPrime(
+                    fontSize: 14,
+                    color: Colors.black,
+                    height: 1.2,
+                  ),
+                ),
                 const SizedBox(height: 10),
-                const Divider(color: Colors.black), 
+                const Divider(color: Colors.black),
               ],
             ),
           ),
 
           // 1.5 Foto analizzate
-          if (hasImage) 
+          if (hasImage)
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
                     child: Text(
                       "FOTO ANALIZZATE:",
-                      style: GoogleFonts.bebasNeue(fontSize: 20, color: Colors.white),
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -534,13 +660,22 @@ Analisi effettuata con il Butler AI di Biciclista.
                       scrollDirection: Axis.horizontal,
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _capturedImages.where((img) => img != null).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemCount: _capturedImages
+                          .where((img) => img != null)
+                          .length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
                       itemBuilder: (context, index) {
-                        final captured = _capturedImages.where((img) => img != null).toList();
+                        final captured = _capturedImages
+                            .where((img) => img != null)
+                            .toList();
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(captured[index]!, width: 90, height: 120, fit: BoxFit.cover),
+                          child: Image.file(
+                            captured[index]!,
+                            width: 90,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
                         );
                       },
                     ),
@@ -550,7 +685,9 @@ Analisi effettuata con il Butler AI di Biciclista.
             ),
 
           // 2. Visual Overlay (Only if image is available from current session)
-          if (hasImage && _analysis != null && _analysis!.visualOverlay.points.isNotEmpty)
+          if (hasImage &&
+              _analysis != null &&
+              _analysis!.visualOverlay.points.isNotEmpty)
             Container(
               height: 300,
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -584,9 +721,13 @@ Analisi effettuata con il Butler AI di Biciclista.
               width: 180,
               child: Stack(
                 children: [
-                  if (_userProfile != null && _userProfile!.avatarConfig != null)
-                    AvatarPreview(config: _userProfile!.avatarConfig!, size: 180),
-                  
+                  if (_userProfile != null &&
+                      _userProfile!.avatarConfig != null)
+                    AvatarPreview(
+                      config: _userProfile!.avatarConfig!,
+                      size: 180,
+                    ),
+
                   // Simple indicator instead of full despair
                   if (_isBadPosture)
                     Positioned(
@@ -605,12 +746,11 @@ Analisi effettuata con il Butler AI di Biciclista.
               ),
             ),
           ),
-          
+
           const SizedBox(height: 24),
 
           // 4. Technical Corrections
-          if (_analysis != null)
-             _buildTechnicalCorrections(_analysis!),
+          if (_analysis != null) _buildTechnicalCorrections(_analysis!),
 
           const SizedBox(height: 32),
           Padding(
@@ -651,40 +791,61 @@ Analisi effettuata con il Butler AI di Biciclista.
   Widget _buildTechnicalCorrections(BiomechanicsAnalysis analysis) {
     final recs = analysis.recommendations;
     final biometrics = analysis.biometrics;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("DATI BIOMETRICI:", style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white)),
+          Text(
+            "DATI BIOMETRICI:",
+            style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white),
+          ),
           const SizedBox(height: 8),
-          _buildMetricRow("Estensione Ginocchio", "${biometrics.kneeExtensionAngle.toStringAsFixed(1)}°"),
-          _buildMetricRow("Angolo Schiena", "${biometrics.backAngle.toStringAsFixed(1)}°"),
-          _buildMetricRow("Angolo Spalla", "${biometrics.shoulderAngle.toStringAsFixed(1)}°"),
-          
+          _buildMetricRow(
+            "Estensione Ginocchio",
+            "${biometrics.kneeExtensionAngle.toStringAsFixed(1)}°",
+          ),
+          _buildMetricRow(
+            "Angolo Schiena",
+            "${biometrics.backAngle.toStringAsFixed(1)}°",
+          ),
+          _buildMetricRow(
+            "Angolo Spalla",
+            "${biometrics.shoulderAngle.toStringAsFixed(1)}°",
+          ),
+
           const SizedBox(height: 24),
-          Text("CORREZIONI SUGGERITE:", style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white)),
+          Text(
+            "CORREZIONI SUGGERITE:",
+            style: GoogleFonts.bebasNeue(fontSize: 24, color: Colors.white),
+          ),
           const SizedBox(height: 12),
-          
+
           if (recs.saddleHeight.action != AdjustmentAction.none)
             _buildCorrectionCard("Altezza Sella", recs.saddleHeight),
-          
+
           if (recs.saddleForeAft.action != AdjustmentAction.none)
-             _buildCorrectionCard("Arretramento Sella", recs.saddleForeAft),
-             
+            _buildCorrectionCard("Arretramento Sella", recs.saddleForeAft),
+
           if (recs.handlebarStack.action != AdjustmentAction.none)
-             _buildCorrectionCard("Altezza Manubrio", recs.handlebarStack),
-             
-          if (recs.saddleHeight.action == AdjustmentAction.none && 
+            _buildCorrectionCard("Altezza Manubrio", recs.handlebarStack),
+
+          if (recs.saddleHeight.action == AdjustmentAction.none &&
               recs.saddleForeAft.action == AdjustmentAction.none &&
               recs.handlebarStack.action == AdjustmentAction.none)
             Card(
               color: Colors.green[900]?.withOpacity(0.5),
               child: const ListTile(
                 leading: Icon(Icons.check_circle, color: Colors.greenAccent),
-                title: Text("Posizione Ottimale!", style: TextStyle(color: Colors.white)),
-                subtitle: Text("Nessuna correzione necessaria.", style: TextStyle(color: Colors.white70)),
+                title: Text(
+                  "Posizione Ottimale!",
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  "Nessuna correzione necessaria.",
+                  style: TextStyle(color: Colors.white70),
+                ),
               ),
             ),
         ],
@@ -698,8 +859,18 @@ Analisi effettuata con il Butler AI di Biciclista.
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
         ],
       ),
     );
@@ -708,13 +879,22 @@ Analisi effettuata con il Butler AI di Biciclista.
   Widget _buildCorrectionCard(String title, Recommendation rec) {
     IconData icon;
     Color color = Colors.orangeAccent;
-    
+
     switch (rec.action) {
-      case AdjustmentAction.up: icon = Icons.arrow_upward; break;
-      case AdjustmentAction.down: icon = Icons.arrow_downward; break;
-      case AdjustmentAction.fore: icon = Icons.arrow_forward; break;
-      case AdjustmentAction.aft: icon = Icons.arrow_back; break;
-      default: icon = Icons.build;
+      case AdjustmentAction.up:
+        icon = Icons.arrow_upward;
+        break;
+      case AdjustmentAction.down:
+        icon = Icons.arrow_downward;
+        break;
+      case AdjustmentAction.fore:
+        icon = Icons.arrow_forward;
+        break;
+      case AdjustmentAction.aft:
+        icon = Icons.arrow_back;
+        break;
+      default:
+        icon = Icons.build;
     }
 
     return Card(
@@ -722,9 +902,17 @@ Analisi effettuata con il Butler AI di Biciclista.
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(icon, color: color),
-        title: Text("$title: ${rec.action.name.toUpperCase()} ${rec.valueMm}mm", 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text(rec.reason, style: const TextStyle(color: Colors.white70)),
+        title: Text(
+          "$title: ${rec.action.name.toUpperCase()} ${rec.valueMm}mm",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          rec.reason,
+          style: const TextStyle(color: Colors.white70),
+        ),
       ),
     );
   }

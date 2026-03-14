@@ -1,28 +1,34 @@
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
-  
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   // Stream to handle notification taps
-  final StreamController<String?> _onNotificationTap = StreamController<String?>.broadcast();
+  final StreamController<String?> _onNotificationTap =
+      StreamController<String?>.broadcast();
   Stream<String?> get onNotificationTap => _onNotificationTap.stream;
 
   Future<void> init() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
-    
-    const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
-    
+
+    const settings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
     await _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -45,10 +51,13 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
     );
-    
+
     const iosDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
-    
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
     await _notificationsPlugin.show(id, title, body, details);
   }
 
@@ -60,10 +69,13 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
     );
-    
+
     const iosDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
-    
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
     await _notificationsPlugin.show(
       888, // Fixed ID for new ride (or unique if multiple)
       'Nuova Attività Rilevata! 🚴',

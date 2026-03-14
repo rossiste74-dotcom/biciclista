@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'dart:typed_data';
 import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../models/planned_ride.dart';
@@ -8,6 +9,7 @@ import '../models/track.dart';
 import '../models/health_snapshot.dart';
 import '../models/alert_rule.dart';
 import '../models/biomechanics_analysis.dart';
+import '../models/comic_character.dart';
 
 /// Singleton service for Cloud-Only database operations via Supabase
 class DatabaseService {
@@ -868,6 +870,65 @@ class DatabaseService {
     } catch (e) {
       print('Error saving daily comic prompt: $e');
       rethrow;
+    }
+  }
+
+  // --- COMIC CHARACTERS ---
+
+  Future<List<ComicCharacter>> getComicCharacters() async {
+    try {
+      final response = await _supabase
+          .from('comic_characters')
+          .select()
+          .order('name', ascending: true);
+      
+      return (response as List)
+          .map((json) => ComicCharacter.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error fetching comic characters: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveComicCharacter(ComicCharacter character) async {
+    try {
+      final json = character.toJson();
+      if (character.id.isEmpty) {
+        json.remove('id');
+      }
+      json['updated_at'] = DateTime.now().toIso8601String();
+      
+      await _supabase.from('comic_characters').upsert(json);
+    } catch (e) {
+      print('Error saving comic character: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteComicCharacter(String id) async {
+    try {
+      await _supabase.from('comic_characters').delete().eq('id', id);
+    } catch (e) {
+      print('Error deleting comic character: $e');
+      rethrow;
+    }
+  }
+
+  Future<String?> uploadCharacterAvatar(String charId, Uint8List bytes, String fileName) async {
+    try {
+      final path = 'avatars/$charId/$fileName';
+      await _supabase.storage.from('comic_avatars').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      
+      final url = _supabase.storage.from('comic_avatars').getPublicUrl(path);
+      return url;
+    } catch (e) {
+      print('Error uploading character avatar: $e');
+      return null;
     }
   }
 }

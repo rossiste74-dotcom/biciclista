@@ -6,7 +6,8 @@ class MaintenanceSettingsScreen extends StatefulWidget {
   const MaintenanceSettingsScreen({super.key});
 
   @override
-  State<MaintenanceSettingsScreen> createState() => _MaintenanceSettingsScreenState();
+  State<MaintenanceSettingsScreen> createState() =>
+      _MaintenanceSettingsScreenState();
 }
 
 class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
@@ -26,9 +27,15 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
       if (profile != null && profile.maintenanceDefinitions.isEmpty) {
         // Init defaults if missing (should be handled by migration but safe check)
         profile.maintenanceDefinitions = [
-          MaintenanceDefinition()..name = 'Catena'..defaultInterval = 3500.0,
-          MaintenanceDefinition()..name = 'Copertoni'..defaultInterval = 5000.0,
-          MaintenanceDefinition()..name = 'Freni'..defaultInterval = 2500.0,
+          MaintenanceDefinition()
+            ..name = 'Catena'
+            ..defaultInterval = 3500.0,
+          MaintenanceDefinition()
+            ..name = 'Copertoni'
+            ..defaultInterval = 5000.0,
+          MaintenanceDefinition()
+            ..name = 'Freni'
+            ..defaultInterval = 2500.0,
         ];
         await _db.updateUserProfile(profile);
       }
@@ -41,7 +48,9 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
 
   Future<void> _addOrEditDefinition({MaintenanceDefinition? def}) async {
     final nameController = TextEditingController(text: def?.name ?? '');
-    final intervalController = TextEditingController(text: def?.defaultInterval?.toStringAsFixed(0) ?? '3000');
+    final intervalController = TextEditingController(
+      text: def?.defaultInterval?.toStringAsFixed(0) ?? '3000',
+    );
 
     final result = await showDialog<bool>(
       context: context,
@@ -70,7 +79,10 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Salva'),
@@ -82,29 +94,35 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
     if (result == true && _profile != null) {
       final name = nameController.text.trim();
       final interval = double.tryParse(intervalController.text) ?? 3000.0;
-      
+
       if (name.isEmpty) return;
 
       try {
         setState(() {
           // Ensure we have a mutable copy of the list
-          final currentList = List<MaintenanceDefinition>.from(_profile!.maintenanceDefinitions);
-          
+          final currentList = List<MaintenanceDefinition>.from(
+            _profile!.maintenanceDefinitions,
+          );
+
           if (def != null) {
             // Find and update item in the new list
             final index = currentList.indexOf(def);
             if (index != -1) {
-              currentList[index] = MaintenanceDefinition()..name = name..defaultInterval = interval;
+              currentList[index] = MaintenanceDefinition()
+                ..name = name
+                ..defaultInterval = interval;
             }
           } else {
             currentList.add(
-              MaintenanceDefinition()..name = name..defaultInterval = interval
+              MaintenanceDefinition()
+                ..name = name
+                ..defaultInterval = interval,
             );
           }
-          
+
           _profile!.maintenanceDefinitions = currentList;
         });
-        
+
         await _db.updateUserProfile(_profile!);
 
         if (mounted) {
@@ -125,15 +143,23 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
 
   Future<void> _deleteDefinition(MaintenanceDefinition def) async {
     if (_profile == null) return;
-    
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Elimina'),
-        content: Text('Vuoi rimuovere "${def.name}" dalla lista delle manutenzioni disponibili?'),
+        content: Text(
+          'Vuoi rimuovere "${def.name}" dalla lista delle manutenzioni disponibili?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sì')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sì'),
+          ),
         ],
       ),
     );
@@ -141,16 +167,18 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
     if (confirm == true) {
       try {
         setState(() {
-          final currentList = List<MaintenanceDefinition>.from(_profile!.maintenanceDefinitions);
+          final currentList = List<MaintenanceDefinition>.from(
+            _profile!.maintenanceDefinitions,
+          );
           currentList.remove(def);
           _profile!.maintenanceDefinitions = currentList;
         });
         await _db.updateUserProfile(_profile!);
-        
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Componente rimosso')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Componente rimosso')));
         }
       } catch (e) {
         if (mounted) {
@@ -165,9 +193,7 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Impostazioni Manutenzione'),
-      ),
+      appBar: AppBar(title: const Text('Impostazioni Manutenzione')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditDefinition(),
         child: const Icon(Icons.add),
@@ -175,32 +201,34 @@ class _MaintenanceSettingsScreenState extends State<MaintenanceSettingsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _profile == null
-              ? const Center(child: Text('Profilo non trovato'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _profile!.maintenanceDefinitions.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final def = _profile!.maintenanceDefinitions[index];
-                    return ListTile(
-                      title: Text(def.name ?? 'Senza nome'),
-                      subtitle: Text('Soglia default: ${def.defaultInterval?.toStringAsFixed(0)} km'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _addOrEditDefinition(def: def),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteDefinition(def),
-                          ),
-                        ],
+          ? const Center(child: Text('Profilo non trovato'))
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _profile!.maintenanceDefinitions.length,
+              separatorBuilder: (_, _) => const Divider(),
+              itemBuilder: (context, index) {
+                final def = _profile!.maintenanceDefinitions[index];
+                return ListTile(
+                  title: Text(def.name ?? 'Senza nome'),
+                  subtitle: Text(
+                    'Soglia default: ${def.defaultInterval?.toStringAsFixed(0)} km',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _addOrEditDefinition(def: def),
                       ),
-                    );
-                  },
-                ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteDefinition(def),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }

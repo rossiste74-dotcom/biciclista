@@ -36,7 +36,9 @@ class _ActivityCardState extends State<ActivityCard> {
     super.initState();
     _participantCount = widget.activity.currentParticipants;
     // Subscribe to realtime updates
-    _participantCountStream = _crewService.subscribeToActivityUpdates(widget.activity.id);
+    _participantCountStream = _crewService.subscribeToActivityUpdates(
+      widget.activity.id,
+    );
   }
 
   bool get _isCreator {
@@ -60,9 +62,9 @@ class _ActivityCardState extends State<ActivityCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     } finally {
       if (mounted) setState(() => _isJoining = false);
@@ -93,15 +95,17 @@ class _ActivityCardState extends State<ActivityCard> {
                       children: [
                         Text(
                           widget.activity.rideName,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          DateFormat('EEEE d MMMM, HH:mm', 'it_IT')
-                              .format(widget.activity.meetingTime),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          DateFormat(
+                            'EEEE d MMMM, HH:mm',
+                            'it_IT',
+                          ).format(widget.activity.meetingTime),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
@@ -120,7 +124,10 @@ class _ActivityCardState extends State<ActivityCard> {
                       }
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(20),
@@ -131,14 +138,18 @@ class _ActivityCardState extends State<ActivityCard> {
                             Icon(
                               Icons.people,
                               size: 16,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '$count',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
                               ),
                             ),
                           ],
@@ -183,7 +194,7 @@ class _ActivityCardState extends State<ActivityCard> {
                   ],
                 ],
               ),
-              
+
               // Difficulty indicator row
               const SizedBox(height: 8),
               Row(
@@ -196,7 +207,9 @@ class _ActivityCardState extends State<ActivityCard> {
                   ),
                   const SizedBox(width: 8),
                   DifficultyIndicator(
-                    difficulty: _parseDifficulty(widget.activity.difficultyLevel),
+                    difficulty: _parseDifficulty(
+                      widget.activity.difficultyLevel,
+                    ),
                   ),
                 ],
               ),
@@ -213,25 +226,22 @@ class _ActivityCardState extends State<ActivityCard> {
                           orElse: () => widget.activity.participants.first,
                         );
                         return _buildAvatar(
-                           context, 
-                           displayName: creator.displayName,
-                           avatarData: creator.avatarData,
-                           profileImageUrl: creator.profileImageUrl,
-                           size: 32,
-                           isHighlight: true,
+                          context,
+                          displayName: creator.displayName,
+                          avatarData: creator.avatarData,
+                          profileImageUrl: creator.profileImageUrl,
+                          size: 32,
+                          isHighlight: true,
                         );
-                      }
+                      },
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Organizzato da ${widget.activity.participants.firstWhere(
-                              (p) => p.userId == widget.activity.creatorId,
-                              orElse: () => widget.activity.participants.first,
-                            ).displayName}',
+                        'Organizzato da ${widget.activity.participants.firstWhere((p) => p.userId == widget.activity.creatorId, orElse: () => widget.activity.participants.first).displayName}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -242,9 +252,9 @@ class _ActivityCardState extends State<ActivityCard> {
               if (widget.activity.participants.isNotEmpty) ...[
                 Text(
                   'Partecipanti',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -259,12 +269,13 @@ class _ActivityCardState extends State<ActivityCard> {
                         child: Tooltip(
                           message: participant.displayName,
                           child: _buildAvatar(
-                             context,
-                             displayName: participant.displayName,
-                             avatarData: participant.avatarData,
-                             profileImageUrl: participant.profileImageUrl,
-                             size: 40,
-                             isHighlight: participant.userId == widget.activity.creatorId,
+                            context,
+                            displayName: participant.displayName,
+                            avatarData: participant.avatarData,
+                            profileImageUrl: participant.profileImageUrl,
+                            size: 40,
+                            isHighlight:
+                                participant.userId == widget.activity.creatorId,
                           ),
                         ),
                       );
@@ -274,7 +285,9 @@ class _ActivityCardState extends State<ActivityCard> {
               ],
 
               // Join button (only if not creator and not already joined)
-              if (widget.showJoinButton && !_isCreator && !_isParticipating) ...[
+              if (widget.showJoinButton &&
+                  !_isCreator &&
+                  !_isParticipating) ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -297,7 +310,7 @@ class _ActivityCardState extends State<ActivityCard> {
       ),
     );
   }
-  
+
   DifficultyRating _parseDifficulty(String level) {
     switch (level.toLowerCase()) {
       case 'easy':
@@ -313,26 +326,25 @@ class _ActivityCardState extends State<ActivityCard> {
     }
   }
 
-  Widget _buildAvatar(BuildContext context, {
-    required String displayName, 
-    String? avatarData, 
-    String? profileImageUrl, 
+  Widget _buildAvatar(
+    BuildContext context, {
+    required String displayName,
+    String? avatarData,
+    String? profileImageUrl,
     double size = 32,
     bool isHighlight = false, // For creator or self
   }) {
     // 1. SVG Avatar
     if (avatarData != null) {
       final config = UserAvatarConfig.fromJsonString(avatarData);
-      if (config != null) {
-        return ClipOval(
-          child: Container(
-            width: size,
-            height: size,
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: AvatarPreview(config: config, size: size),
-          ),
-        );
-      }
+      return ClipOval(
+        child: Container(
+          width: size,
+          height: size,
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: AvatarPreview(config: config, size: size),
+        ),
+      );
     }
 
     // 2. Raster Image (URL)
@@ -347,8 +359,8 @@ class _ActivityCardState extends State<ActivityCard> {
     // 3. Initials Fallback
     return CircleAvatar(
       radius: size / 2,
-      backgroundColor: isHighlight 
-          ? Theme.of(context).colorScheme.primary 
+      backgroundColor: isHighlight
+          ? Theme.of(context).colorScheme.primary
           : Colors.grey[300],
       child: Text(
         displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile.dart';
 import '../services/database_service.dart';
-import 'package:fl_chart/fl_chart.dart'; // Ensure fl_chart is added or use simple progress bars
+// Ensure fl_chart is added or use simple progress bars
 
 class AISettingsScreen extends StatefulWidget {
   const AISettingsScreen({super.key});
@@ -15,7 +15,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _db = DatabaseService();
   bool _isLoading = true;
   UserProfile? _profile;
-  
+
   // Usage Stats
   int _totalRequests = 0;
   int _successRate = 0;
@@ -57,7 +57,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
       // Cast response to List<Map<String, dynamic>> safely
       final List<dynamic> data = response as List<dynamic>;
-      
+
       if (data.isEmpty) {
         setState(() => _loadingStats = false);
         return;
@@ -68,14 +68,16 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
       for (var log in data) {
         if (log['status'] == 'success') successCount++;
-        
+
         final model = log['model'] as String? ?? 'Unknown';
         modelCounts[model] = (modelCounts[model] ?? 0) + 1;
       }
 
       String topModel = 'N/A';
       if (modelCounts.isNotEmpty) {
-        topModel = modelCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+        topModel = modelCounts.entries
+            .reduce((a, b) => a.value > b.value ? a : b)
+            .key;
       }
 
       if (mounted) {
@@ -86,7 +88,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
           _loadingStats = false;
         });
       }
-
     } catch (e) {
       print('Error fetching stats: $e');
       if (mounted) setState(() => _loadingStats = false);
@@ -95,12 +96,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
   Future<void> _savePersonality(String personality) async {
     if (_profile == null) return;
-    
+
     _profile!.coachPersonality = personality;
     await _db.saveUserProfile(_profile!);
-    
+
     setState(() {}); // Refresh UI
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Personalità Coach aggiornata!')),
@@ -111,9 +112,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard AI Coach'),
-      ),
+      appBar: AppBar(title: const Text('Dashboard AI Coach')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -121,32 +120,38 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   // 1. Service Status Card
-                   _buildStatusCard(),
-                   const SizedBox(height: 24),
-                   
-                   // 2. Personality Selector
-                   Text(
-                      'Personalità Coach',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                   ),
-                   const SizedBox(height: 8),
-                   Text(
-                      'Scegli lo stile con cui il tuo assistente ti darà consigli.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                   ),
-                   const SizedBox(height: 16),
-                   _buildPersonalitySelector(),
+                  // 1. Service Status Card
+                  _buildStatusCard(),
+                  const SizedBox(height: 24),
 
-                   const SizedBox(height: 32),
+                  // 2. Personality Selector
+                  Text(
+                    'Personalità Coach',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Scegli lo stile con cui il tuo assistente ti darà consigli.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPersonalitySelector(),
 
-                   // 3. Usage Statistics
-                   Text(
-                      'Statistiche Utilizzo (Ultimi 100)',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                   ),
-                   const SizedBox(height: 16),
-                   _buildStatsCard(),
+                  const SizedBox(height: 32),
+
+                  // 3. Usage Statistics
+                  Text(
+                    'Statistiche Utilizzo (Ultimi 100)',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildStatsCard(),
                 ],
               ),
             ),
@@ -171,7 +176,11 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, color: Colors.green, size: 32),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 32,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -188,7 +197,9 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Modelli Attivi: Gemini 1.5 Flash, GPT-4o, Claude 3.5 Sonnet',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.green[800]),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.green[800]),
                   ),
                 ],
               ),
@@ -201,12 +212,32 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
   Widget _buildPersonalitySelector() {
     final current = _profile?.coachPersonality ?? 'friendly';
-    
+
     final personalities = [
-      {'id': 'friendly', 'name': 'Il Biciclista', 'icon': '🚴', 'desc': 'Esperto, simpatico e ironico. Il compagno ideale.'},
-      {'id': 'sergeant', 'name': 'Il Sergente', 'icon': '🪖', 'desc': 'Duro, diretto, urla per motivarti. Niente scuse.'},
-      {'id': 'zen', 'name': 'Maestro Zen', 'icon': '🧘', 'desc': 'Calmo, filosofico. Focus su respiro e armonia.'},
-      {'id': 'analytical', 'name': 'L\'Ingegnere', 'icon': '📐', 'desc': 'Solo dati, numeri e watt. Freddo e preciso.'},
+      {
+        'id': 'friendly',
+        'name': 'Il Biciclista',
+        'icon': '🚴',
+        'desc': 'Esperto, simpatico e ironico. Il compagno ideale.',
+      },
+      {
+        'id': 'sergeant',
+        'name': 'Il Sergente',
+        'icon': '🪖',
+        'desc': 'Duro, diretto, urla per motivarti. Niente scuse.',
+      },
+      {
+        'id': 'zen',
+        'name': 'Maestro Zen',
+        'icon': '🧘',
+        'desc': 'Calmo, filosofico. Focus su respiro e armonia.',
+      },
+      {
+        'id': 'analytical',
+        'name': 'L\'Ingegnere',
+        'icon': '📐',
+        'desc': 'Solo dati, numeri e watt. Freddo e preciso.',
+      },
     ];
 
     return Column(
@@ -217,9 +248,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
           elevation: isSelected ? 4 : 1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: isSelected 
-              ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
-              : BorderSide.none,
+            side: isSelected
+                ? BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  )
+                : BorderSide.none,
           ),
           child: InkWell(
             onTap: () => _savePersonality(p['id']!),
@@ -228,10 +262,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Text(
-                    p['icon']!,
-                    style: const TextStyle(fontSize: 32),
-                  ),
+                  Text(p['icon']!, style: const TextStyle(fontSize: 32)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -239,10 +270,13 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       children: [
                         Text(
                           p['name']!,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
                         ),
                         Text(
                           p['desc']!,
@@ -252,7 +286,10 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                     ),
                   ),
                   if (isSelected)
-                    Icon(Icons.radio_button_checked, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.radio_button_checked,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                 ],
               ),
             ),
@@ -277,8 +314,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatItem('Richieste', '$_totalRequests', Icons.analytics),
-                _buildStatItem('Successo', '$_successRate%', Icons.check_circle_outline, 
-                    color: _successRate > 80 ? Colors.green : Colors.orange),
+                _buildStatItem(
+                  'Successo',
+                  '$_successRate%',
+                  Icons.check_circle_outline,
+                  color: _successRate > 80 ? Colors.green : Colors.orange,
+                ),
               ],
             ),
             const Divider(height: 32),
@@ -293,28 +334,33 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, {Color? color}) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon, {
+    Color? color,
+  }) {
     return Column(
       children: [
-        Icon(icon, size: 32, color: color ?? Theme.of(context).colorScheme.primary),
+        Icon(
+          icon,
+          size: 32,
+          color: color ?? Theme.of(context).colorScheme.primary,
+        ),
         const SizedBox(height: 8),
         Text(
-          value, 
+          value,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-        ),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
       ],
     );
   }
 }
-

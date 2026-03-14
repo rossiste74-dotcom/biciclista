@@ -22,12 +22,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
     with SingleTickerProviderStateMixin {
   final _crewService = CrewService();
   final _dbService = DatabaseService();
-  
+
   late TabController _tabController;
-  
+
   List<GroupRide> _groupActivities = [];
   List<PlannedRide> _communityRides = [];
-  
+
   bool _isLoading = true;
   bool _showCommunityRides = false; // Toggle state
 
@@ -48,10 +48,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
     setState(() => _isLoading = true);
     try {
       final futures = await Future.wait([
-        _crewService.getPublicActivitiesForDiscovery(afterDate: DateTime.now(), limit: 100),
+        _crewService.getPublicActivitiesForDiscovery(
+          afterDate: DateTime.now(),
+          limit: 100,
+        ),
         _dbService.getCommunityCompletedRides(),
       ]);
-      
+
       if (mounted) {
         setState(() {
           _groupActivities = futures[0] as List<GroupRide>;
@@ -62,9 +65,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore caricamento: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore caricamento: $e')));
       }
     }
   }
@@ -88,7 +91,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
               const Icon(Icons.group, size: 16),
               Switch(
                 value: _showCommunityRides,
-                activeColor: Theme.of(context).colorScheme.secondary,
+                activeThumbColor: Theme.of(context).colorScheme.secondary,
                 onChanged: (val) {
                   setState(() {
                     _showCommunityRides = val;
@@ -110,10 +113,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
-              children: [
-                _buildMapView(),
-                _buildListView(),
-              ],
+              children: [_buildMapView(), _buildListView()],
             ),
     );
   }
@@ -123,65 +123,96 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
     final markersToDisplay = <Marker>[];
     double avgLat = 45.4642; // Default Milano
     double avgLng = 9.1900;
-    
+
     if (!_showCommunityRides && _groupActivities.isNotEmpty) {
-      final validGroups = _groupActivities.where((a) => a.meetingLatitude != null && a.meetingLongitude != null).toList();
+      final validGroups = _groupActivities
+          .where((a) => a.meetingLatitude != null && a.meetingLongitude != null)
+          .toList();
       if (validGroups.isNotEmpty) {
-        avgLat = validGroups.map((a) => a.meetingLatitude!).reduce((a, b) => a + b) / validGroups.length;
-        avgLng = validGroups.map((a) => a.meetingLongitude!).reduce((a, b) => a + b) / validGroups.length;
-        
-        markersToDisplay.addAll(validGroups.map((activity) => Marker(
-          point: LatLng(activity.meetingLatitude!, activity.meetingLongitude!),
-          width: 40,
-          height: 40,
-          child: GestureDetector(
-            onTap: () => _showGroupActivityBottomSheet(activity),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+        avgLat =
+            validGroups.map((a) => a.meetingLatitude!).reduce((a, b) => a + b) /
+            validGroups.length;
+        avgLng =
+            validGroups
+                .map((a) => a.meetingLongitude!)
+                .reduce((a, b) => a + b) /
+            validGroups.length;
+
+        markersToDisplay.addAll(
+          validGroups.map(
+            (activity) => Marker(
+              point: LatLng(
+                activity.meetingLatitude!,
+                activity.meetingLongitude!,
               ),
-              child: Center(
-                child: Text(
-                  '${activity.currentParticipants}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showGroupActivityBottomSheet(activity),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${activity.currentParticipants}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        )));
+        );
       } else {
         return _buildEmptyState('Nessuna uscita di gruppo con coordinate');
       }
-    } 
-    else if (_showCommunityRides && _communityRides.isNotEmpty) {
-      avgLat = _communityRides.map((a) => a.latitude!).reduce((a, b) => a + b) / _communityRides.length;
-      avgLng = _communityRides.map((a) => a.longitude!).reduce((a, b) => a + b) / _communityRides.length;
-      
-      markersToDisplay.addAll(_communityRides.map((ride) => Marker(
-        point: LatLng(ride.latitude!, ride.longitude!),
-        width: 40,
-        height: 40,
-        child: GestureDetector(
-          onTap: () => _showCompletedRideBottomSheet(ride),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Center(
-              child: Icon(Icons.directions_bike, color: Colors.white, size: 20),
+    } else if (_showCommunityRides && _communityRides.isNotEmpty) {
+      avgLat =
+          _communityRides.map((a) => a.latitude!).reduce((a, b) => a + b) /
+          _communityRides.length;
+      avgLng =
+          _communityRides.map((a) => a.longitude!).reduce((a, b) => a + b) /
+          _communityRides.length;
+
+      markersToDisplay.addAll(
+        _communityRides.map(
+          (ride) => Marker(
+            point: LatLng(ride.latitude!, ride.longitude!),
+            width: 40,
+            height: 40,
+            child: GestureDetector(
+              onTap: () => _showCompletedRideBottomSheet(ride),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.directions_bike,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-      )));
-    } 
-    else {
-      return _buildEmptyState(_showCommunityRides 
-        ? 'Nessuna attività completata recente dalla community' 
-        : 'Nessuna uscita di gruppo imminente');
+      );
+    } else {
+      return _buildEmptyState(
+        _showCommunityRides
+            ? 'Nessuna attività completata recente dalla community'
+            : 'Nessuna uscita di gruppo imminente',
+      );
     }
 
     return FlutterMap(
@@ -191,7 +222,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+          urlTemplate:
+              'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
           subdomains: const ['a', 'b', 'c'],
           userAgentPackageName: 'com.ridecrew.ride_crew',
         ),
@@ -207,15 +239,18 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
               return Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: _showCommunityRides 
-                      ? Theme.of(context).colorScheme.secondary 
+                  color: _showCommunityRides
+                      ? Theme.of(context).colorScheme.secondary
                       : Theme.of(context).colorScheme.primary,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
                 child: Center(
                   child: Text(
                     markers.length.toString(),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               );
@@ -228,7 +263,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
 
   Widget _buildListView() {
     if (!_showCommunityRides) {
-      if (_groupActivities.isEmpty) return _buildEmptyState('Nessuna uscita di gruppo');
+      if (_groupActivities.isEmpty)
+        return _buildEmptyState('Nessuna uscita di gruppo');
       return RefreshIndicator(
         onRefresh: _loadAllData,
         child: ListView.builder(
@@ -245,7 +281,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
         ),
       );
     } else {
-      if (_communityRides.isEmpty) return _buildEmptyState('Nessuna attività completata');
+      if (_communityRides.isEmpty)
+        return _buildEmptyState('Nessuna attività completata');
       return RefreshIndicator(
         onRefresh: _loadAllData,
         child: ListView.builder(
@@ -256,7 +293,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.directions_bike)),
               title: Text(ride.displayName),
-              subtitle: Text('${ride.distance.toStringAsFixed(1)} km • ${DateFormat('dd MMM').format(ride.rideDate)}\nDi: ${ride.notes ?? "Utente Rider"}'),
+              subtitle: Text(
+                '${ride.distance.toStringAsFixed(1)} km • ${DateFormat('dd MMM').format(ride.rideDate)}\nDi: ${ride.notes ?? "Utente Rider"}',
+              ),
               isThreeLine: true,
             );
           },
@@ -276,7 +315,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
             const SizedBox(height: 24),
             Text(
               message,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -304,7 +345,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
             child: Column(
               children: [
                 const SizedBox(height: 12),
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 ActivityCard(
                   activity: activity,
@@ -321,7 +369,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
       ),
     );
   }
-  
+
   void _showCompletedRideBottomSheet(PlannedRide ride) {
     showModalBottomSheet(
       context: context,
@@ -336,20 +384,36 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Attività Completata', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Attività Completata',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const Divider(),
             ListTile(
-               contentPadding: EdgeInsets.zero,
-               leading: CircleAvatar(child: Text((ride.notes ?? "U")[0].toUpperCase())),
-               title: Text(ride.displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
-               subtitle: Text('Di ${ride.notes ?? "Utente"} • ${DateFormat('dd MMM yyyy, HH:mm').format(ride.rideDate)}'),
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                child: Text((ride.notes ?? "U")[0].toUpperCase()),
+              ),
+              title: Text(
+                ride.displayName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Di ${ride.notes ?? "Utente"} • ${DateFormat('dd MMM yyyy, HH:mm').format(ride.rideDate)}',
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatIcon(Icons.straighten, '${ride.distance.toStringAsFixed(1)} km'),
-                _buildStatIcon(Icons.trending_up, '${ride.elevation.toStringAsFixed(0)} m'),
+                _buildStatIcon(
+                  Icons.straighten,
+                  '${ride.distance.toStringAsFixed(1)} km',
+                ),
+                _buildStatIcon(
+                  Icons.trending_up,
+                  '${ride.elevation.toStringAsFixed(0)} m',
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -358,7 +422,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
       ),
     );
   }
-  
+
   Widget _buildStatIcon(IconData icon, String value) {
     return Column(
       children: [

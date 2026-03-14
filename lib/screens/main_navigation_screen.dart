@@ -60,7 +60,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExternalActivities();
       ShareIntentService().init(context);
-      
+
       // Controllo aggiornamenti all'avvio
       UpdateService().checkForUpdates(context);
     });
@@ -71,15 +71,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         final parts = payload.split('|');
         final km = double.tryParse(parts[0]) ?? 0.0;
         final type = parts.length > 1 ? parts[1] : "Attività";
-        
+
         showDialog(
           context: context,
-          builder: (_) => BikeSelectionDialog(distanceKm: km, activityType: type),
+          builder: (_) =>
+              BikeSelectionDialog(distanceKm: km, activityType: type),
         );
       }
     });
   }
-  
+
   @override
   void dispose() {
     _crewRefreshNotifier.dispose();
@@ -89,29 +90,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _checkExternalActivities() async {
     final syncService = SyncService();
     final db = DatabaseService();
-    
+
     // 1. Check if we have credentials (e.g. Strava linked)
-    if (await syncService.isAuthenticated(SyncProvider.strava)) { 
+    if (await syncService.isAuthenticated(SyncProvider.strava)) {
       try {
         final activities = await syncService.syncRecentActivities(limit: 5);
         final newActivities = <ImportedActivity>[];
-        
+
         for (final activity in activities) {
-           final exists = await db.doesRideExist(activity.date);
-           if (!exists) {
-             newActivities.add(activity);
-           }
+          final exists = await db.doesRideExist(activity.date);
+          if (!exists) {
+            newActivities.add(activity);
+          }
         }
 
         if (newActivities.isNotEmpty) {
           if (newActivities.length == 1) {
-             _proposeImport(newActivities.first);
+            _proposeImport(newActivities.first);
           } else {
-             _proposeBulkImport(newActivities);
+            _proposeBulkImport(newActivities);
           }
         }
       } catch (e) {
-          debugPrint('Sync Error: $e');
+        debugPrint('Sync Error: $e');
       }
     }
   }
@@ -127,10 +128,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           children: [
             Text('Trovata nuova attività da ${activity.source}:'),
             const SizedBox(height: 8),
-            Text('Nome: ${activity.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Nome: ${activity.name}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             Text('Data: ${DateFormat('dd/MM HH:mm').format(activity.date)}'),
             Text('Distanza: ${activity.distance.toStringAsFixed(1)} km'),
-            Text('Velocità Media: ${activity.avgSpeed.toStringAsFixed(1)} km/h'),
+            Text(
+              'Velocità Media: ${activity.avgSpeed.toStringAsFixed(1)} km/h',
+            ),
             const SizedBox(height: 16),
             const Text('Vuoi importarla nel diario?'),
           ],
@@ -142,8 +148,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
           FilledButton(
             onPressed: () {
-               Navigator.pop(ctx);
-               _importActivity(activity);
+              Navigator.pop(ctx);
+              _importActivity(activity);
             },
             child: const Text('Importa'),
           ),
@@ -162,23 +168,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-               const Text('Vuoi importare tutte le attività recenti?'),
-               const SizedBox(height: 16),
-               Flexible(
-                 child: ListView.separated(
-                   shrinkWrap: true,
-                   itemCount: activities.length,
-                   separatorBuilder: (_,__) => const Divider(),
-                   itemBuilder: (context, index) {
-                      final act = activities[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(act.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        subtitle: Text('${DateFormat('dd/MM').format(act.date)} • ${act.distance.toStringAsFixed(1)} km'),
-                      );
-                   },
-                 ),
-               ),
+              const Text('Vuoi importare tutte le attività recenti?'),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: activities.length,
+                  separatorBuilder: (_, _) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final act = activities[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        act.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${DateFormat('dd/MM').format(act.date)} • ${act.distance.toStringAsFixed(1)} km',
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -189,10 +203,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
           FilledButton(
             onPressed: () async {
-               Navigator.pop(ctx);
-               for (final activity in activities) {
-                  await _importActivity(activity);
-               }
+              Navigator.pop(ctx);
+              for (final activity in activities) {
+                await _importActivity(activity);
+              }
             },
             child: const Text('Importa Tutte'),
           ),
@@ -204,26 +218,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _importActivity(ImportedActivity activity) async {
     final syncService = SyncService();
     final db = DatabaseService();
-    
+
     try {
       // 1. Download GPX (if possible)
-    File? gpxFile;
-    double? startLat;
-    double? startLng;
-      
+      File? gpxFile;
+      double? startLat;
+      double? startLng;
+
       try {
         if (activity.source == 'Strava') {
           // Notify user downloading is happening (optional, but good for UX)
-          gpxFile = await syncService.downloadAndSaveGpx(activity.id, activity.name);
-          
+          gpxFile = await syncService.downloadAndSaveGpx(
+            activity.id,
+            activity.name,
+          );
+
           if (gpxFile != null) {
             // Read first point for lat/lng
             final xml = await gpxFile.readAsString();
             final gpx = GpxReader().fromString(xml);
-            if (gpx.trks.isNotEmpty && gpx.trks.first.trksegs.isNotEmpty && gpx.trks.first.trksegs.first.trkpts.isNotEmpty) {
-               final pt = gpx.trks.first.trksegs.first.trkpts.first;
-               startLat = pt.lat;
-               startLng = pt.lon;
+            if (gpx.trks.isNotEmpty &&
+                gpx.trks.first.trksegs.isNotEmpty &&
+                gpx.trks.first.trksegs.first.trkpts.isNotEmpty) {
+              final pt = gpx.trks.first.trksegs.first.trkpts.first;
+              startLat = pt.lat;
+              startLng = pt.lon;
             }
           }
         }
@@ -235,16 +254,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       // Try to find a local bike that matches Strava gear name
       Bicycle? matchedBike;
       if (activity.gearName != null) {
-         final allBikes = await db.getAllBicycles();
-         // Simple case-insensitive match
-         // Could be improved with Levenshtein or "contains" logic
-         try {
-           matchedBike = allBikes.firstWhere(
-             (b) => b.name.toLowerCase().trim() == activity.gearName!.toLowerCase().trim(),
-           );
-         } catch (_) {
-           // No match found
-         }
+        final allBikes = await db.getAllBicycles();
+        // Simple case-insensitive match
+        // Could be improved with Levenshtein or "contains" logic
+        try {
+          matchedBike = allBikes.firstWhere(
+            (b) =>
+                b.name.toLowerCase().trim() ==
+                activity.gearName!.toLowerCase().trim(),
+          );
+        } catch (_) {
+          // No match found
+        }
       }
 
       // 3. Create PlannedRide entry
@@ -255,7 +276,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ..elevation = activity.elevation
         ..movingTime = activity.movingTime
         ..avgSpeed = activity.avgSpeed
-        
         // Extended Stats
         ..avgHeartRate = activity.avgHeartRate
         ..maxHeartRate = activity.maxHeartRate
@@ -263,56 +283,63 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ..maxPower = activity.maxPower
         ..avgCadence = activity.avgCadence
         ..calories = activity.calories
-        
-        ..isCompleted = true 
+        ..isCompleted = true
         ..gpxFilePath = gpxFile?.path
         ..latitude = startLat
         ..longitude = startLng
-        ..bicycleId = matchedBike?.id // Auto-assign if matched
-        ..aiAnalysis = 'Imported from ${activity.source} \nMoving Time: ${activity.movingTime ~/ 60} min \nAvg Speed: ${activity.avgSpeed.toStringAsFixed(1)} km/h';
+        ..bicycleId = matchedBike
+            ?.id // Auto-assign if matched
+        ..aiAnalysis =
+            'Imported from ${activity.source} \nMoving Time: ${activity.movingTime ~/ 60} min \nAvg Speed: ${activity.avgSpeed.toStringAsFixed(1)} km/h';
 
       debugPrint('Saving imported ride: ${newRide.rideName}');
       await db.createPlannedRide(newRide);
       debugPrint('Ride saved successfully');
 
       if (mounted) {
-         // 4. Handle Bike Stats Update
-         if (matchedBike != null) {
-            // Auto update logic
-            ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(
-                 content: Text('Attività importata e associata a "${matchedBike.name}"! 🚲'),
-                 duration: const Duration(seconds: 4),
-                 action: SnackBarAction(
-                   label: 'Cambia', 
-                   onPressed: () => _showBikeSelectionDialog(newRide), // Allow correction
-                 ),
-               )
-            );
-            // We need to trigger stats update for the matched bike silently or clearly
-            // The method _completeRide logic is actually reusable but it's part of RouteDetailScreen logic usually...
-            // Wait, here we just created the ride. We haven't updated the bike stats yet.
-            // We need a helper to update bike stats.
-            await _updateBikeStats(matchedBike, newRide);
-            
-         } else {
-            // No match -> Ask user
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attività salvata! Seleziona la bici usata...')));
-            await _showBikeSelectionDialog(newRide);
-         }
+        // 4. Handle Bike Stats Update
+        if (matchedBike != null) {
+          // Auto update logic
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Attività importata e associata a "${matchedBike.name}"! 🚲',
+              ),
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Cambia',
+                onPressed: () =>
+                    _showBikeSelectionDialog(newRide), // Allow correction
+              ),
+            ),
+          );
+          // We need to trigger stats update for the matched bike silently or clearly
+          // The method _completeRide logic is actually reusable but it's part of RouteDetailScreen logic usually...
+          // Wait, here we just created the ride. We haven't updated the bike stats yet.
+          // We need a helper to update bike stats.
+          await _updateBikeStats(matchedBike, newRide);
+        } else {
+          // No match -> Ask user
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Attività salvata! Seleziona la bici usata...'),
+            ),
+          );
+          await _showBikeSelectionDialog(newRide);
+        }
       }
     } catch (e, stack) {
       debugPrint('Import Error: $e\n$stack');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Errore importazione: $e'),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore importazione: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
-
-
 
   Future<void> _showBikeSelectionDialog(PlannedRide ride) async {
     final db = DatabaseService();
@@ -321,8 +348,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (!mounted) return;
 
     if (bicycles.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nessuna bici in garage. Km non assegnati.')));
-       return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nessuna bici in garage. Km non assegnati.'),
+        ),
+      );
+      return;
     }
 
     await showDialog(
@@ -358,28 +389,38 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final double rideDist = ride.distance;
 
     // Update stats safely
-    bike.totalKilometers = (bike.totalKilometers.isNaN ? 0.0 : bike.totalKilometers) + rideDist;
+    bike.totalKilometers =
+        (bike.totalKilometers.isNaN ? 0.0 : bike.totalKilometers) + rideDist;
     bike.chainKms = (bike.chainKms.isNaN ? 0.0 : bike.chainKms) + rideDist;
     bike.tyreKms = (bike.tyreKms.isNaN ? 0.0 : bike.tyreKms) + rideDist;
 
     // Update dynamic components
     final notify = NotificationService();
     for (var component in bike.components) {
-      component.currentKm = (component.currentKm.isNaN ? 0.0 : component.currentKm) + rideDist;
-      
+      component.currentKm =
+          (component.currentKm.isNaN ? 0.0 : component.currentKm) + rideDist;
+
       // Check limits
-      if (component.limitKm > 0 && component.currentKm >= component.limitKm * 0.9) {
-          await notify.showMaintenanceAlert(
-            id: ((bike.id?.hashCode ?? 0) % 100000) * 1000 + bike.components.indexOf(component), 
-            title: '⚠️ Manutenzione necessaria su ${bike.name}',
-            body: 'Il componente "${component.name}" ha raggiunto ${component.currentKm.toInt()} km. Verifica lo stato!',
-          );
+      if (component.limitKm > 0 &&
+          component.currentKm >= component.limitKm * 0.9) {
+        await notify.showMaintenanceAlert(
+          id:
+              ((bike.id?.hashCode ?? 0) % 100000) * 1000 +
+              bike.components.indexOf(component),
+          title: '⚠️ Manutenzione necessaria su ${bike.name}',
+          body:
+              'Il componente "${component.name}" ha raggiunto ${component.currentKm.toInt()} km. Verifica lo stato!',
+        );
       }
     }
-    
+
     await db.updateBicycle(bike);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Km aggiunti a ${bike.name} e componenti aggiornati!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Km aggiunti a ${bike.name} e componenti aggiornati!'),
+        ),
+      );
     }
   }
 
@@ -418,9 +459,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               subtitle: const Text('Importa percorso da un altro ciclista'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const QrScanScreen()),
-                );
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const QrScanScreen()));
               },
             ),
             ListTile(
@@ -429,9 +470,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               subtitle: const Text('Crea traccia su mappa con Snap-to-Road'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => RoutePlannerScreen()),
-                );
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => RoutePlannerScreen()));
               },
             ),
             const SizedBox(height: 8),
@@ -444,7 +485,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget _buildAppBarTitle() {
     switch (_selectedIndex) {
       case 0:
-        return Text('biciclistico', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold));
+        return Text(
+          'biciclistico',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        );
       case 1:
         return const Text('Percorsi');
       case 2:
@@ -481,23 +527,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
             ),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
             },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () async {
               // Navigate to settings and check if AI config changed
-              final result = await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-              
+              final result = await Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+
               // 2. Refresh sync logic if settings returned true (sync enabled)
               if (result == true) {
-                 await _checkExternalActivities();
-                 setState(() {});
+                await _checkExternalActivities();
+                setState(() {});
               }
             },
           ),
@@ -532,10 +578,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         shape: const CircleBorder(),
         child: Padding(
           padding: const EdgeInsets.all(2.0),
-          child: Image.asset(
-            'assets/icona-3.png',
-            fit: BoxFit.contain,
-          ),
+          child: Image.asset('assets/icona-3.png', fit: BoxFit.contain),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -547,23 +590,56 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Home')),
-            Expanded(child: _buildNavItem(1, Icons.directions_bike_outlined, Icons.directions_bike, 'Percorsi')),
+            Expanded(
+              child: _buildNavItem(
+                0,
+                Icons.dashboard_outlined,
+                Icons.dashboard,
+                'Home',
+              ),
+            ),
+            Expanded(
+              child: _buildNavItem(
+                1,
+                Icons.directions_bike_outlined,
+                Icons.directions_bike,
+                'Percorsi',
+              ),
+            ),
             const SizedBox(width: 48), // Spazio per il FAB
-            Expanded(child: _buildNavItem(2, Icons.psychology_outlined, Icons.psychology, 'AI Lab')),
-            Expanded(child: _buildNavItem(3, Icons.people_outline, Icons.people, 'Community')),
+            Expanded(
+              child: _buildNavItem(
+                2,
+                Icons.psychology_outlined,
+                Icons.psychology,
+                'AI Lab',
+              ),
+            ),
+            Expanded(
+              child: _buildNavItem(
+                3,
+                Icons.people_outline,
+                Icons.people,
+                'Community',
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData outlineIcon, IconData solidIcon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData outlineIcon,
+    IconData solidIcon,
+    String label,
+  ) {
     final isSelected = _selectedIndex == index;
-    final color = isSelected 
-        ? Theme.of(context).colorScheme.primary 
+    final color = isSelected
+        ? Theme.of(context).colorScheme.primary
         : Theme.of(context).colorScheme.onSurfaceVariant;
-    
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -594,4 +670,3 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
-

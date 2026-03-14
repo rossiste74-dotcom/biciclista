@@ -31,101 +31,110 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Le Mie Biciclette'),
-      ),
+      appBar: AppBar(title: const Text('Le Mie Biciclette')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _bicycles.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.pedal_bike,
-                        size: 80,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Nessuna bicicletta registrata',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Aggiungi la tua prima bicicletta!',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.pedal_bike,
+                    size: 80,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.5),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _bicycles.length,
-                  itemBuilder: (context, index) {
-                    final bike = _bicycles[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          radius: 28,
-                          child: Icon(
-                            Icons.pedal_bike,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            size: 28,
-                          ),
-                        ),
-                        title: Text(
-                          bike.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text('${bike.type} • ${bike.gearingSystem}'),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.straighten, size: 16, color: Theme.of(context).colorScheme.primary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${bike.totalKilometers.toStringAsFixed(1)} km totali',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _showBicycleDialog(bike: bike),
-                              tooltip: 'Modifica',
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () => _deleteBicycle(bike),
-                              tooltip: 'Elimina',
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ],
-                        ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nessuna bicicletta registrata',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Aggiungi la tua prima bicicletta!',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _bicycles.length,
+              itemBuilder: (context, index) {
+                final bike = _bicycles[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer,
+                      radius: 28,
+                      child: Icon(
+                        Icons.pedal_bike,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    title: Text(
+                      bike.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text('${bike.type} • ${bike.gearingSystem}'),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.straighten,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${bike.totalKilometers.toStringAsFixed(1)} km totali',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _showBicycleDialog(bike: bike),
+                          tooltip: 'Modifica',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _deleteBicycle(bike),
+                          tooltip: 'Elimina',
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showBicycleDialog(),
         icon: const Icon(Icons.add),
@@ -137,12 +146,16 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
   Future<void> _showBicycleDialog({Bicycle? bike}) async {
     final nameController = TextEditingController(text: bike?.name ?? '');
     final typeController = TextEditingController(text: bike?.type ?? 'Road');
-    final gearingController = TextEditingController(text: bike?.gearingSystem ?? 'Mechanical');
-    
+    final gearingController = TextEditingController(
+      text: bike?.gearingSystem ?? 'Mechanical',
+    );
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(bike == null ? 'Aggiungi Bicicletta' : 'Modifica Bicicletta'),
+        title: Text(
+          bike == null ? 'Aggiungi Bicicletta' : 'Modifica Bicicletta',
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -157,7 +170,7 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: typeController.text,
+                initialValue: typeController.text,
                 decoration: const InputDecoration(
                   labelText: 'Tipo',
                   border: OutlineInputBorder(),
@@ -169,7 +182,7 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: gearingController.text,
+                initialValue: gearingController.text,
                 decoration: const InputDecoration(
                   labelText: 'Sistema di Trasmissione',
                   border: OutlineInputBorder(),
@@ -208,7 +221,7 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
       newBike.name = nameController.text;
       newBike.type = typeController.text;
       newBike.gearingSystem = gearingController.text;
-      
+
       if (bike == null) {
         newBike.totalKilometers = 0;
         newBike.lastMaintenance = DateTime.now();
@@ -217,16 +230,20 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
       } else {
         await _db.updateBicycle(newBike);
       }
-      
+
       await _loadBicycles();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(bike == null ? 'Bicicletta aggiunta!' : 'Bicicletta aggiornata!')),
+          SnackBar(
+            content: Text(
+              bike == null ? 'Bicicletta aggiunta!' : 'Bicicletta aggiornata!',
+            ),
+          ),
         );
       }
     }
-    
+
     nameController.dispose();
     typeController.dispose();
     gearingController.dispose();
@@ -259,11 +276,11 @@ class _BicyclesScreenState extends State<BicyclesScreen> {
         await _db.deleteBicycle(bike.id!);
       }
       await _loadBicycles();
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bicicletta eliminata')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Bicicletta eliminata')));
       }
     }
   }

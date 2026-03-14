@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_config.dart';
 
 class ConfigurationService {
-  static final ConfigurationService _instance = ConfigurationService._internal();
+  static final ConfigurationService _instance =
+      ConfigurationService._internal();
   factory ConfigurationService() => _instance;
   ConfigurationService._internal();
 
@@ -16,7 +16,7 @@ class ConfigurationService {
       final response = await SupabaseConfig.client
           .from('app_config')
           .select('key, value');
-      
+
       for (var item in response) {
         _configCache[item['key'] as String] = item['value'] as String;
       }

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Cycle discipline type for biomechanical ranges
 enum BikeType { road, ttTri, mtb }
 
@@ -21,8 +19,10 @@ class BiomechanicsMetadata {
   factory BiomechanicsMetadata.fromJson(Map<String, dynamic> json) {
     return BiomechanicsMetadata(
       bikeTypeDetected: _parseBikeType(json['bike_type_detected']),
-      imageQualityScore: (json['image_quality_score'] as num?)?.toDouble() ?? 0.0,
-      validationErrors: (json['validation_errors'] as List<dynamic>?)
+      imageQualityScore:
+          (json['image_quality_score'] as num?)?.toDouble() ?? 0.0,
+      validationErrors:
+          (json['validation_errors'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -66,7 +66,8 @@ class Biometrics {
 
   factory Biometrics.fromJson(Map<String, dynamic> json) {
     return Biometrics(
-      kneeExtensionAngle: (json['knee_extension_angle'] as num?)?.toDouble() ?? 0.0,
+      kneeExtensionAngle:
+          (json['knee_extension_angle'] as num?)?.toDouble() ?? 0.0,
       backAngle: (json['back_angle'] as num?)?.toDouble() ?? 0.0,
       shoulderAngle: (json['shoulder_angle'] as num?)?.toDouble() ?? 0.0,
       kopsOffsetMm: (json['kops_offset_mm'] as num?)?.toDouble() ?? 0.0,
@@ -113,12 +114,18 @@ class Recommendation {
 
   static AdjustmentAction _parseAction(String? action) {
     switch (action?.toUpperCase()) {
-      case 'UP': return AdjustmentAction.up;
-      case 'DOWN': return AdjustmentAction.down;
-      case 'FORE': return AdjustmentAction.fore;
-      case 'AFT': return AdjustmentAction.aft;
-      case 'INCREASE': return AdjustmentAction.increase;
-      case 'DECREASE': return AdjustmentAction.decrease;
+      case 'UP':
+        return AdjustmentAction.up;
+      case 'DOWN':
+        return AdjustmentAction.down;
+      case 'FORE':
+        return AdjustmentAction.fore;
+      case 'AFT':
+        return AdjustmentAction.aft;
+      case 'INCREASE':
+        return AdjustmentAction.increase;
+      case 'DECREASE':
+        return AdjustmentAction.decrease;
       case 'NONE':
       default:
         return AdjustmentAction.none;
@@ -172,11 +179,7 @@ class KeyPoint {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'label': label,
-      'x': x,
-      'y': y,
-    };
+    return {'label': label, 'x': x, 'y': y};
   }
 }
 
@@ -188,17 +191,11 @@ class SkeletonLine {
   SkeletonLine({required this.from, required this.to});
 
   factory SkeletonLine.fromJson(Map<String, dynamic> json) {
-    return SkeletonLine(
-      from: json['from'] as String,
-      to: json['to'] as String,
-    );
+    return SkeletonLine(from: json['from'] as String, to: json['to'] as String);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'from': from,
-      'to': to,
-    };
+    return {'from': from, 'to': to};
   }
 }
 
@@ -211,11 +208,13 @@ class VisualOverlay {
 
   factory VisualOverlay.fromJson(Map<String, dynamic> json) {
     return VisualOverlay(
-      points: (json['points'] as List<dynamic>?)
+      points:
+          (json['points'] as List<dynamic>?)
               ?.map((e) => KeyPoint.fromJson(e))
               .toList() ??
           [],
-      lines: (json['lines'] as List<dynamic>?)
+      lines:
+          (json['lines'] as List<dynamic>?)
               ?.map((e) => SkeletonLine.fromJson(e))
               .toList() ??
           [],
@@ -254,10 +253,14 @@ class BiomechanicsAnalysis {
     return BiomechanicsAnalysis(
       metadata: BiomechanicsMetadata.fromJson(json['metadata']),
       biometrics: Biometrics.fromJson(json['biometrics']),
-      recommendations: BiomechanicsRecommendations.fromJson(json['recommendations']),
+      recommendations: BiomechanicsRecommendations.fromJson(
+        json['recommendations'],
+      ),
       visualOverlay: VisualOverlay.fromJson(json['visual_overlay']),
       verdict: json['verdict'],
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
       id: json['id']?.toString(),
     );
   }

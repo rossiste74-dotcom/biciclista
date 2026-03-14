@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/user_profile.dart';
 import '../models/user_avatar_config.dart';
@@ -14,7 +13,8 @@ class LeaderboardScreen extends StatefulWidget {
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTickerProviderStateMixin {
+class _LeaderboardScreenState extends State<LeaderboardScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DatabaseService _db = DatabaseService();
   bool _isLoading = true;
@@ -63,9 +63,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           controller: _tabController,
           tabs: [
             const Tab(icon: Icon(Icons.groups), text: 'Crew'),
-            Tab(icon: const Icon(Icons.directions_bike), text: 'leaderboard.most_active_title'.tr()),
-            Tab(icon: const Icon(Icons.map), text: 'leaderboard.cartographer_title'.tr()),
-            Tab(icon: const Icon(Icons.weekend), text: 'leaderboard.laziest_title'.tr()),
+            Tab(
+              icon: const Icon(Icons.directions_bike),
+              text: 'leaderboard.most_active_title'.tr(),
+            ),
+            Tab(
+              icon: const Icon(Icons.map),
+              text: 'leaderboard.cartographer_title'.tr(),
+            ),
+            Tab(
+              icon: const Icon(Icons.weekend),
+              text: 'leaderboard.laziest_title'.tr(),
+            ),
           ],
         ),
       ),
@@ -75,15 +84,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
               controller: _tabController,
               children: [
                 _buildCrewList(),
-                _buildList(_data['most_active'] ?? [], 'km', Colors.yellow.shade700),
-                _buildList(_data['organizers'] ?? [], 'leaderboard.unit_tracks'.tr(), Colors.blue.shade700),
-                _buildList(_data['laziest'] ?? [], 'km', Colors.orange.shade700, ascending: true),
+                _buildList(
+                  _data['most_active'] ?? [],
+                  'km',
+                  Colors.yellow.shade700,
+                ),
+                _buildList(
+                  _data['organizers'] ?? [],
+                  'leaderboard.unit_tracks'.tr(),
+                  Colors.blue.shade700,
+                ),
+                _buildList(
+                  _data['laziest'] ?? [],
+                  'km',
+                  Colors.orange.shade700,
+                  ascending: true,
+                ),
               ],
             ),
     );
   }
 
-  Widget _buildList(List<dynamic> items, String unit, Color rankColor, {bool ascending = false}) {
+  Widget _buildList(
+    List<dynamic> items,
+    String unit,
+    Color rankColor, {
+    bool ascending = false,
+  }) {
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -105,7 +132,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
         final rank = item['rank'] as int;
         final name = item['name'] as String? ?? 'Sconosciuto';
         final rawValue = item['value'];
-        final value = rawValue is num ? rawValue.toStringAsFixed(0) : rawValue.toString();
+        final value = rawValue is num
+            ? rawValue.toStringAsFixed(0)
+            : rawValue.toString();
         final isTop3 = rank <= 3;
 
         return Card(
@@ -113,9 +142,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: isTop3 
-              ? BorderSide(color: rankColor.withOpacity(0.5), width: 2)
-              : BorderSide.none,
+            side: isTop3
+                ? BorderSide(color: rankColor.withOpacity(0.5), width: 2)
+                : BorderSide.none,
           ),
           child: ListTile(
             leading: Container(
@@ -135,8 +164,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
               ),
             ),
             title: Text(
-              name, 
-              style: TextStyle(fontWeight: isTop3 ? FontWeight.bold : FontWeight.normal),
+              name,
+              style: TextStyle(
+                fontWeight: isTop3 ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -152,7 +183,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           ),
         );
       },
-
     );
   }
 
@@ -161,7 +191,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
       return Center(child: Text('leaderboard.no_data'.tr()));
     }
 
-    final canManageRoles = _currentUser?.role == UserRole.capitano ||
+    final canManageRoles =
+        _currentUser?.role == UserRole.capitano ||
         _currentUser?.role == UserRole.presidente;
 
     return RefreshIndicator(
@@ -177,7 +208,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           final totalKm = (member['total_km'] as num?)?.toDouble() ?? 0.0;
           final rideCount = (member['ride_count'] as num?)?.toInt() ?? 0;
           final lastRideRaw = member['last_ride_date'] as String?;
-          final lastRide = lastRideRaw != null ? DateTime.tryParse(lastRideRaw) : null;
+          final lastRide = lastRideRaw != null
+              ? DateTime.tryParse(lastRideRaw)
+              : null;
           final avatarJson = member['avatar_data'];
           final avatarStr = avatarJson != null
               ? (avatarJson is String ? avatarJson : json.encode(avatarJson))
@@ -189,15 +222,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
 
           return Card(
             margin: const EdgeInsets.only(bottom: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             elevation: isMe ? 3 : 1,
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
               leading: CircleAvatar(
                 radius: 28,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 child: avatarConfig != null
-                    ? ClipOval(child: AvatarPreview(config: avatarConfig, size: 56))
+                    ? ClipOval(
+                        child: AvatarPreview(config: avatarConfig, size: 56),
+                      )
                     : const Icon(Icons.person, size: 28),
               ),
               title: Row(
@@ -211,10 +253,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                   ),
                   const SizedBox(width: 6),
                   role.iconWidget(height: 20),
-                  if (isMe) ...[  
+                  if (isMe) ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(8),
@@ -224,7 +269,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                         ),
                       ),
                     ),
@@ -237,20 +284,30 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                   children: [
                     const Icon(Icons.route, size: 14, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text('${totalKm.toStringAsFixed(0)} km', style: const TextStyle(fontSize: 12)),
+                    Text(
+                      '${totalKm.toStringAsFixed(0)} km',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     const SizedBox(width: 12),
                     const Icon(Icons.celebration, size: 14, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text('$rideCount uscite', style: const TextStyle(fontSize: 12)),
+                    Text(
+                      '$rideCount uscite',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     if (lastRide != null) ...[
                       const SizedBox(width: 12),
-                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('dd/MM/yy').format(lastRide),
                         style: const TextStyle(fontSize: 12),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),
@@ -265,14 +322,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                         if (ok && mounted) {
                           await _loadData();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('$name è ora '),
-                                newRole.iconWidget(height: 16),
-                                Text(' ${newRole.name}'),
-                              ],
-                            )),
+                            SnackBar(
+                              content: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('$name è ora '),
+                                  newRole.iconWidget(height: 16),
+                                  Text(' ${newRole.name}'),
+                                ],
+                              ),
+                            ),
                           );
                         }
                       },
@@ -280,18 +339,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                         if (role != UserRole.capitano)
                           const PopupMenuItem(
                             value: UserRole.capitano,
-                            child: Row(children: [
-                              Text('⭐ ', style: TextStyle(fontSize: 18)),
-                              Text('Promuovi a Capitano'),
-                            ]),
+                            child: Row(
+                              children: [
+                                Text('⭐ ', style: TextStyle(fontSize: 18)),
+                                Text('Promuovi a Capitano'),
+                              ],
+                            ),
                           ),
                         if (role != UserRole.gregario)
                           const PopupMenuItem(
                             value: UserRole.gregario,
-                            child: Row(children: [
-                              Text('🚴 ', style: TextStyle(fontSize: 18)),
-                              Text('Retrocedi a Gregario'),
-                            ]),
+                            child: Row(
+                              children: [
+                                Text('🚴 ', style: TextStyle(fontSize: 18)),
+                                Text('Retrocedi a Gregario'),
+                              ],
+                            ),
                           ),
                       ],
                     )

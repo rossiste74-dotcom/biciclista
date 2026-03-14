@@ -30,10 +30,7 @@ class _AuthScreenState extends State<AuthScreen> {
           password: password,
         );
       } else {
-        await supabase.auth.signUp(
-          email: email,
-          password: password,
-        );
+        await supabase.auth.signUp(email: email, password: password);
       }
 
       if (mounted) {
@@ -68,7 +65,10 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('auth.error_prefix'.tr(args: [e.toString()])), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('auth.error_prefix'.tr(args: [e.toString()])),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -86,10 +86,17 @@ class _AuthScreenState extends State<AuthScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Assuming you have an icon asset
-              Image.asset('assets/icon.png', height: 100, errorBuilder: (_,__,___) => const Icon(Icons.directions_bike, size: 100)),
+              Image.asset(
+                'assets/icon.png',
+                height: 100,
+                errorBuilder: (_, _, _) =>
+                    const Icon(Icons.directions_bike, size: 100),
+              ),
               const SizedBox(height: 32),
               Text(
-                _isLogin ? 'auth.welcome_back'.tr() : 'auth.create_account'.tr(),
+                _isLogin
+                    ? 'auth.welcome_back'.tr()
+                    : 'auth.create_account'.tr(),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 32),
@@ -123,13 +130,19 @@ class _AuthScreenState extends State<AuthScreen> {
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
                       ),
-                      child: Text(_isLogin ? 'auth.login_btn'.tr() : 'auth.register_btn'.tr()),
+                      child: Text(
+                        _isLogin
+                            ? 'auth.login_btn'.tr()
+                            : 'auth.register_btn'.tr(),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => setState(() => _isLogin = !_isLogin),
-                      child: Text(_isLogin
-                          ? 'auth.no_account'.tr()
-                          : 'auth.have_account'.tr()),
+                      child: Text(
+                        _isLogin
+                            ? 'auth.no_account'.tr()
+                            : 'auth.have_account'.tr(),
+                      ),
                     ),
                   ],
                 ),

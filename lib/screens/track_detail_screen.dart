@@ -32,10 +32,7 @@ import 'package:gpx/gpx.dart';
 class TrackDetailScreen extends StatefulWidget {
   final Track track;
 
-  const TrackDetailScreen({
-    super.key,
-    required this.track,
-  });
+  const TrackDetailScreen({super.key, required this.track});
 
   @override
   State<TrackDetailScreen> createState() => _TrackDetailScreenState();
@@ -47,7 +44,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   final _aiService = AIService();
   final _trackService = TrackService();
   final _communityService = CommunityTracksService();
-  
+
   bool _isLoading = true;
   bool _isAnalyzing = false;
   Map<String, dynamic>? _routeData;
@@ -73,66 +70,75 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
       // 2. If no local file, try to download from Cloud
       if (gpxString == null && widget.track.gpxUrl != null) {
-         try {
-           final url = await _trackService.getGpxUrl(widget.track);
-           if (url != null) {
-             // Download
-             final response = await http.get(Uri.parse(url));
-             if (response.statusCode == 200) {
-                gpxString = utf8.decode(response.bodyBytes);
-                // Save to temp on mobile
-                if (!kIsWeb) {
-                  final dir = await getTemporaryDirectory();
-                  final filename = widget.track.gpxUrl!.split('/').last.replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
-                  final file = File('${dir.path}/$filename');
-                  await file.writeAsString(gpxString);
-                  widget.track.gpxFilePath = file.path; // Update local ref
-                }
-             }
-           }
-         } catch(e) {
-           debugPrint('Error downloading GPX: $e');
-         }
+        try {
+          final url = await _trackService.getGpxUrl(widget.track);
+          if (url != null) {
+            // Download
+            final response = await http.get(Uri.parse(url));
+            if (response.statusCode == 200) {
+              gpxString = utf8.decode(response.bodyBytes);
+              // Save to temp on mobile
+              if (!kIsWeb) {
+                final dir = await getTemporaryDirectory();
+                final filename = widget.track.gpxUrl!
+                    .split('/')
+                    .last
+                    .replaceAll(RegExp(r'[^a-zA-Z0-9\._-]'), '');
+                final file = File('${dir.path}/$filename');
+                await file.writeAsString(gpxString);
+                widget.track.gpxFilePath = file.path; // Update local ref
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error downloading GPX: $e');
+        }
       }
 
       // 3. Fallback: Check for embedded JSON data (community tracks)
       if (gpxString == null && widget.track.communityGpxData != null) {
         try {
-           debugPrint('Attempting to parse community GPX data...');
-           final dynamic parsedJson = jsonDecode(widget.track.communityGpxData!);
-           final gpx = GpxOptimizer.jsonToGpx(parsedJson);
-           gpxString = GpxWriter().asString(gpx, pretty: true);
+          debugPrint('Attempting to parse community GPX data...');
+          final dynamic parsedJson = jsonDecode(widget.track.communityGpxData!);
+          final gpx = GpxOptimizer.jsonToGpx(parsedJson);
+          gpxString = GpxWriter().asString(gpx, pretty: true);
         } catch (e, stack) {
-           debugPrint('Error parsing community GPX data: $e');
-           debugPrint(stack.toString());
-           if (mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Dati traccia non validi: $e')),
-             );
-           }
+          debugPrint('Error parsing community GPX data: $e');
+          debugPrint(stack.toString());
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Dati traccia non validi: $e')),
+            );
+          }
         }
       } else if (gpxString == null && widget.track.gpxUrl == null) {
-         debugPrint('No GPX file or URL found for track.');
+        debugPrint('No GPX file or URL found for track.');
       }
 
       if (gpxString == null) {
         if (mounted) setState(() => _isLoading = false);
         if (_routeData == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Mappa non trovata. (Files: ${widget.track.gpxFilePath ?? "no"}, URL: ${widget.track.gpxUrl ?? "no"}, Data: ${widget.track.communityGpxData != null ? "yes" : "no"})')),
+            SnackBar(
+              content: Text(
+                'Mappa non trovata. (Files: ${widget.track.gpxFilePath ?? "no"}, URL: ${widget.track.gpxUrl ?? "no"}, Data: ${widget.track.communityGpxData != null ? "yes" : "no"})',
+              ),
+            ),
             // Debug info in snackbar to help user report issue
           );
         }
         return;
       }
-      
+
       _routeData = await _gpxService.parseGpxString(gpxString);
-      
+
       if (mounted) {
         setState(() => _isLoading = false);
         if (_routeData == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Impossibile caricare la mappa della traccia.')),
+            const SnackBar(
+              content: Text('Impossibile caricare la mappa della traccia.'),
+            ),
           );
         }
       }
@@ -190,9 +196,15 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                             routePoints: List<Map<String, double>>.from(
                               _routeData!['allPoints'] as List,
                             ),
-                            startPoint: (_routeData!['coordinates'] as RouteCoordinates).start,
-                            middlePoint: (_routeData!['coordinates'] as RouteCoordinates).middle,
-                            endPoint: (_routeData!['coordinates'] as RouteCoordinates).end,
+                            startPoint:
+                                (_routeData!['coordinates'] as RouteCoordinates)
+                                    .start,
+                            middlePoint:
+                                (_routeData!['coordinates'] as RouteCoordinates)
+                                    .middle,
+                            endPoint:
+                                (_routeData!['coordinates'] as RouteCoordinates)
+                                    .end,
                             distance: widget.track.distance,
                             elevation: widget.track.elevation,
                           ),
@@ -202,8 +214,14 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                             right: 12,
                             child: FloatingActionButton.small(
                               heroTag: 'map_expand',
-                              onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
-                              child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
+                              onPressed: () => setState(
+                                () => _isMapExpanded = !_isMapExpanded,
+                              ),
+                              child: Icon(
+                                _isMapExpanded
+                                    ? Icons.fullscreen_exit
+                                    : Icons.fullscreen,
+                              ),
                             ),
                           ),
                           // Tap to expand when collapsed
@@ -212,14 +230,15 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: () => setState(() => _isMapExpanded = true),
+                                  onTap: () =>
+                                      setState(() => _isMapExpanded = true),
                                 ),
                               ),
                             ),
                         ],
                       ),
                     ),
-                  
+
                   // Content
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -234,9 +253,10 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                         const SizedBox(height: 16),
                         _buildInfoCard(),
                         const SizedBox(height: 24),
-                        
+
                         // Elevation Profile
-                        if (_routeData != null && _routeData!['elevationProfile'] != null) ...[
+                        if (_routeData != null &&
+                            _routeData!['elevationProfile'] != null) ...[
                           Text(
                             'Profilo Altimetrico',
                             style: Theme.of(context).textTheme.titleLarge,
@@ -245,9 +265,10 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                           _buildElevationChart(),
                           const SizedBox(height: 24),
                         ],
-                        
+
                         // Tough Climbs
-                        if (_routeData != null && (_routeData!['climbs'] as List).isNotEmpty) ...[
+                        if (_routeData != null &&
+                            (_routeData!['climbs'] as List).isNotEmpty) ...[
                           Text(
                             'Salite Impegnative',
                             style: Theme.of(context).textTheme.titleLarge,
@@ -265,9 +286,9 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                         const SizedBox(height: 16),
                         _buildAIAnalysisCard(),
                         const SizedBox(height: 24),
-                        
+
                         // Track Metadata
-                        
+
                         // Track Metadata
                         Text(
                           'Informazioni',
@@ -275,7 +296,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                         ),
                         const SizedBox(height: 16),
                         _buildMetadataCard(),
-                        
+
                         const SizedBox(height: 100), // Space for FAB
                       ],
                     ),
@@ -300,10 +321,22 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat(Icons.route, '${widget.track.distance.toStringAsFixed(3)} km', 'Distanza'),
-                _buildStat(Icons.terrain, '${widget.track.elevation.toStringAsFixed(0)} m', 'Dislivello'),
+                _buildStat(
+                  Icons.route,
+                  '${widget.track.distance.toStringAsFixed(3)} km',
+                  'Distanza',
+                ),
+                _buildStat(
+                  Icons.terrain,
+                  '${widget.track.elevation.toStringAsFixed(0)} m',
+                  'Dislivello',
+                ),
                 if (widget.track.duration != null)
-                  _buildStat(Icons.timer, '${widget.track.duration} min', 'Durata'),
+                  _buildStat(
+                    Icons.timer,
+                    '${widget.track.duration} min',
+                    'Durata',
+                  ),
               ],
             ),
             const Divider(height: 32),
@@ -331,7 +364,9 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
               const Divider(height: 32),
               Center(
                 child: DifficultyBadge(
-                  difficulty: difficultyFromLevel(widget.track.difficultyLevel!),
+                  difficulty: difficultyFromLevel(
+                    widget.track.difficultyLevel!,
+                  ),
                   showLabel: true,
                   showLevel: true,
                 ),
@@ -371,12 +406,13 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   }
 
   Widget _buildElevationChart() {
-    final profile = _routeData!['elevationProfile'] as List<Map<String, double>>;
+    final profile =
+        _routeData!['elevationProfile'] as List<Map<String, double>>;
     if (profile.isEmpty) return const SizedBox();
 
     // Extract just elevation values for ElevationProfileWidget
     final elevations = profile.map((p) => p['elevation']!).toList();
-    
+
     return ElevationProfileWidget(
       elevationProfile: elevations,
       distanceKm: widget.track.distance,
@@ -385,7 +421,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
   Widget _buildClimbsList() {
     final climbs = _routeData!['climbs'] as List<Climb>;
-    
+
     return Column(
       children: climbs.map((climb) {
         return Card(
@@ -419,17 +455,39 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildMetadataRow(Icons.add_circle_outline, 'Creata', DateFormat('dd MMM yyyy', 'it_IT').format(widget.track.createdAt)),
+            _buildMetadataRow(
+              Icons.add_circle_outline,
+              'Creata',
+              DateFormat('dd MMM yyyy', 'it_IT').format(widget.track.createdAt),
+            ),
             const Divider(),
-            _buildMetadataRow(Icons.update, 'Aggiornata', DateFormat('dd MMM yyyy', 'it_IT').format(widget.track.updatedAt)),
+            _buildMetadataRow(
+              Icons.update,
+              'Aggiornata',
+              DateFormat('dd MMM yyyy', 'it_IT').format(widget.track.updatedAt),
+            ),
             const Divider(),
-            _buildMetadataRow(Icons.source, 'Origine', widget.track.source == 'manual' ? 'Importato manualmente' : 'Community'),
+            _buildMetadataRow(
+              Icons.source,
+              'Origine',
+              widget.track.source == 'manual'
+                  ? 'Importato manualmente'
+                  : 'Community',
+            ),
             if (widget.track.communityTrackId != null) ...[
               const Divider(),
-              _buildMetadataRow(Icons.cloud, 'ID Community', widget.track.communityTrackId!),
+              _buildMetadataRow(
+                Icons.cloud,
+                'ID Community',
+                widget.track.communityTrackId!,
+              ),
             ],
             const Divider(),
-            _buildMetadataRow(Icons.fingerprint, 'ID Sistema', widget.track.id ?? 'N/A'),
+            _buildMetadataRow(
+              Icons.fingerprint,
+              'ID Sistema',
+              widget.track.id ?? 'N/A',
+            ),
           ],
         ),
       ),
@@ -445,7 +503,10 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
           const SizedBox(width: 12),
           Text(
             '$label:',
-            style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -461,8 +522,10 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
   }
 
   Widget _buildAIAnalysisCard() {
-    final hasAnalysis = widget.track.description != null && widget.track.description!.isNotEmpty;
-    
+    final hasAnalysis =
+        widget.track.description != null &&
+        widget.track.description!.isNotEmpty;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -473,12 +536,20 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.rocket_launch, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.rocket_launch,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    hasAnalysis ? 'Strategia "Il Biciclista"' : 'Ottieni consigli strategici',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    hasAnalysis
+                        ? 'Strategia "Il Biciclista"'
+                        : 'Ottieni consigli strategici',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 if (hasAnalysis && !_isAnalyzing)
@@ -495,15 +566,15 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Column(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Analisi del percorso in corso...'),
-                    Text('Sto studiando altimetria e terreno 🚵'),
-                  ],
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Analisi del percorso in corso...'),
+                      Text('Sto studiando altimetria e terreno 🚵'),
+                    ],
+                  ),
                 ),
-              ),
-            )
+              )
             else if (hasAnalysis)
               Text(
                 widget.track.description!,
@@ -538,17 +609,17 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
   Future<void> _generateAnalysis() async {
     setState(() => _isAnalyzing = true);
-    
+
     try {
       final analysis = await _aiService.analyzeTrack(widget.track);
-      
+
       setState(() {
         widget.track.description = analysis;
         _isAnalyzing = false;
       });
-      
+
       await _trackService.updateTrack(widget.track);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Analisi completata e salvata! 🚴')),
@@ -557,9 +628,9 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isAnalyzing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore analisi: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore analisi: $e')));
       }
     }
   }
@@ -568,7 +639,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
     TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
     String? customName;
-    
+
     // Always group ride (Social-First)
     String difficulty = 'medium';
     String meetingPoint = '';
@@ -590,14 +661,18 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   widget.track.name,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text('${widget.track.distance.toStringAsFixed(3)} km • ${widget.track.elevation.toStringAsFixed(0)} m'),
+                Text(
+                  '${widget.track.distance.toStringAsFixed(3)} km • ${widget.track.elevation.toStringAsFixed(0)} m',
+                ),
                 const Divider(height: 24),
 
                 // Date picker
                 ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Data'),
-                  subtitle: Text(DateFormat('dd MMMM yyyy', 'it_IT').format(selectedDate)),
+                  subtitle: Text(
+                    DateFormat('dd MMMM yyyy', 'it_IT').format(selectedDate),
+                  ),
                   trailing: const Icon(Icons.edit),
                   contentPadding: EdgeInsets.zero,
                   onTap: () async {
@@ -633,53 +708,56 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
                 const Divider(height: 24),
                 const SizedBox(height: 8),
-                  
-                  // Difficulty selector
-                  DropdownButtonFormField<String>(
-                    value: difficulty,
-                    decoration: const InputDecoration(
-                      labelText: 'Difficoltà',
-                      prefixIcon: Icon(Icons.trending_up),
+
+                // Difficulty selector
+                DropdownButtonFormField<String>(
+                  initialValue: difficulty,
+                  decoration: const InputDecoration(
+                    labelText: 'Difficoltà',
+                    prefixIcon: Icon(Icons.trending_up),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'easy', child: Text('🟢 Facile')),
+                    DropdownMenuItem(value: 'medium', child: Text('🟡 Media')),
+                    DropdownMenuItem(
+                      value: 'hard',
+                      child: Text('🔴 Difficile'),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'easy', child: Text('🟢 Facile')),
-                      DropdownMenuItem(value: 'medium', child: Text('🟡 Media')),
-                      DropdownMenuItem(value: 'hard', child: Text('🔴 Difficile')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => difficulty = value);
-                      }
-                    },
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => difficulty = value);
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Meeting point
+                TextField(
+                  controller: meetingPointController,
+                  decoration: const InputDecoration(
+                    labelText: 'Punto di Ritrovo',
+                    hintText: 'es. Piazza Duomo, Milano',
+                    prefixIcon: Icon(Icons.location_on),
                   ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Meeting point
-                  TextField(
-                    controller: meetingPointController,
-                    decoration: const InputDecoration(
-                      labelText: 'Punto di Ritrovo',
-                      hintText: 'es. Piazza Duomo, Milano',
-                      prefixIcon: Icon(Icons.location_on),
-                    ),
-                    onChanged: (value) => meetingPoint = value,
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Visibility toggle
-                  SwitchListTile(
-                    title: const Text('Pubblico'),
-                    subtitle: Text(isPublic ? 'Visibile a tutti' : 'Solo amici'),
-                    value: isPublic,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      setDialogState(() => isPublic = value);
-                    },
-                  ),
-                  
-                  const SizedBox(height: 8),
+                  onChanged: (value) => meetingPoint = value,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Visibility toggle
+                SwitchListTile(
+                  title: const Text('Pubblico'),
+                  subtitle: Text(isPublic ? 'Visibile a tutti' : 'Solo amici'),
+                  value: isPublic,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (value) {
+                    setDialogState(() => isPublic = value);
+                  },
+                ),
+
+                const SizedBox(height: 8),
 
                 // Custom name (optional)
                 TextField(
@@ -704,11 +782,15 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                 // Validation
                 if (meetingPoint.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Inserisci un punto di ritrovo per le uscite di gruppo')),
+                    const SnackBar(
+                      content: Text(
+                        'Inserisci un punto di ritrovo per le uscite di gruppo',
+                      ),
+                    ),
                   );
                   return;
                 }
-                
+
                 Navigator.pop(context);
                 await _scheduleRide(
                   selectedDate,
@@ -739,14 +821,13 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       // Get center coordinates from route data if available
       double centerLat = 45.4642; // Default Milano
       double centerLng = 9.1900;
-      
+
       if (_routeData != null && _routeData!['coordinates'] != null) {
         final coords = _routeData!['coordinates'] as RouteCoordinates;
         centerLat = coords.middle.latitude;
         centerLng = coords.middle.longitude;
       }
-      
-      
+
       // Combine date and time
       final rideDateTime = DateTime(
         date.year,
@@ -755,12 +836,13 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         time.hour,
         time.minute,
       );
-      
+
       final ride = PlannedRide()
         ..rideDate = rideDateTime
         ..rideName = customName ?? widget.track.name
         ..trackId = widget.track.id
-        ..isGroupRide = true // Always group ride (Social-First)
+        ..isGroupRide =
+            true // Always group ride (Social-First)
         ..distance = widget.track.distance
         ..elevation = widget.track.elevation
         ..latitude = centerLat
@@ -780,18 +862,16 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Uscita proposta alla Crew! 🚴‍♂️👥'),
-          ),
+          const SnackBar(content: Text('Uscita proposta alla Crew! 🚴‍♂️👥')),
         );
-        
+
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
@@ -805,7 +885,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-      
+
       if (user == null) {
         debugPrint('User not authenticated, skipping Supabase sync');
         return;
@@ -816,7 +896,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
       if (_routeData != null) {
         gpxDataForDb = {
           'allPoints': _routeData!['allPoints'],
-          'elevationProfile': _routeData!['elevationProfile'], 
+          'elevationProfile': _routeData!['elevationProfile'],
         };
       }
 
@@ -835,11 +915,11 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         difficultyLevel: difficulty,
         isPublic: isPublic,
       );
-      
+
       // Mark as synced
       ride.supabaseEventId = 'synced_${DateTime.now().millisecondsSinceEpoch}';
       await _db.updatePlannedRide(ride);
-      
+
       debugPrint('Group ride synced to Supabase successfully');
     } catch (e) {
       debugPrint('Error syncing group ride to Supabase: $e');
@@ -847,11 +927,12 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     }
   }
 
-
   void _showPublishDialog() {
     if (widget.track.gpxFilePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossibile pubblicare: nessun file GPX associato')),
+        const SnackBar(
+          content: Text('Impossibile pubblicare: nessun file GPX associato'),
+        ),
       );
       return;
     }
@@ -878,9 +959,9 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                
+
                 DropdownButtonFormField<String>(
-                  value: difficulty,
+                  initialValue: difficulty,
                   decoration: const InputDecoration(
                     labelText: 'Difficoltà',
                     prefixIcon: Icon(Icons.speed),
@@ -888,15 +969,19 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                   items: const [
                     DropdownMenuItem(value: 'easy', child: Text('🟢 Facile')),
                     DropdownMenuItem(value: 'medium', child: Text('🟡 Media')),
-                    DropdownMenuItem(value: 'hard', child: Text('🔴 Difficile')),
+                    DropdownMenuItem(
+                      value: 'hard',
+                      child: Text('🔴 Difficile'),
+                    ),
                     DropdownMenuItem(value: 'expert', child: Text('🟣 Expert')),
                   ],
-                  onChanged: (value) => setDialogState(() => difficulty = value!),
+                  onChanged: (value) =>
+                      setDialogState(() => difficulty = value!),
                 ),
                 const SizedBox(height: 8),
 
                 DropdownButtonFormField<String>(
-                  value: trackType,
+                  initialValue: trackType,
                   decoration: const InputDecoration(
                     labelText: 'Tipo Terreno',
                     prefixIcon: Icon(Icons.terrain),
@@ -907,7 +992,8 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
                     DropdownMenuItem(value: 'mtb', child: Text('MTB')),
                     DropdownMenuItem(value: 'mixed', child: Text('Misto')),
                   ],
-                  onChanged: (value) => setDialogState(() => trackType = value!),
+                  onChanged: (value) =>
+                      setDialogState(() => trackType = value!),
                 ),
                 const SizedBox(height: 8),
 
@@ -966,15 +1052,15 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     bool isPublic,
   ) async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Parse local GPX
       final file = File(widget.track.gpxFilePath!);
       if (!await file.exists()) throw Exception('File GPX non trovato');
-      
+
       final gpxString = await file.readAsString();
       final gpx = GpxReader().fromString(gpxString);
-      
+
       await _communityService.publishTrack(
         trackName: widget.track.name,
         description: description,
@@ -987,7 +1073,7 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
         trackType: trackType,
         isPublic: isPublic,
       );
-      
+
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1000,13 +1086,13 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore pubblicazione: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore pubblicazione: $e')));
       }
     }
   }
-  
+
   Future<void> _showDeleteConfirmation() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -1033,19 +1119,21 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
     if (confirm == true && mounted) {
       if (widget.track.id == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore: ID traccia non valido. Riprova più tardi.')),
+          const SnackBar(
+            content: Text('Errore: ID traccia non valido. Riprova più tardi.'),
+          ),
         );
         return;
       }
 
       try {
         await _trackService.deleteTrack(widget.track.id!);
-        
+
         if (mounted) {
           Navigator.pop(context); // Torna alla Routes Library
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Traccia eliminata')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Traccia eliminata')));
         }
       } catch (e) {
         if (mounted && e.toString().contains('Impossibile eliminare')) {
@@ -1074,7 +1162,8 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
           if (forceConfirm == true && mounted) {
             try {
-              if (widget.track.id != null) await _trackService.deleteTrackAndUnlink(widget.track.id!);
+              if (widget.track.id != null)
+                await _trackService.deleteTrackAndUnlink(widget.track.id!);
               if (mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1093,7 +1182,11 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
           if (mounted) {
             debugPrint('Delete error: $e');
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Errore eliminazione: ${e.toString().replaceAll("Exception:", "")}')),
+              SnackBar(
+                content: Text(
+                  'Errore eliminazione: ${e.toString().replaceAll("Exception:", "")}',
+                ),
+              ),
             );
           }
         }

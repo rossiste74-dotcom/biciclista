@@ -14,10 +14,11 @@ class ExploreCommunityScreen extends StatefulWidget {
   State<ExploreCommunityScreen> createState() => _ExploreCommunityScreenState();
 }
 
-class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with SingleTickerProviderStateMixin {
+class _ExploreCommunityScreenState extends State<ExploreCommunityScreen>
+    with SingleTickerProviderStateMixin {
   final _service = CommunityTracksService();
   late TabController _tabController;
-  
+
   List<CommunityTrack> _tracks = [];
   bool _isLoading = true;
   Position? _currentPosition;
@@ -66,7 +67,7 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
 
     try {
       List<CommunityTrack> tracks;
-      
+
       switch (_tabController.index) {
         case 0: // Popolari
           tracks = await _service.getPopularTracks();
@@ -96,9 +97,9 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
@@ -126,15 +127,16 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _tracks.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadTracks,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _tracks.length,
-                    itemBuilder: (context, index) => _buildTrackCard(_tracks[index]),
-                  ),
-                ),
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: _loadTracks,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _tracks.length,
+                itemBuilder: (context, index) =>
+                    _buildTrackCard(_tracks[index]),
+              ),
+            ),
     );
   }
 
@@ -194,16 +196,21 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
                       Expanded(
                         child: Text(
                           track.creatorName ?? 'Utente Sconosciuto',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
                         ),
                       ),
                       if (track.totalRatings > 0)
                         Row(
                           children: [
-                            const Icon(Icons.star, size: 16, color: Colors.amber),
+                            const Icon(
+                              Icons.star,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${track.avgRating.toStringAsFixed(1)} (${track.totalRatings})',
@@ -214,7 +221,7 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
                     ],
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Track Name
                   Text(
                     track.trackName,
@@ -222,7 +229,7 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  
+
                   if (track.description != null) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -241,9 +248,15 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  _buildStatChip(Icons.route, '${track.distance.toStringAsFixed(1)} km'),
+                  _buildStatChip(
+                    Icons.route,
+                    '${track.distance.toStringAsFixed(1)} km',
+                  ),
                   const SizedBox(width: 8),
-                  _buildStatChip(Icons.terrain, '${track.elevation.toStringAsFixed(0)} m'),
+                  _buildStatChip(
+                    Icons.terrain,
+                    '${track.elevation.toStringAsFixed(0)} m',
+                  ),
                   const SizedBox(width: 8),
                   _buildDifficultyBadge(track.difficultyLevel),
                   const Spacer(),
@@ -252,7 +265,10 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
                       children: [
                         const Icon(Icons.bookmark, size: 16),
                         const SizedBox(width: 4),
-                        Text('${track.usageCount}', style: const TextStyle(fontSize: 12)),
+                        Text(
+                          '${track.usageCount}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ],
                     ),
                 ],
@@ -290,7 +306,7 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -337,7 +353,11 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -357,7 +377,10 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(track.trackName, style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                track.trackName,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 16),
               if (track.description != null) ...[
                 Text(track.description!),
@@ -384,15 +407,15 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
       await _service.saveTrackToLab(track.id);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Traccia salvata!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Traccia salvata!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
@@ -400,17 +423,17 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
   Widget _buildCreatorAvatar(CommunityTrack track) {
     if (track.creatorAvatarData != null) {
       try {
-        final config = UserAvatarConfig.fromJson(jsonDecode(track.creatorAvatarData!));
+        final config = UserAvatarConfig.fromJson(
+          jsonDecode(track.creatorAvatarData!),
+        );
         return Container(
-          width: 32, 
+          width: 32,
           height: 32,
           decoration: BoxDecoration(
-             shape: BoxShape.circle,
-             color: Theme.of(context).colorScheme.surfaceVariant,
+            shape: BoxShape.circle,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
-          child: ClipOval(
-            child: AvatarPreview(config: config), 
-          ),
+          child: ClipOval(child: AvatarPreview(config: config)),
         );
       } catch (e) {
         debugPrint('Error parsing avatar: $e');
@@ -418,11 +441,14 @@ class _ExploreCommunityScreenState extends State<ExploreCommunityScreen> with Si
     }
     return CircleAvatar(
       radius: 16,
-      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-      child: Icon(Icons.person, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.person,
+        size: 20,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
-
 
   void _showFilters() {
     // TODO: Implement filters dialog

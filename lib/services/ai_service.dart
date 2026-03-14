@@ -10,6 +10,8 @@ import '../models/ai_config.dart';
 import '../services/database_service.dart';
 import '../services/prompt_service.dart';
 import '../services/supabase_config.dart';
+import '../models/comic_prompts.dart';
+import '../models/comic_character.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -636,7 +638,22 @@ class AIService {
     try {
       final level = await getCommunityActivityLevel();
       final customPrompt = await _db.getDailyComicPrompt(DateTime.now());
+      final dbCharacters = await _db.getComicCharacters();
       
+      // Use DB characters if available, otherwise fallback to characterBase from ComicPrompts
+      String charactersSection;
+      if (dbCharacters.isNotEmpty) {
+        final buffer = StringBuffer();
+        for (var c in dbCharacters) {
+          // Prioritize AI-generated visual description from photo, fallback to manual description
+          final desc = c.visualDescription ?? c.description;
+          buffer.writeln("- ${c.name}: $desc");
+        }
+        charactersSection = buffer.toString();
+      } else {
+        charactersSection = ComicPrompts.characterBase;
+      }
+
       const lat = 45.4642; 
       const lon = 9.1900;
       const radiusKm = 50.0;
@@ -662,7 +679,7 @@ REGOLE STILISTICHE:
 ${ComicPrompts.graphicalStyle}
 
 PERSONAGGI:
-${ComicPrompts.characterBase}
+$charactersSection
 
 DATI ATTUALI DELLA COMMUNITY:
 $statsStr
@@ -691,29 +708,90 @@ DESCRIZIONE GENERALE: [Tema della striscia]
     }
   }
 
-  /// Generate a dynamic comic scenario based on community performance
   Future<String> generateDailyComicScenario() async {
-    try {
-      final systemPrompt = await getFullDailyComicPrompt();
-      
-      final response = await Supabase.instance.client.functions.invoke(
-        'butler-ai-openrouter',
-        body: {
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': 'Genera la striscia di oggi basandoti sulla performance della crew.'}
-          ],
-        },
-      );
+    final systemPrompt = await getFullDailyComicPrompt();
+    final result = await _callAI(
+      provider: AIProvider.deepseek, // Default, the function might override
+      systemPrompt: systemPrompt,
+      userMessage: 'Genera la striscia di oggi basandoti sulla performance della crew.',
+      action: 'comic_scenario',
+    );
 
-      final data = response.data;
-      if (data != null && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
-        return data['choices'][0]['message']['content'];
-      }
-      return "Impossibile generare la storia oggi. Il disegnatore è andato a scalare lo Stelvio.";
-    } catch (e) {
-      print('[AIService] Error generating comic scenario: $e');
+    if (result['success']) {
+      return result['content'];
+    } else {
+      debugPrint('[AIService] Error generating comic scenario: ${result['error']}');
       return "Errore nella generazione della striscia.";
+    }
+  }
+
+  /// Use Vision AI to analyze a character photo and generate a comic-style description
+  Future<String?> analyzeCharacterAvatar(String imageUrl) async {
+    const systemPrompt = '''
+Sei un esperto di character design per fumetti. 
+Analizza la foto e descrivi i tratti distintivi per un disegnatore "ligne claire".
+Concentrati su: capelli, barba, occhiali, colori del casco/maglia ed espressione.
+Sii conciso, massimo 30 parole.
+''';
+
+    final result = await _callAI(
+      provider: AIProvider.gemini, // Vision works best with Gemini
+      systemPrompt: systemPrompt,
+      userMessage: 'Descrivi questo ciclista basandoti sulla foto: $imageUrl',
+      action: 'analyze_avatar',
+      payloadExtras: {'image_url': imageUrl},
+    );
+
+    if (result['success']) {
+      return result['content'];
+    }
+    return null;
+  }
+
+  /// Generate a comic-style portrait based on a visual description
+  Future<String?> generateCharacterPortrait(String visualDescription) async {
+    try {
+      final prompt = 'A comic book style portrait of a person: $visualDescription. Style: "ligne claire", vibrant colors, thick outlines, white background, masterpiece character design.';
+      
+      // Helper to perform the actual call
+      Future<FunctionResponse> performCall([String? authHeader]) async {
+        return await Supabase.instance.client.functions.invoke(
+          'generate-image',
+          body: {
+            'prompt': prompt,
+            'size': '1024x1024',
+            'n': 1,
+          },
+          headers: authHeader != null ? {'Authorization': authHeader} : null,
+        );
+      }
+
+      FunctionResponse response;
+      try {
+        // Attempt 1: Regular authenticated call
+        response = await performCall();
+      } on FunctionException catch (e) {
+        // If 401, try to refresh session or fallback to Anon Key
+        if (e.status == 401 || e.details.toString().contains('jwt')) {
+          try {
+            await Supabase.instance.client.auth.refreshSession();
+            response = await performCall();
+          } catch (_) {
+            // Final fallback: use Anon Key if session refresh fails
+            response = await performCall('Bearer ${SupabaseConfig.supabaseAnonKey}');
+          }
+        } else {
+          rethrow;
+        }
+      }
+
+      if (response.status == 200) {
+        return response.data['url'] ?? response.data['image_url'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error generating character portrait: $e');
+      return null;
     }
   }
   /// Get the technical context (stats, planned rides) that drives the AI prompt

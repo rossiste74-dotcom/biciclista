@@ -44,9 +44,7 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -65,15 +63,16 @@ class _BiciclistaWisdomState extends State<BiciclistaWisdom> {
           children: [
             Row(
               children: [
-CircleAvatar(
+                CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.grey.shade300,
                   backgroundImage: const AssetImage('assets/butler_avatar.png'),
                   child: const Align(
                     alignment: Alignment.bottomRight,
-                    child: SizedBox(), // Fallback handled by background image failing gracefully
+                    child:
+                        SizedBox(), // Fallback handled by background image failing gracefully
                   ),
-                  onBackgroundImageError: (_, __) {
+                  onBackgroundImageError: (_, _) {
                     // This callback allows us to handle errors without crashing
                     debugPrint('Error loading butler avatar');
                   },
@@ -92,15 +91,15 @@ CircleAvatar(
             ),
             const SizedBox(height: 16),
             if (_isLoading)
-               Align(
+              Align(
                 alignment: Alignment.center,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(
-                       color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
-               )
+                ),
+              )
             else
               Text(
                 _wisdom != null ? '"$_wisdom"' : '"${"wisdom.loading".tr()}"',
@@ -118,7 +117,9 @@ CircleAvatar(
                 'wisdom.subtitle'.tr(),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                 ),
               ),
             ),

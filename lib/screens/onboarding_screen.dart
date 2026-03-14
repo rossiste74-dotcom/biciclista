@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../services/database_service.dart';
-import 'dashboard_screen.dart';
 import 'main_navigation_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -15,15 +14,15 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   final DatabaseService _db = DatabaseService();
-  
+
   int _currentPage = 0;
-  
+
   // Profile Data
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
   double _thermalSensitivity = 3.0;
-  
+
   // Bike Data
   final _bikeNameController = TextEditingController();
   String _bikeType = 'Road';
@@ -57,28 +56,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       // 1. Save User Profile
       final profile = UserProfile()
-        ..name = _nameController.text.isEmpty ? 'Ciclista' : _nameController.text
+        ..name = _nameController.text.isEmpty
+            ? 'Ciclista'
+            : _nameController.text
         ..age = int.tryParse(_ageController.text) ?? 30
         ..weight = double.tryParse(_weightController.text) ?? 75.0
         ..thermalSensitivity = _thermalSensitivity.toInt()
-        ..restingHeartRate = 60 // Default base value
-        ..functionalThresholdPower = 150 // Default base value
+        ..restingHeartRate =
+            60 // Default base value
+        ..functionalThresholdPower =
+            150 // Default base value
         ..preferredUnit = 'km'; // Default
-      
+
       debugPrint('Saving profile...');
       await _db.saveUserProfile(profile);
       debugPrint('Profile saved.');
 
       // 2. Save First Bicycle
       final bike = Bicycle()
-        ..name = _bikeNameController.text.isEmpty ? 'My First Bike' : _bikeNameController.text
+        ..name = _bikeNameController.text.isEmpty
+            ? 'My First Bike'
+            : _bikeNameController.text
         ..type = _bikeType
-        ..gearingSystem = 'Mechanical' // Default
-        ..lastMaintenance = DateTime.now() // Default
+        ..gearingSystem =
+            'Mechanical' // Default
+        ..lastMaintenance =
+            DateTime.now() // Default
         ..totalKilometers = double.tryParse(_bikeKmController.text) ?? 0.0;
-        
+
       bike.applyDefaults(); // Apply threshold defaults based on type
-      
+
       debugPrint('Saving bike...');
       await _db.createBicycle(bike);
       debugPrint('Bike saved.');
@@ -105,7 +112,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.all(24.0),
               child: LinearProgressIndicator(
                 value: (_currentPage + 1) / 3,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -114,11 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) => setState(() => _currentPage = page),
-                children: [
-                  _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(),
-                ],
+                children: [_buildStep1(), _buildStep2(), _buildStep3()],
               ),
             ),
             Padding(
@@ -138,7 +143,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const SizedBox.shrink(),
                   FilledButton.icon(
                     onPressed: _nextPage,
-                    icon: Icon(_currentPage == 2 ? Icons.check : Icons.arrow_forward),
+                    icon: Icon(
+                      _currentPage == 2 ? Icons.check : Icons.arrow_forward,
+                    ),
                     label: Text(_currentPage == 2 ? 'Fine' : 'Avanti'),
                   ),
                 ],
@@ -158,12 +165,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Text(
             'Parlaci di te',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             'Utilizziamo questi dati per personalizzare i consigli per le tue pedalate.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 48),
           TextField(
@@ -207,21 +218,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Text(
             'Calibrazione Biciclista',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             'Quanto soffri il freddo? (1: Mai, 5: Sempre)',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 64),
           Center(
             child: Text(
               _thermalSensitivity.toInt().toString(),
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -263,7 +278,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -284,12 +301,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Text(
             'La tua prima bici',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             'Aggiungi il tuo mezzo principale per iniziare.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 48),
           TextField(
@@ -307,9 +328,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               labelText: 'Tipo',
               border: OutlineInputBorder(),
             ),
-            items: ['Road', 'MTB', 'Gravel', 'E-Bike']
-                .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                .toList(),
+            items: [
+              'Road',
+              'MTB',
+              'Gravel',
+              'E-Bike',
+            ].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
             onChanged: (v) => setState(() => _bikeType = v!),
           ),
           const SizedBox(height: 24),

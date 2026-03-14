@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:easy_localization/easy_localization.dart';
 import '../services/database_service.dart';
 import '../models/user_profile.dart';
-import 'unified_agenda_screen.dart';
 import 'discovery_screen.dart';
 import 'leaderboard_screen.dart';
 import 'crew_management_screen.dart';
@@ -47,16 +45,16 @@ class _CommunityScreenState extends State<CommunityScreen> {
         children: [
           Text(
             'Community',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Connettiti con altri ciclisti, scopri nuovi percorsi e scala le classifiche.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           _buildActionCard(

@@ -30,10 +30,7 @@ import '../widgets/terrain_breakdown_widget.dart';
 class GroupRideDetailScreen extends StatefulWidget {
   final GroupRide groupRide;
 
-  const GroupRideDetailScreen({
-    super.key,
-    required this.groupRide,
-  });
+  const GroupRideDetailScreen({super.key, required this.groupRide});
 
   @override
   State<GroupRideDetailScreen> createState() => _GroupRideDetailScreenState();
@@ -47,7 +44,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   final _outfitService = OutfitService();
   final _db = DatabaseService(); // Added
   final _supabase = Supabase.instance.client;
-  
+
   final _notesController = TextEditingController();
 
   bool _isLoading = true;
@@ -55,7 +52,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   bool _isCreator = false;
   Map<String, dynamic>? _routeData;
   bool _isMapExpanded = false;
-  
+
   List<Map<String, dynamic>> _weatherPoints = [];
   String? _aiAnalysis;
   OutfitSuggestion? _outfitRecommendation;
@@ -76,151 +73,177 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
     final userId = _supabase.auth.currentUser?.id;
     if (userId != null) {
       _isCreator = widget.groupRide.creatorId == userId;
-      _isParticipating = widget.groupRide.participants.any((p) => p.userId == userId);
+      _isParticipating = widget.groupRide.participants.any(
+        (p) => p.userId == userId,
+      );
     }
-    
+
     // Load local notes
     final prefs = await SharedPreferences.getInstance();
-    _notesController.text = prefs.getString('notes_${widget.groupRide.id}') ?? '';
+    _notesController.text =
+        prefs.getString('notes_${widget.groupRide.id}') ?? '';
 
     try {
       // 1. Load Route Data
-      if (widget.groupRide.gpxFilePath != null) { 
-         final file = File(widget.groupRide.gpxFilePath!);
-         if (await file.exists()) {
-             _routeData = await _gpxService.parseGpxFile(file);
-         }
-      } 
-      
+      if (widget.groupRide.gpxFilePath != null) {
+        final file = File(widget.groupRide.gpxFilePath!);
+        if (await file.exists()) {
+          _routeData = await _gpxService.parseGpxFile(file);
+        }
+      }
+
       // Fallback: use stored gpxData if available
       if (_routeData == null && widget.groupRide.gpxData != null) {
         final data = widget.groupRide.gpxData!;
         if (data['allPoints'] != null) {
-           final pointsList = (data['allPoints'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
-           final points = pointsList.map((e) => {
-              'lat': (e['lat'] as num).toDouble(),
-              'lng': (e['lng'] as num).toDouble(),
-              'ele': (e['ele'] as num?)?.toDouble() ?? 0.0,
-           }).toList();
-           
-           final start = LatLng(points.first['lat']!, points.first['lng']!);
-           final end = LatLng(points.last['lat']!, points.last['lng']!);
-           final mid = LatLng(points[points.length ~/ 2]['lat']!, points[points.length ~/ 2]['lng']!);
+          final pointsList = (data['allPoints'] as List)
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+          final points = pointsList
+              .map(
+                (e) => {
+                  'lat': (e['lat'] as num).toDouble(),
+                  'lng': (e['lng'] as num).toDouble(),
+                  'ele': (e['ele'] as num?)?.toDouble() ?? 0.0,
+                },
+              )
+              .toList();
 
-           List<Map<String, double>>? elevationProfile;
-           if (data['elevationProfile'] != null) {
-              elevationProfile = (data['elevationProfile'] as List).map((e) => {
-                 'distance': (e['distance'] as num).toDouble(),
-                 'elevation': (e['elevation'] as num).toDouble(),
-              }).toList();
-           }
+          final start = LatLng(points.first['lat']!, points.first['lng']!);
+          final end = LatLng(points.last['lat']!, points.last['lng']!);
+          final mid = LatLng(
+            points[points.length ~/ 2]['lat']!,
+            points[points.length ~/ 2]['lng']!,
+          );
 
-           _routeData = {
-             'allPoints': points,
-             'coordinates': RouteCoordinates(
-               startLat: start.latitude,
-               startLng: start.longitude,
-               middleLat: mid.latitude,
-               middleLng: mid.longitude,
-               endLat: end.latitude,
-               endLng: end.longitude,
-             ),
-             'elevationProfile': elevationProfile ?? [], 
-             'climbs': [],
-           };
+          List<Map<String, double>>? elevationProfile;
+          if (data['elevationProfile'] != null) {
+            elevationProfile = (data['elevationProfile'] as List)
+                .map(
+                  (e) => {
+                    'distance': (e['distance'] as num).toDouble(),
+                    'elevation': (e['elevation'] as num).toDouble(),
+                  },
+                )
+                .toList();
+          }
+
+          _routeData = {
+            'allPoints': points,
+            'coordinates': RouteCoordinates(
+              startLat: start.latitude,
+              startLng: start.longitude,
+              middleLat: mid.latitude,
+              middleLng: mid.longitude,
+              endLat: end.latitude,
+              endLng: end.longitude,
+            ),
+            'elevationProfile': elevationProfile ?? [],
+            'climbs': [],
+          };
         }
       }
 
       // 2. Load Weather & AI
-      if (widget.groupRide.meetingLatitude != null && widget.groupRide.meetingLongitude != null) {
-         final daysUntil = widget.groupRide.meetingTime.difference(DateTime.now()).inDays;
-         if (daysUntil >= -1 && daysUntil <= 7) { 
-            final lat = widget.groupRide.meetingLatitude!;
-            final lon = widget.groupRide.meetingLongitude!;
-            
-            try {
-              final forecast = await _weatherService.getHourlyForecast(lat, lon);
-              
-              if (forecast.isNotEmpty) {
-                final rideStart = widget.groupRide.meetingTime;
-                final rideEnd = rideStart.add(const Duration(hours: 3));
-                
-                _weatherPoints = forecast.where((p) {
-                   final t = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
-                   return t.isAfter(rideStart.subtract(const Duration(hours: 1))) && 
-                          t.isBefore(rideEnd.add(const Duration(minutes: 30)));
-                }).toList();
-              
-                // Generate Outfit Suggestion
-                if (_weatherPoints.isNotEmpty) {
-                    // Calc average conditions
-                    double avgTemp = 0;
-                    double maxWind = 0;
-                    for (var p in _weatherPoints) {
-                       avgTemp += (p['main']['temp'] as num).toDouble();
-                       double wind = (p['wind']['speed'] as num).toDouble();
-                       if (wind > maxWind) maxWind = wind;
-                    }
-                    avgTemp /= _weatherPoints.length;
-                    
-                    final conditions = WeatherConditions(
-                      temperature: avgTemp,
-                      windSpeed: maxWind,
-                      windDirection: 0, 
-                      precipitation: 0, 
-                      weatherCode: (_weatherPoints.first['weather'][0]['id'] as num).toInt(),
-                    );
-                    
-                    _outfitRecommendation = _outfitService.suggestOutfit(
-                      weather: conditions, 
-                      thermalSensitivity: 3, // Default average sensitivity
-                      elevationGain: widget.groupRide.elevation,
-                    );
+      if (widget.groupRide.meetingLatitude != null &&
+          widget.groupRide.meetingLongitude != null) {
+        final daysUntil = widget.groupRide.meetingTime
+            .difference(DateTime.now())
+            .inDays;
+        if (daysUntil >= -1 && daysUntil <= 7) {
+          final lat = widget.groupRide.meetingLatitude!;
+          final lon = widget.groupRide.meetingLongitude!;
+
+          try {
+            final forecast = await _weatherService.getHourlyForecast(lat, lon);
+
+            if (forecast.isNotEmpty) {
+              final rideStart = widget.groupRide.meetingTime;
+              final rideEnd = rideStart.add(const Duration(hours: 3));
+
+              _weatherPoints = forecast.where((p) {
+                final t = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
+                return t.isAfter(
+                      rideStart.subtract(const Duration(hours: 1)),
+                    ) &&
+                    t.isBefore(rideEnd.add(const Duration(minutes: 30)));
+              }).toList();
+
+              // Generate Outfit Suggestion
+              if (_weatherPoints.isNotEmpty) {
+                // Calc average conditions
+                double avgTemp = 0;
+                double maxWind = 0;
+                for (var p in _weatherPoints) {
+                  avgTemp += (p['main']['temp'] as num).toDouble();
+                  double wind = (p['wind']['speed'] as num).toDouble();
+                  if (wind > maxWind) maxWind = wind;
                 }
+                avgTemp /= _weatherPoints.length;
+
+                final conditions = WeatherConditions(
+                  temperature: avgTemp,
+                  windSpeed: maxWind,
+                  windDirection: 0,
+                  precipitation: 0,
+                  weatherCode: (_weatherPoints.first['weather'][0]['id'] as num)
+                      .toInt(),
+                );
+
+                _outfitRecommendation = _outfitService.suggestOutfit(
+                  weather: conditions,
+                  thermalSensitivity: 3, // Default average sensitivity
+                  elevationGain: widget.groupRide.elevation,
+                );
               }
-            } catch (e) {
-              debugPrint('Weather fetch error: $e');
             }
-         }
+          } catch (e) {
+            debugPrint('Weather fetch error: $e');
+          }
+        }
       }
 
       // 3. Ensure Creator is in Participants List
-      final creatorInList = widget.groupRide.participants.any((p) => p.userId == widget.groupRide.creatorId);
+      final creatorInList = widget.groupRide.participants.any(
+        (p) => p.userId == widget.groupRide.creatorId,
+      );
       if (!creatorInList) {
-         try {
-            final response = await _supabase
+        try {
+          final response = await _supabase
               .from('public_profiles')
               .select('display_name')
-              .eq('user_id', widget.groupRide.creatorId) // user_id not id in public_profiles?
+              .eq(
+                'user_id',
+                widget.groupRide.creatorId,
+              ) // user_id not id in public_profiles?
               .maybeSingle();
-              
-            String creatorName = 'Organizzatore';
-            if (response != null && response['display_name'] != null) {
-              creatorName = response['display_name'];
-            }
-              final creatorPart = GroupRideParticipant(
-                 id: 'creator_${widget.groupRide.creatorId}', 
-                 userId: widget.groupRide.creatorId, 
-                 displayName: creatorName, 
-                 joinedAt: widget.groupRide.createdAt,
-                 isCreator: true,
-                 status: 'confirmed',
-              );
-              
-              if (mounted) {
-                 setState(() {
-                    // Add to top
-                    widget.groupRide.participants.insert(0, creatorPart);
-                 });
-              }
-           } catch (e) {
-           debugPrint('Error fetching creator profile: $e');
-         }
+
+          String creatorName = 'Organizzatore';
+          if (response != null && response['display_name'] != null) {
+            creatorName = response['display_name'];
+          }
+          final creatorPart = GroupRideParticipant(
+            id: 'creator_${widget.groupRide.creatorId}',
+            userId: widget.groupRide.creatorId,
+            displayName: creatorName,
+            joinedAt: widget.groupRide.createdAt,
+            isCreator: true,
+            status: 'confirmed',
+          );
+
+          if (mounted) {
+            setState(() {
+              // Add to top
+              widget.groupRide.participants.insert(0, creatorPart);
+            });
+          }
+        } catch (e) {
+          debugPrint('Error fetching creator profile: $e');
+        }
       }
-      
+
       // 4. Hydrate Participant Details (Fetch names)
       _fetchParticipantDetails();
-
     } catch (e) {
       debugPrint('Error initializing group ride data: $e');
     } finally {
@@ -229,40 +252,42 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   }
 
   Future<void> _fetchWeatherAndAnalyze() async {
-    if (widget.groupRide.meetingLatitude == null || widget.groupRide.meetingLongitude == null) return;
+    if (widget.groupRide.meetingLatitude == null ||
+        widget.groupRide.meetingLongitude == null)
+      return;
 
     setState(() => _isLoading = true);
-    
+
     try {
       // 1. Fetch live weather
       final lat = widget.groupRide.meetingLatitude!;
       final lon = widget.groupRide.meetingLongitude!;
       final forecast = await _weatherService.getHourlyForecast(lat, lon);
-      
-      String? weatherJson; 
+
+      String? weatherJson;
 
       if (forecast.isNotEmpty) {
-         final rideStart = widget.groupRide.meetingTime;
-         final rideEnd = rideStart.add(const Duration(hours: 3));
-         
-         final points = forecast.where((p) {
-            final t = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
-            return t.isAfter(rideStart.subtract(const Duration(hours: 1))) && 
-                   t.isBefore(rideEnd.add(const Duration(minutes: 30)));
-         }).toList();
-         
-         if (points.isNotEmpty) {
-           setState(() => _weatherPoints = points); // Update UI too
-           
-           // Prepare simple weather object for AI
-           final first = points.first;
-           final w = {
-             'temperature': (first['main']['temp'] as num).toDouble(),
-             'windSpeed': (first['wind']['speed'] as num).toDouble(),
-             'condition': (first['weather'][0]['main'] as String),
-           };
-           weatherJson = jsonEncode(w);
-         }
+        final rideStart = widget.groupRide.meetingTime;
+        final rideEnd = rideStart.add(const Duration(hours: 3));
+
+        final points = forecast.where((p) {
+          final t = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
+          return t.isAfter(rideStart.subtract(const Duration(hours: 1))) &&
+              t.isBefore(rideEnd.add(const Duration(minutes: 30)));
+        }).toList();
+
+        if (points.isNotEmpty) {
+          setState(() => _weatherPoints = points); // Update UI too
+
+          // Prepare simple weather object for AI
+          final first = points.first;
+          final w = {
+            'temperature': (first['main']['temp'] as num).toDouble(),
+            'windSpeed': (first['wind']['speed'] as num).toDouble(),
+            'condition': (first['weather'][0]['main'] as String),
+          };
+          weatherJson = jsonEncode(w);
+        }
       }
 
       // 2. Wrap in PlannedRide for AI Service
@@ -272,31 +297,33 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         ..elevation = widget.groupRide.elevation ?? 0.0
         ..forecastWeather = weatherJson
         ..rideName = widget.groupRide.rideName;
-        
+
       // 3. Call AI
       final analysis = await _aiService.analyzeRide(dummyRide);
-      
+
       setState(() {
         _aiAnalysis = analysis;
         _isLoading = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Meteo aggiornato e analisi completata! 🤖')),
+          const SnackBar(
+            content: Text('Meteo aggiornato e analisi completata! 🤖'),
+          ),
         );
       }
-      
     } catch (e) {
       debugPrint('Error analyzing ride: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
-
 
   Future<void> _fetchParticipantDetails() async {
-    final userIds = widget.groupRide.participants.map((p) => p.userId).toSet().toList();
+    final userIds = widget.groupRide.participants
+        .map((p) => p.userId)
+        .toSet()
+        .toList();
     if (userIds.isEmpty) return;
 
     try {
@@ -308,23 +335,27 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       if (mounted) {
         setState(() {
           final List<GroupRideParticipant> updatedParticipants = [];
-          
+
           for (var p in widget.groupRide.participants) {
             final profile = (response as List<dynamic>).firstWhere(
               (json) => json['user_id'] == p.userId,
-              orElse: () => <String, dynamic>{}, // Provide an empty map if not found
+              orElse: () =>
+                  <String, dynamic>{}, // Provide an empty map if not found
             );
-            
-            if (profile.isNotEmpty) { // Check if profile was actually found
-              updatedParticipants.add(p.copyWith(
-                displayName: profile['display_name'] ?? p.displayName,
-                profileImageUrl: profile['profile_image_url'],
-              ));
+
+            if (profile.isNotEmpty) {
+              // Check if profile was actually found
+              updatedParticipants.add(
+                p.copyWith(
+                  displayName: profile['display_name'] ?? p.displayName,
+                  profileImageUrl: profile['profile_image_url'],
+                ),
+              );
             } else {
               updatedParticipants.add(p);
             }
           }
-          
+
           widget.groupRide.participants = updatedParticipants;
         });
       }
@@ -332,23 +363,30 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       debugPrint('Error hydrating participants: $e');
     }
   }
-  
+
   Future<void> _saveNotes() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('notes_${widget.groupRide.id}', _notesController.text);
+    await prefs.setString(
+      'notes_${widget.groupRide.id}',
+      _notesController.text,
+    );
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note salvate')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Note salvate')));
     }
   }
 
   Future<void> _startNavigation() async {
     if (_routeData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nessuna traccia disponibile per la navigazione')),
+        const SnackBar(
+          content: Text('Nessuna traccia disponibile per la navigazione'),
+        ),
       );
       return;
     }
-    
+
     final List<dynamic>? pointsRaw = _routeData!['allPoints'] as List<dynamic>?;
     if (pointsRaw == null || pointsRaw.isEmpty) return;
 
@@ -360,13 +398,10 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
     final userId = _supabase.auth.currentUser?.id;
     UserProfile? profile;
     if (userId != null) {
-       profile = await _db.getUserProfile();
+      profile = await _db.getUserProfile();
     }
-    
-    if (profile == null) {
-       // Fallback dummy profile if null
-       profile = UserProfile()..id = 'dummy'; 
-    }
+
+    profile ??= UserProfile()..id = 'dummy';
 
     if (mounted) {
       Navigator.of(context).push(
@@ -387,7 +422,9 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Termina Uscita'),
-        content: const Text('Vuoi salvare questa uscita di gruppo come completata nel tuo diario personale?'),
+        content: const Text(
+          'Vuoi salvare questa uscita di gruppo come completata nel tuo diario personale?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -404,7 +441,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
     if (confirm != true) return;
 
     setState(() => _isLoading = true);
-    
+
     try {
       // 1. Update Remote Status (if Creator)
       if (_isCreator) {
@@ -422,21 +459,28 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         ..elevation = widget.groupRide.elevation ?? 0.0
         ..isCompleted = true
         ..isGroupRide = true
-        ..supabaseEventId = widget.groupRide.id // Link to remote group ride
-        ..aiAnalysis = 'Uscita di Gruppo Completata: ${widget.groupRide.rideName}';
-      
+        ..supabaseEventId = widget
+            .groupRide
+            .id // Link to remote group ride
+        ..aiAnalysis =
+            'Uscita di Gruppo Completata: ${widget.groupRide.rideName}';
+
       await _db.createPlannedRide(personalRide);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Grande! Uscita salvata e completata! 🏁')),
+          const SnackBar(
+            content: Text('Grande! Uscita salvata e completata! 🏁'),
+          ),
         );
         // Return true to refresh agenda
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore salvataggio: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore salvataggio: $e')));
         setState(() => _isLoading = false);
       }
     }
@@ -464,7 +508,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       appBar: AppBar(
         title: Text(widget.groupRide.rideName),
         actions: [
-           // Naviga (Prominent)
+          // Naviga (Prominent)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: FilledButton.icon(
@@ -477,30 +521,30 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
               ),
             ),
           ),
-          
+
           // Condividi
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: 'Condividi',
             onPressed: _shareGroupRide,
           ),
-          
+
           // Termina (Salva su diario)
           IconButton(
             icon: const Icon(Icons.save_as),
             tooltip: 'Salva nel Diario (Termina)',
             onPressed: _completeGroupRide,
           ),
-        
+
           if (_isCreator)
-             IconButton(
-               icon: const Icon(Icons.delete),
-               onPressed: _confirmDelete,
-             ),
-             
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: _confirmDelete,
+            ),
+
           // Menu Altro (Delete if creator, or other options)
           if (_isCreator)
-             PopupMenuButton<String>(
+            PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'delete') _confirmDelete();
               },
@@ -535,26 +579,40 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                         _buildHeroStats(),
                         const SizedBox(height: 16),
                         _buildMeetingInfo(),
-                        
+
                         // 3. Terrain Breakdown (if available)
-                        if (_routeData != null && _routeData!['terrainBreakdown'] != null) ...[
+                        if (_routeData != null &&
+                            _routeData!['terrainBreakdown'] != null) ...[
                           const SizedBox(height: 16),
-                          Text('Tipo Terreno', style: Theme.of(context).textTheme.titleLarge),
+                          Text(
+                            'Tipo Terreno',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           const SizedBox(height: 8),
                           TerrainBreakdownWidget(
-                            terrain: _routeData!['terrainBreakdown'] as TerrainBreakdown,
+                            terrain:
+                                _routeData!['terrainBreakdown']
+                                    as TerrainBreakdown,
                           ),
                           const SizedBox(height: 16),
                         ],
-                        
+
                         // 4. Elevation Profile (moved here, after meeting info)
-                        if (_routeData != null && _routeData!['elevationProfile'] != null && (_routeData!['elevationProfile'] as List).isNotEmpty) ...[
-                          Text('Profilo Altimetrico', style: Theme.of(context).textTheme.titleLarge),
+                        if (_routeData != null &&
+                            _routeData!['elevationProfile'] != null &&
+                            (_routeData!['elevationProfile'] as List)
+                                .isNotEmpty) ...[
+                          Text(
+                            'Profilo Altimetrico',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           const SizedBox(height: 16),
                           ElevationProfileWidget(
-                            elevationProfile: (_routeData!['elevationProfile'] as List<Map<String, double>>)
-                                .map((e) => e['elevation'] ?? 0.0)
-                                .toList(),
+                            elevationProfile:
+                                (_routeData!['elevationProfile']
+                                        as List<Map<String, double>>)
+                                    .map((e) => e['elevation'] ?? 0.0)
+                                    .toList(),
                             distanceKm: widget.groupRide.distance ?? 0.0,
                           ),
                           const SizedBox(height: 24),
@@ -562,50 +620,71 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
 
                         // 5. Description
                         if (widget.groupRide.description != null) ...[
-                          Text('Descrizione', style: Theme.of(context).textTheme.titleLarge),
+                          Text(
+                            'Descrizione',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           const SizedBox(height: 8),
                           Text(widget.groupRide.description!),
                           const SizedBox(height: 24),
                         ],
-                        
+
                         // 6. Participants
                         _buildParticipantsSection(),
                         const SizedBox(height: 24),
 
                         // 7. Weather
                         if (_weatherPoints.isNotEmpty) ...[
-                           Text('Meteo Previsto', style: Theme.of(context).textTheme.titleLarge),
-                           const SizedBox(height: 16),
-                           _buildWeatherTimeline(),
-                           const SizedBox(height: 24),
+                          Text(
+                            'Meteo Previsto',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildWeatherTimeline(),
+                          const SizedBox(height: 24),
                         ],
-                        
+
                         // 8. Clothing Advice
                         if (_outfitRecommendation != null) ...[
-                           Text('Consiglio Abbigliamento', style: Theme.of(context).textTheme.titleLarge),
-                           const SizedBox(height: 16),
-                           _buildClothingCard(),
-                           const SizedBox(height: 24),
+                          Text(
+                            'Consiglio Abbigliamento',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildClothingCard(),
+                          const SizedBox(height: 24),
                         ],
 
-
-                        
                         // 9. AI Strategic Analysis
                         if (_aiAnalysis != null) ...[
-                          Text('Analisi Strategica (Live)', style: Theme.of(context).textTheme.titleLarge),
+                          Text(
+                            'Analisi Strategica (Live)',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           const SizedBox(height: 16),
                           Card(
                             elevation: 2,
-                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer.withOpacity(0.3),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 children: [
-                                  Row(children: [
-                                    const Icon(Icons.psychology), 
-                                    const SizedBox(width: 8), 
-                                    Expanded(child: Text("Il Coach Consiglia:", style: Theme.of(context).textTheme.titleMedium))
-                                  ]),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.psychology),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "Il Coach Consiglia:",
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   const Divider(),
                                   Text(_aiAnalysis!),
                                 ],
@@ -614,25 +693,30 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                           ),
                           const SizedBox(height: 24),
                         ] else ...[
-                           Center(
-                             child: FilledButton.icon(
-                               onPressed: _fetchWeatherAndAnalyze,
-                               icon: const Icon(Icons.refresh),
-                               label: const Text('Aggiorna Meteo & Analizza'),
-                             ),
-                           ),
-                           const SizedBox(height: 24),
+                          Center(
+                            child: FilledButton.icon(
+                              onPressed: _fetchWeatherAndAnalyze,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Aggiorna Meteo & Analizza'),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                         ],
 
                         // 10. Notes
-                        Text('Note Personali', style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          'Note Personali',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _notesController,
                           maxLines: 4,
                           decoration: InputDecoration(
                             hintText: 'Aggiungi appunti su questa uscita...',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.check),
                               onPressed: _saveNotes,
@@ -649,9 +733,13 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       floatingActionButton: !_isCreator
           ? FloatingActionButton.extended(
               onPressed: _isLoading ? null : _toggleParticipation,
-              backgroundColor: _isParticipating ? Colors.red.shade100 : Theme.of(context).primaryColor,
+              backgroundColor: _isParticipating
+                  ? Colors.red.shade100
+                  : Theme.of(context).primaryColor,
               foregroundColor: _isParticipating ? Colors.red : Colors.white,
-              icon: Icon(_isParticipating ? Icons.exit_to_app : Icons.add_reaction),
+              icon: Icon(
+                _isParticipating ? Icons.exit_to_app : Icons.add_reaction,
+              ),
               label: Text(_isParticipating ? 'Lascia Uscita' : 'Partecipa'),
             )
           : null,
@@ -685,9 +773,9 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
             const SizedBox(height: 12),
             Text(
               _outfitRecommendation!.itemsSummary,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -708,9 +796,12 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       child: Stack(
         children: [
           RouteMapWidget(
-            routePoints: List<Map<String, double>>.from(_routeData!['allPoints'] as List),
+            routePoints: List<Map<String, double>>.from(
+              _routeData!['allPoints'] as List,
+            ),
             startPoint: (_routeData!['coordinates'] as RouteCoordinates).start,
-            middlePoint: (_routeData!['coordinates'] as RouteCoordinates).middle,
+            middlePoint:
+                (_routeData!['coordinates'] as RouteCoordinates).middle,
             endPoint: (_routeData!['coordinates'] as RouteCoordinates).end,
             distance: widget.groupRide.distance ?? 0,
             elevation: widget.groupRide.elevation ?? 0,
@@ -721,14 +812,18 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
             child: FloatingActionButton.small(
               heroTag: 'map_expand_group',
               onPressed: () => setState(() => _isMapExpanded = !_isMapExpanded),
-              child: Icon(_isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen),
+              child: Icon(
+                _isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
+              ),
             ),
           ),
           if (!_isMapExpanded)
             Positioned.fill(
               child: Material(
-              color: Colors.transparent,
-                child: InkWell(onTap: () => setState(() => _isMapExpanded = true)),
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => setState(() => _isMapExpanded = true),
+                ),
               ),
             ),
         ],
@@ -743,9 +838,17 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-             _buildStat(Icons.route, '${widget.groupRide.distance?.toStringAsFixed(1) ?? "--"} km', 'Distanza'),
-             _buildStat(Icons.terrain, '${widget.groupRide.elevation?.toStringAsFixed(0) ?? "--"} m', 'Dislivello'),
-             _buildDifficultyStat(widget.groupRide.difficultyLevel),
+            _buildStat(
+              Icons.route,
+              '${widget.groupRide.distance?.toStringAsFixed(1) ?? "--"} km',
+              'Distanza',
+            ),
+            _buildStat(
+              Icons.terrain,
+              '${widget.groupRide.elevation?.toStringAsFixed(0) ?? "--"} m',
+              'Dislivello',
+            ),
+            _buildDifficultyStat(widget.groupRide.difficultyLevel),
           ],
         ),
       ),
@@ -757,8 +860,14 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       children: [
         Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
       ],
     );
   }
@@ -766,18 +875,39 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
   Widget _buildDifficultyStat(String level) {
     Color color;
     String label;
-    switch(level) {
-      case 'easy': color = Colors.green; label = 'Facile'; break;
-      case 'hard': color = Colors.red; label = 'Difficile'; break;
-      case 'expert': color = Colors.purple; label = 'Esperto'; break;
-      default: color = Colors.orange; label = 'Medio';
+    switch (level) {
+      case 'easy':
+        color = Colors.green;
+        label = 'Facile';
+        break;
+      case 'hard':
+        color = Colors.red;
+        label = 'Difficile';
+        break;
+      case 'expert':
+        color = Colors.purple;
+        label = 'Esperto';
+        break;
+      default:
+        color = Colors.orange;
+        label = 'Medio';
     }
     return Column(
       children: [
         Icon(Icons.bar_chart, size: 28, color: color),
         const SizedBox(height: 8),
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
-        Text('Difficoltà', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+        Text(
+          'Difficoltà',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
       ],
     );
   }
@@ -799,7 +929,10 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Data e Ora', style: TextStyle(fontSize: 12)),
-                      Text(dateFormat.format(widget.groupRide.meetingTime), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        dateFormat.format(widget.groupRide.meetingTime),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -814,8 +947,14 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Punto di Ritrovo', style: TextStyle(fontSize: 12)),
-                      Text(widget.groupRide.meetingPoint, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Punto di Ritrovo',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        widget.groupRide.meetingPoint,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -832,15 +971,17 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-           children: [
-             Text('Partecipanti', style: Theme.of(context).textTheme.titleLarge),
-             Chip(
-               // Show participants count. If list empty but creator exists (fetched above), size is correct.
-               label: Text('${widget.groupRide.participants.length} / ${widget.groupRide.maxParticipants}'),
-               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-             ),
-           ],
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Partecipanti', style: Theme.of(context).textTheme.titleLarge),
+            Chip(
+              // Show participants count. If list empty but creator exists (fetched above), size is correct.
+              label: Text(
+                '${widget.groupRide.participants.length} / ${widget.groupRide.maxParticipants}',
+              ),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Card(
@@ -857,21 +998,37 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                   child: Text(p.displayName[0].toUpperCase()),
                 ),
                 title: Text(p.displayName),
-                subtitle: p.isCreator ? 
-                  const Text('Organizzatore', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)) : null,
-                trailing: p.status == 'confirmed' 
-                  ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
-                  : const Icon(Icons.schedule, color: Colors.grey, size: 20),
+                subtitle: p.isCreator
+                    ? const Text(
+                        'Organizzatore',
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+                trailing: p.status == 'confirmed'
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 20,
+                      )
+                    : const Icon(Icons.schedule, color: Colors.grey, size: 20),
               );
             },
           ),
         ),
-        if (widget.groupRide.currentParticipants < widget.groupRide.maxParticipants && !_isParticipating)
+        if (widget.groupRide.currentParticipants <
+                widget.groupRide.maxParticipants &&
+            !_isParticipating)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               '🔥 Ancora ${widget.groupRide.maxParticipants - widget.groupRide.currentParticipants} posti disponibili!',
-              style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.orange.shade800,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
       ],
@@ -880,7 +1037,7 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
 
   Widget _buildWeatherTimeline() {
     return SizedBox(
-      height: 130, 
+      height: 130,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _weatherPoints.length,
@@ -889,7 +1046,8 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
           final date = DateTime.fromMillisecondsSinceEpoch(p['dt'] * 1000);
           final temp = (p['main']['temp'] as num).toDouble();
           final weather = p['weather'][0];
-          final iconUrl = 'http://openweathermap.org/img/w/${weather['icon']}.png';
+          final iconUrl =
+              'http://openweathermap.org/img/w/${weather['icon']}.png';
 
           return Card(
             margin: const EdgeInsets.only(right: 8),
@@ -900,9 +1058,17 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
                 children: [
                   Text(DateFormat('HH:mm').format(date)),
                   const SizedBox(height: 4),
-                  Image.network(iconUrl, width: 30, height: 30, errorBuilder: (_,__,___) => const Icon(Icons.cloud)),
+                  Image.network(
+                    iconUrl,
+                    width: 30,
+                    height: 30,
+                    errorBuilder: (_, _, _) => const Icon(Icons.cloud),
+                  ),
                   const SizedBox(height: 4),
-                  Text('${temp.toStringAsFixed(0)}°C', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '${temp.toStringAsFixed(0)}°C',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -919,111 +1085,133 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Lasciare l\'uscita?'),
-            content: const Text('Sei sicuro di voler annullare la tua partecipazione?'),
+            content: const Text(
+              'Sei sicuro di voler annullare la tua partecipazione?',
+            ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-              FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Si, lascia')),
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('No'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Si, lascia'),
+              ),
             ],
           ),
         );
         if (confirm != true) return;
-        
+
         await _crewService.leaveGroupRide(widget.groupRide.id);
 
-        
         final userId = _supabase.auth.currentUser!.id;
-        
+
         setState(() {
           _isParticipating = false;
           // Remove from local list
           widget.groupRide.participants.removeWhere((p) => p.userId == userId);
         });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hai lasciato l\'uscita')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Hai lasciato l\'uscita')),
+          );
       } else {
         final user = _supabase.auth.currentUser!;
-        
+
         // Ensure public profile exists before joining (fixes "Ciclista" name issue)
         // If the user hasn't synced profile, we create a default one now.
         // await _dataModeService.ensurePublicProfile(user); // Removed
-        
+
         try {
-            // Check if profile exists
-            final publicProfile = await _supabase
-                .from('public_profiles')
-                .select()
-                .eq('user_id', user.id)
-                .maybeSingle();
-                
-            if (publicProfile == null) {
-              // Create default public profile
-              // Try to get name from local Isar or User Metadata
-              String displayName = user.userMetadata?['name'] ?? 'Ciclista';
-              
-              await _supabase.from('public_profiles').upsert({
-                'user_id': user.id,
-                'display_name': displayName,
-                'updated_at': DateTime.now().toIso8601String(),
-              });
-            }
+          // Check if profile exists
+          final publicProfile = await _supabase
+              .from('public_profiles')
+              .select()
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+          if (publicProfile == null) {
+            // Create default public profile
+            // Try to get name from local Isar or User Metadata
+            String displayName = user.userMetadata?['name'] ?? 'Ciclista';
+
+            await _supabase.from('public_profiles').upsert({
+              'user_id': user.id,
+              'display_name': displayName,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+          }
         } catch (e) {
-            debugPrint('Error ensuring public profile: $e');
-            // Continue anyway, join might work if trigger exists
+          debugPrint('Error ensuring public profile: $e');
+          // Continue anyway, join might work if trigger exists
         }
 
         // Interact after profile check
         await _crewService.joinGroupRide(widget.groupRide.id);
 
-        
         // Add to local list
         // Best effort: Get name from metadata or email (matching default logic)
-        String displayName = user.userMetadata?['name'] ?? user.email?.split('@')[0] ?? 'Ciclista';
-        
+        String displayName =
+            user.userMetadata?['name'] ??
+            user.email?.split('@')[0] ??
+            'Ciclista';
+
         final newPart = GroupRideParticipant(
-           id: 'temp_${user.id}',
-           userId: user.id,
-           displayName: displayName,
-           joinedAt: DateTime.now(),
-           status: 'confirmed',
+          id: 'temp_${user.id}',
+          userId: user.id,
+          displayName: displayName,
+          joinedAt: DateTime.now(),
+          status: 'confirmed',
         );
 
         setState(() {
-           _isParticipating = true;
-           widget.groupRide.participants.add(newPart);
+          _isParticipating = true;
+          widget.groupRide.participants.add(newPart);
         });
 
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ti sei unito all\'uscita!')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ti sei unito all\'uscita!')),
+          );
       }
-      
 
-      
       // Do NOT pop, stay on screen to show update
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
     }
   }
 
   void _confirmDelete() async {
-     final confirm = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Eliminare uscita?'),
-            content: const Text('Questa azione non può essere annullata.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.pop(context, true), 
-                child: const Text('Elimina'),
-              ),
-            ],
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminare uscita?'),
+        content: const Text('Questa azione non può essere annullata.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
           ),
-        );
-        
-     if (confirm == true) {
-       await _supabase.from('group_rides').delete().eq('id', widget.groupRide.id);
-       if (mounted) {
-         Navigator.pop(context, true);
-       }
-     }
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _supabase
+          .from('group_rides')
+          .delete()
+          .eq('id', widget.groupRide.id);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    }
   }
 }

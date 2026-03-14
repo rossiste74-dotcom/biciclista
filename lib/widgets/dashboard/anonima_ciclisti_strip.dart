@@ -251,16 +251,20 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.end,
                       children: [
-                        Expanded(
+                        SizedBox(
+                          width: 200, // Sufficient width for the button
                           child: ElevatedButton.icon(
                             onPressed: _isSavingPrompt ? null : _savePrompt,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                               foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                             ),
                             icon: _isSavingPrompt 
                                 ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
@@ -274,7 +278,6 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         IconButton.filledTonal(
                           onPressed: () async {
                             final statsStr = await _aiService.getCommunityAIContext();

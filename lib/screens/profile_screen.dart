@@ -22,17 +22,18 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final _db = DatabaseService();
   final _healthSyncService = HealthSyncService();
   final _biometricService = BiometricService();
   final _formKey = GlobalKey<FormState>();
-  
+
   late TabController _tabController;
-  
+
   bool _isLoading = true;
   UserProfile? _profile;
-  UserAvatarConfig? _avatarConfig; 
+  UserAvatarConfig? _avatarConfig;
 
   // Stats arrays
   double _totalKm = 0.0;
@@ -53,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   final _hrvController = TextEditingController();
   final _sleepController = TextEditingController();
   final _ftpController = TextEditingController();
-  
+
   String _selectedGender = 'Maschio';
   int _thermalSensitivity = 3;
 
@@ -94,16 +95,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           _weeklyKm = weeklyKm;
           _totalRides = totalRides;
           _otherActivitiesKm = otherActivitiesKm;
-          
+
           _hrvTrend = _biometricService.getHrvTrendFromProfile(profile);
           _weightTrend = _biometricService.getWeightTrendFromProfile(profile);
           _sleepTrend = _biometricService.getSleepTrendFromProfile(profile);
-          _readinessTrend = _biometricService.getReadinessTrendFromProfile(profile);
-          
+          _readinessTrend = _biometricService.getReadinessTrendFromProfile(
+            profile,
+          );
+
           _avatarConfig = profile.avatarData != null
               ? UserAvatarConfig.fromJsonString(profile.avatarData!)
               : null;
-          
+
           _nameController.text = profile.name ?? '';
           _ageController.text = profile.age.toString();
           _weightController.text = profile.weight.toString();
@@ -122,7 +125,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     }
   }
 
-
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -138,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     profile.functionalThresholdPower = int.parse(_ftpController.text);
     profile.thermalSensitivity = _thermalSensitivity;
     profile.preferredUnit = 'km'; // Default for now
-    
+
     // Save avatar config if exists
     if (_avatarConfig != null) {
       profile.avatarData = _avatarConfig!.toJsonString();
@@ -155,21 +157,22 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     await _db.saveUserProfile(profile);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('profile.update_success'.tr())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('profile.update_success'.tr())));
       // We don't pop context here because they may just be saving from the tab.
     }
   }
-  
+
   Future<void> _openAvatarCustomizer() async {
     final result = await Navigator.push<UserAvatarConfig>(
       context,
       MaterialPageRoute(
-        builder: (context) => AvatarCustomizerScreen(initialConfig: _avatarConfig),
+        builder: (context) =>
+            AvatarCustomizerScreen(initialConfig: _avatarConfig),
       ),
     );
-    
+
     if (result != null) {
       setState(() {
         _avatarConfig = result;
@@ -183,10 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       appBar: AppBar(
         title: Text('profile.title'.tr()),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _saveProfile,
-          ),
+          IconButton(icon: const Icon(Icons.check), onPressed: _saveProfile),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -251,32 +251,51 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     if (_avatarConfig != null)
                       ClipOval(
                         child: Container(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          child: AvatarPreview(config: _avatarConfig!, size: 100),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: AvatarPreview(
+                            config: _avatarConfig!,
+                            size: 100,
+                          ),
                         ),
                       )
                     else
                       CircleAvatar(
                         radius: 50,
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
                         child: Text(
-                          _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                          _nameController.text.isNotEmpty
+                              ? _nameController.text[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                     Positioned(
-                       bottom: 0,
-                       right: 0,
-                       child: Container(
-                         padding: const EdgeInsets.all(4),
-                         decoration: BoxDecoration(
-                           color: Theme.of(context).colorScheme.primary,
-                           shape: BoxShape.circle,
-                           border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
-                         ),
-                         child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                       ),
-                     ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -285,16 +304,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             Center(
               child: TextButton.icon(
                 onPressed: () async {
-                   await Supabase.instance.client.auth.signOut();
-                   if (context.mounted) {
-                     Navigator.of(context).pushAndRemoveUntil(
-                       MaterialPageRoute(builder: (_) => const AuthScreen()),
-                       (route) => false,
-                     );
-                   }
+                  await Supabase.instance.client.auth.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                      (route) => false,
+                    );
+                  }
                 },
                 icon: const Icon(Icons.logout, size: 16, color: Colors.red),
-                label: const Text('Disconnetti', style: TextStyle(color: Colors.red)),
+                label: const Text(
+                  'Disconnetti',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -314,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     decoration: InputDecoration(
                       labelText: 'profile.gender_label'.tr(),
                       border: const OutlineInputBorder(),
@@ -347,9 +369,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 if (_profile?.lastHealthSync != null)
                   Text(
                     'Sinc: ${DateFormat('dd/MM HH:mm').format(_profile!.lastHealthSync!)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
               ],
             ),
@@ -479,9 +501,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -499,24 +521,26 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     if (mounted) {
       setState(() => _isLoading = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('profile.sync_ongoing'.tr())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('profile.sync_ongoing'.tr())));
     }
 
     try {
       await _healthSyncService.syncRecentData();
       await _loadProfile();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.sync_completed'.tr())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('profile.sync_completed'.tr())));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.sync_failed'.tr(args: [e.toString()]))),
+          SnackBar(
+            content: Text('profile.sync_failed'.tr(args: [e.toString()])),
+          ),
         );
       }
     }
@@ -547,7 +571,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const UnifiedAgendaScreen(initialTabIndex: 2),
+                      builder: (context) =>
+                          const UnifiedAgendaScreen(initialTabIndex: 2),
                     ),
                   );
                 },
@@ -620,9 +645,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       children: [
         Text(
           'Trend Readiness Score',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         MetricSparklineChart(
@@ -641,9 +666,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       children: [
         Text(
           'Trend Biometrici',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Row(
@@ -657,8 +682,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       unit: 'ms',
                     )
                   : _buildNoDataCard(
-                      'HRV', 
-                      _hrvTrend.isNotEmpty ? '${_hrvTrend.last.toInt()} ms' : '--',
+                      'HRV',
+                      _hrvTrend.isNotEmpty
+                          ? '${_hrvTrend.last.toInt()} ms'
+                          : '--',
                       isPlaceholder: _hrvTrend.isEmpty,
                     ),
             ),
@@ -672,8 +699,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       unit: 'kg',
                     )
                   : _buildNoDataCard(
-                      'Peso', 
-                      _weightTrend.isNotEmpty ? '${_weightTrend.last.toStringAsFixed(1)} kg' : '--',
+                      'Peso',
+                      _weightTrend.isNotEmpty
+                          ? '${_weightTrend.last.toStringAsFixed(1)} kg'
+                          : '--',
                       isPlaceholder: _weightTrend.isEmpty,
                     ),
             ),
@@ -704,9 +733,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             const SizedBox(height: 8),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
               label,
@@ -719,7 +748,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       ),
     );
-    
+
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
@@ -727,11 +756,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         child: card,
       );
     }
-    
+
     return card;
   }
 
-  Widget _buildNoDataCard(String label, String value, {bool isPlaceholder = true}) {
+  Widget _buildNoDataCard(
+    String label,
+    String value, {
+    bool isPlaceholder = true,
+  }) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -755,21 +788,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 children: [
                   Icon(
                     isPlaceholder ? Icons.show_chart : Icons.insights,
-                    color: isPlaceholder 
-                        ? Theme.of(context).colorScheme.outline 
+                    color: isPlaceholder
+                        ? Theme.of(context).colorScheme.outline
                         : Theme.of(context).colorScheme.primary,
                     size: 32,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     value,
-                    style: isPlaceholder 
-                      ? Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        )
-                      : Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: isPlaceholder
+                        ? Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          )
+                        : Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     textAlign: TextAlign.center,
                   ),
                 ],

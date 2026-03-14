@@ -7,7 +7,11 @@ class MonthlyStats {
   final DateTime month;
   final double km;
   final double elevation;
-  MonthlyStats({required this.month, required this.km, required this.elevation});
+  MonthlyStats({
+    required this.month,
+    required this.km,
+    required this.elevation,
+  });
 }
 
 /// Grafico a linee: km (blu) e dislivello (arancione) sui 12 mesi
@@ -28,7 +32,9 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
     final scheme = Theme.of(context).colorScheme;
     final months = _buildFullYear();
     final maxKm = months.map((e) => e.km).fold(0.0, (a, b) => a > b ? a : b);
-    final maxElev = months.map((e) => e.elevation).fold(0.0, (a, b) => a > b ? a : b);
+    final maxElev = months
+        .map((e) => e.elevation)
+        .fold(0.0, (a, b) => a > b ? a : b);
     final maxY = _showKm
         ? (maxKm == 0 ? 100.0 : (maxKm * 1.2).ceilToDouble())
         : (maxElev == 0 ? 1000.0 : (maxElev * 1.2).ceilToDouble());
@@ -52,13 +58,23 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
               children: [
                 Text(
                   'Andamento Annuale',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 // Toggle: KM / Dislivello
                 SegmentedButton<bool>(
                   segments: const [
-                    ButtonSegment(value: true, label: Text('Km'), icon: Icon(Icons.directions_bike, size: 16)),
-                    ButtonSegment(value: false, label: Text('↑ m'), icon: Icon(Icons.landscape, size: 16)),
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Km'),
+                      icon: Icon(Icons.directions_bike, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: false,
+                      label: Text('↑ m'),
+                      icon: Icon(Icons.landscape, size: 16),
+                    ),
                   ],
                   selected: {_showKm},
                   onSelectionChanged: (s) => setState(() => _showKm = s.first),
@@ -95,12 +111,16 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                         interval: 1,
                         getTitlesWidget: (value, meta) {
                           final idx = value.toInt();
-                          if (idx < 0 || idx >= months.length) return const SizedBox.shrink();
+                          if (idx < 0 || idx >= months.length)
+                            return const SizedBox.shrink();
                           return Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               DateFormat('MMM').format(months[idx].month),
-                              style: TextStyle(fontSize: 9, color: scheme.onSurfaceVariant),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
                           );
                         },
@@ -114,14 +134,23 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                         getTitlesWidget: (value, meta) {
                           if (value == 0) return const SizedBox.shrink();
                           return Text(
-                            _showKm ? value.toStringAsFixed(0) : '${(value / 1000).toStringAsFixed(1)}k',
-                            style: TextStyle(fontSize: 9, color: scheme.onSurfaceVariant),
+                            _showKm
+                                ? value.toStringAsFixed(0)
+                                : '${(value / 1000).toStringAsFixed(1)}k',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           );
                         },
                       ),
                     ),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   lineBarsData: [
                     LineChartBarData(
@@ -133,7 +162,7 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                       isStrokeCapRound: true,
                       dotData: FlDotData(
                         show: true,
-                        getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                        getDotPainter: (spot, _, _, _) => FlDotCirclePainter(
                           radius: spot.y > 0 ? 3.5 : 0,
                           color: _showKm ? scheme.primary : Colors.deepOrange,
                           strokeWidth: 1.5,
@@ -146,8 +175,10 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            (_showKm ? scheme.primary : Colors.deepOrange).withOpacity(0.25),
-                            (_showKm ? scheme.primary : Colors.deepOrange).withOpacity(0.0),
+                            (_showKm ? scheme.primary : Colors.deepOrange)
+                                .withOpacity(0.25),
+                            (_showKm ? scheme.primary : Colors.deepOrange)
+                                .withOpacity(0.0),
                           ],
                         ),
                       ),
@@ -155,17 +186,21 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                   ],
                   lineTouchData: LineTouchData(
                     touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (touchedSpots) => touchedSpots.map((spot) {
-                        final idx = spot.x.toInt();
-                        final m = months[idx];
-                        final label = _showKm
-                            ? '${m.km.toStringAsFixed(0)} km'
-                            : '${m.elevation.toStringAsFixed(0)} m';
-                        return LineTooltipItem(
-                          '${DateFormat('MMM yy').format(m.month)}\n$label',
-                          TextStyle(color: scheme.onInverseSurface, fontSize: 11),
-                        );
-                      }).toList(),
+                      getTooltipItems: (touchedSpots) =>
+                          touchedSpots.map((spot) {
+                            final idx = spot.x.toInt();
+                            final m = months[idx];
+                            final label = _showKm
+                                ? '${m.km.toStringAsFixed(0)} km'
+                                : '${m.elevation.toStringAsFixed(0)} m';
+                            return LineTooltipItem(
+                              '${DateFormat('MMM yy').format(m.month)}\n$label',
+                              TextStyle(
+                                color: scheme.onInverseSurface,
+                                fontSize: 11,
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
                 ),
