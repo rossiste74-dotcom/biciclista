@@ -1,9 +1,47 @@
+import 'dart:convert';
+/// Represents a single component replacement event.
+class ReplacementRecord {
+  final DateTime date;
+  final double kmAtReplacement;
+
+  ReplacementRecord({required this.date, required this.kmAtReplacement});
+
+  Map<String, dynamic> toJson() => {
+    'date': date.toIso8601String(),
+    'km': kmAtReplacement,
+  };
+
+  factory ReplacementRecord.fromJson(Map<String, dynamic> json) =>
+      ReplacementRecord(
+        date: DateTime.parse(json['date'] as String),
+        kmAtReplacement: (json['km'] as num?)?.toDouble() ?? 0.0,
+      );
+}
 
 class BicycleComponent {
   String? name;
   double currentKm = 0.0;
   double limitKm = 3000.0;
   DateTime? lastMaintenance;
+
+  // Stored as JSON string to avoid Isar schema regeneration
+  String? replacementHistoryJson;
+
+  List<ReplacementRecord> get replacementHistory {
+    if (replacementHistoryJson == null || replacementHistoryJson!.isEmpty) return [];
+    try {
+      final list = json.decode(replacementHistoryJson!) as List;
+      return list.map((e) => ReplacementRecord.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  void addReplacement(ReplacementRecord record) {
+    final history = replacementHistory;
+    history.insert(0, record); // newest first
+    replacementHistoryJson = json.encode(history.map((e) => e.toJson()).toList());
+  }
 }
 
 class Bicycle {

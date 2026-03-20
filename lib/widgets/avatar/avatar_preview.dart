@@ -14,6 +14,21 @@ class AvatarPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (config.customImageUrl != null && config.customImageUrl!.isNotEmpty) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: ClipOval(
+          child: Image.network(
+            config.customImageUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                Icon(Icons.broken_image, size: size * 0.5, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       width: size,
       height: size,

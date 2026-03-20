@@ -184,7 +184,20 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       ride.bicycleId = _selectedBicycle!.id;
 
       // Update bicycle total distance
-      _selectedBicycle!.totalKilometers += ride.distance;
+      final double rideDist = ride.distance;
+      _selectedBicycle!.totalKilometers =
+          (_selectedBicycle!.totalKilometers.isNaN ? 0.0 : _selectedBicycle!.totalKilometers) + rideDist;
+      _selectedBicycle!.chainKms =
+          (_selectedBicycle!.chainKms.isNaN ? 0.0 : _selectedBicycle!.chainKms) + rideDist;
+      _selectedBicycle!.tyreKms =
+          (_selectedBicycle!.tyreKms.isNaN ? 0.0 : _selectedBicycle!.tyreKms) + rideDist;
+
+      // Update individual components
+      for (var component in _selectedBicycle!.components) {
+        component.currentKm =
+            (component.currentKm.isNaN ? 0.0 : component.currentKm) + rideDist;
+      }
+
       await _db.updateBicycle(_selectedBicycle!);
     }
 

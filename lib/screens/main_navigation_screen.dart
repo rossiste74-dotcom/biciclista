@@ -15,6 +15,9 @@ import 'profile_screen.dart';
 import 'ai_lab_screen.dart'; // Added for Phase 3
 import 'unified_agenda_screen.dart';
 
+import '../models/user_profile.dart';
+import '../widgets/avatar/avatar_preview.dart';
+
 import 'garage_screen.dart';
 import '../services/sync_service.dart';
 import 'package:intl/intl.dart';
@@ -47,10 +50,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   late final List<Widget> _rootScreens;
+  UserProfile? _profile;
 
   @override
   void initState() {
     super.initState();
+    _loadProfile();
     _rootScreens = [
       const DashboardScreen(),
       const RoutesLibraryScreen(),
@@ -85,6 +90,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void dispose() {
     _crewRefreshNotifier.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await DatabaseService().getUserProfile();
+    if (mounted) {
+      setState(() {
+        _profile = profile;
+      });
+    }
   }
 
   Future<void> _checkExternalActivities() async {
@@ -520,16 +534,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               radius: 16,
-              child: Icon(
-                Icons.person,
-                size: 20,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
+              child: _profile?.avatarConfig != null
+                  ? ClipOval(
+                      child: AvatarPreview(
+                        config: _profile!.avatarConfig!,
+                        size: 32,
+                      ),
+                    )
+                  : Icon(
+                      Icons.person,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
             ),
-            onPressed: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+              // Refresh profile when returning from ProfileScreen just in case
+              _loadProfile();
             },
           ),
           IconButton(

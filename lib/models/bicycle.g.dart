@@ -2495,6 +2495,11 @@ const BicycleComponentSchema = Schema(
       id: 3,
       name: r'name',
       type: IsarType.string,
+    ),
+    r'replacementHistoryJson': PropertySchema(
+      id: 4,
+      name: r'replacementHistoryJson',
+      type: IsarType.string,
     )
   },
   estimateSize: _bicycleComponentEstimateSize,
@@ -2515,6 +2520,12 @@ int _bicycleComponentEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.replacementHistoryJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -2528,6 +2539,7 @@ void _bicycleComponentSerialize(
   writer.writeDateTime(offsets[1], object.lastMaintenance);
   writer.writeDouble(offsets[2], object.limitKm);
   writer.writeString(offsets[3], object.name);
+  writer.writeString(offsets[4], object.replacementHistoryJson);
 }
 
 BicycleComponent _bicycleComponentDeserialize(
@@ -2541,6 +2553,7 @@ BicycleComponent _bicycleComponentDeserialize(
   object.lastMaintenance = reader.readDateTimeOrNull(offsets[1]);
   object.limitKm = reader.readDouble(offsets[2]);
   object.name = reader.readStringOrNull(offsets[3]);
+  object.replacementHistoryJson = reader.readStringOrNull(offsets[4]);
   return object;
 }
 
@@ -2558,6 +2571,8 @@ P _bicycleComponentDeserializeProp<P>(
     case 2:
       return (reader.readDouble(offset)) as P;
     case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    case 4:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');

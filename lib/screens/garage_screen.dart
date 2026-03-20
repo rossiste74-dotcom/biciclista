@@ -183,36 +183,79 @@ class _GarageScreenState extends State<GarageScreen> {
 
   Future<bool> _isCameraAvailable() async => true;
 
-  Future<void> _resetComponent(Bicycle bike, BicycleComponent component) async {
+  Future<void> _replaceComponent(Bicycle bike, BicycleComponent component) async {
+    DateTime selectedDate = DateTime.now();
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'garage.reset_confirm_title'.tr(args: [component.name ?? '']),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Sostituisci ${component.name ?? 'Componente'}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Questa azione registrerà la sostituzione e azzererà il contatore km.'),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Data sostituzione'),
+                subtitle: Text(
+                  DateFormat('dd/MM/yyyy').format(selectedDate),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                trailing: const Icon(Icons.edit, size: 18),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Km attuali: ${component.currentKm.toStringAsFixed(0)} km',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('common.cancel'.tr()),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              label: const Text('Conferma sostituzione'),
+            ),
+          ],
         ),
-        content: Text('garage.reset_confirm_body'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('common.cancel'.tr()),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('common.confirm'.tr()),
-          ),
-        ],
       ),
     );
 
     if (confirm == true) {
-      component.currentKm = 0.0;
-      component.lastMaintenance = DateTime.now();
+      // Record this replacement in history
+      component.addReplacement(ReplacementRecord(
+        date: selectedDate,
+        kmAtReplacement: component.currentKm,
+      ));
 
-      // Also update legacy fields for safety if it matches
+      // Reset counter
+      component.currentKm = 0.0;
+      component.lastMaintenance = selectedDate;
+
+      // Legacy sync
       if (component.name == 'Catena') bike.chainKms = 0.0;
       if (component.name == 'Copertoni') bike.tyreKms = 0.0;
 
-      bike.lastMaintenance = DateTime.now();
+      bike.lastMaintenance = selectedDate;
       await _db.updateBicycle(bike);
     }
   }
@@ -521,23 +564,64 @@ class _GarageScreenState extends State<GarageScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: () => _resetComponent(bike, component),
+            OutlinedButton.icon(
+              onPressed: () => _replaceComponent(bike, component),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 0,
                 ),
                 minimumSize: const Size(0, 32),
-                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.6)),
+                foregroundColor: Theme.of(context).colorScheme.primary,
               ),
-              child: Text(
-                'garage.reset_btn'.tr(),
-                style: const TextStyle(fontSize: 12),
+              icon: const Icon(Icons.swap_horiz, size: 14),
+              label: const Text(
+                'Sostituisci',
+                style: TextStyle(fontSize: 12),
               ),
             ),
           ],
         ),
+        // Replacement history
+        if (component.replacementHistory.isNotEmpty) ...[
+          const Divider(height: 20),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                const Icon(Icons.history, size: 14, color: Colors.grey),
+                const SizedBox(width: 6),
+                Text(
+                  'Storico interventi',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          ...component.replacementHistory.map((record) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.build, size: 12, color: Colors.green),
+                    const SizedBox(width: 6),
+                    Text(
+                      DateFormat('dd MMM yyyy', 'it_IT').format(record.date),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${record.kmAtReplacement.toStringAsFixed(0)} km al momento',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          )),
+        ],
       ],
     );
   }

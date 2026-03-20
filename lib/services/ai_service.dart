@@ -646,26 +646,43 @@ class AIService {
       final level = await getCommunityActivityLevel();
       final customPrompt = await _db.getDailyComicPrompt(DateTime.now());
       final dbCharacters = await _db.getComicCharacters();
-      
-      // Use DB characters if available, otherwise fallback to characterBase from ComicPrompts
+
+      // 1. Build characters section with user associations
       String charactersSection;
       if (dbCharacters.isNotEmpty) {
         final buffer = StringBuffer();
+        // Fetch profiles to resolve userId -> display name
+        final allProfiles = await _db.getAllProfiles();
         for (var c in dbCharacters) {
-          // Separate physical traits from behavioral traits
-          final physicalTraits = c.visualDescription ?? "Tratti standard da ciclista, casco e occhiali.";
-          final personalityTraits = c.description;
-          
-          buffer.writeln("- ${c.name}:");
-          buffer.writeln("  * ASPETTO FISICO (da usare per la coerenza visiva): $physicalTraits");
-          buffer.writeln("  * CARATTERE E COMPORTAMENTO: $personalityTraits");
+          final physicalTraits =
+              c.visualDescription ?? 'Tratti standard da ciclista, casco e occhiali.';
+          final personalityTraits = c.description ?? 'Ciclista generico';
+
+          buffer.writeln('- ${c.name}:');
+          buffer.writeln('  * ASPETTO FISICO: $physicalTraits');
+          buffer.writeln('  * CARATTERE: $personalityTraits');
+
+          // Add real-person link if available
+          if (c.userId != null) {
+            try {
+              final profile = allProfiles.firstWhere(
+                (p) => p.id == c.userId,
+                orElse: () => UserProfile()..id = '',
+              );
+              if (profile.id.isNotEmpty) {
+                final name = profile.id; // UserProfile has no display name, use id as reference
+                buffer.writeln('  * UTENTE REALE: Questo personaggio rappresenta il membro con ID $name nella crew.');
+              }
+            } catch (_) {}
+          }
         }
         charactersSection = buffer.toString();
       } else {
         charactersSection = ComicPrompts.characterBase;
       }
 
-      const lat = 45.4642; 
+      // 2. Fetch community stats
+      const lat = 45.4642;
       const lon = 9.1900;
       const radiusKm = 50.0;
       final stats = await Supabase.instance.client.rpc('get_community_stats', params: {
@@ -674,13 +691,46 @@ class AIService {
         'radius_km': radiusKm,
       });
 
-      final statsStr = stats != null 
-          ? "Media Km: ${stats['avg_km']}, Utenti Attivi: ${stats['active_users']}, Bici Prevalente: ${stats['popular_type']}"
-          : "Statistiche non disponibili.";
+      final statsStr = stats != null
+          ? 'Media Km: ${stats['avg_km']}, Utenti Attivi: ${stats['active_users']}, Bici Prevalente: ${stats['popular_type']}'
+          : 'Statistiche non disponibili.';
+
+      // 3. Fetch upcoming planned group rides (next 7 days)
+      final now = DateTime.now();
+      final nextWeek = now.add(const Duration(days: 7));
+      String plannedRidesSection = '';
+      try {
+        final plannedResponse = await Supabase.instance.client
+            .from('group_rides')
+            .select('ride_name, difficulty_level, meeting_time, description')
+            .eq('is_public', true)
+            .gte('meeting_time', now.toIso8601String())
+            .lte('meeting_time', nextWeek.toIso8601String())
+            .limit(5);
+
+        final List planned = (plannedResponse as List? ?? []);
+        if (planned.isNotEmpty) {
+          final buf = StringBuffer('\nUSCITE IN PROGRAMMA (prossimi 7 giorni):\n');
+          for (var ride in planned) {
+            final time = DateTime.tryParse(ride['meeting_time'] ?? '') ?? now;
+            final day = '${time.day}/${time.month} ${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+            buf.writeln('• ${ride['ride_name']} – $day – Livello: ${ride['difficulty_level']}');
+            if (ride['description'] != null && (ride['description'] as String).isNotEmpty) {
+              buf.writeln('  Dettagli: ${ride['description']}');
+            }
+          }
+          plannedRidesSection = buf.toString();
+        } else {
+          plannedRidesSection = '\nUSCITE IN PROGRAMMA: Nessuna uscita pubblica nei prossimi 7 giorni.\n';
+        }
+      } catch (e) {
+        debugPrint('[AIService] Could not fetch planned rides: $e');
+        plannedRidesSection = '\nUSCITE IN PROGRAMMA: Dati non disponibili.\n';
+      }
 
       final leaderPromptSection = customPrompt != null
-          ? "\nSUGGERIMENTO DEL CAPITANO PER OGGI:\n$customPrompt\n(PRIORITÀ MASSIMA: Segui questa traccia narrativa)\n"
-          : "";
+          ? '\nSUGGERIMENTO DEL CAPITANO PER OGGI:\n$customPrompt\n(PRIORITÀ MASSIMA: Segui questa traccia narrativa)\n'
+          : '';
 
       return '''
 Sei un autore di fumetti specializzato in ciclismo amatoriale italiano. 
@@ -689,23 +739,27 @@ Il tuo compito è scrivere la sceneggiatura per la striscia quotidiana "ANONIMA 
 REGOLE STILISTICHE:
 ${ComicPrompts.graphicalStyle}
 
-PERSONAGGI:
+PERSONAGGI (e chi rappresentano nella crew reale):
 $charactersSection
 
 DATI ATTUALI DELLA COMMUNITY:
 $statsStr
 Livello Attività rilevato: $level
+$plannedRidesSection
 $leaderPromptSection
-
 ISTRUZIONI:
 Genera una STORIA COMPLETA in un'UNICA IMMAGINE (STRISCIA VERTICALE).
 La striscia deve contenere ESATTAMENTE 9 VIGNETTE, ma NON usare una griglia fissa 3x3.
 Usa uno SCHEMA DINAMICO E CASUALE per le dimensioni dei riquadri (esempio: 2x1x3x2x1).
 Lo schema deve essere fluido e cinematico.
 
+Utilizza i dati reali della crew (uscite pianificate, attività recenti e meteo) come ispirazione per la storia di oggi.
+Se sono presenti uscite pianificate, la storia può anticiparle con battute o situazioni legate alla preparazione.
+Se i personaggi hanno utenti reali associati, menziona dettagli tipici del loro comportamento nella crew.
+
 Istruzioni per la coerenza dei personaggi:
-- Per ogni personaggio menzionato, usa i dettagli dell'ASPETTO FISICO per descrivere minuziosamente come appare in OGNI VIGNETTA (essenziale per l'Image Generator).
-- Usa i tratti del CARATTERE E COMPORTAMENTO per definire le loro espressioni, i dialoghi, le battute e le reazioni emotive.
+- Per ogni personaggio menzionato, usa i dettagli dell'ASPETTO FISICO per descrivere minuziosamente come appare in OGNI VIGNETTA.
+- Usa i tratti del CARATTERE E COMPORTAMENTO per definire espressioni, dialoghi, battute e reazioni.
 
 Il tono deve essere sarcastico, pungente ma affettuoso verso il mondo del ciclismo MTB. 
 Includi sempre una punchline comica nel pannello finale.
@@ -719,7 +773,7 @@ DESCRIZIONE GENERALE: [Tema della striscia]
 - Vignetta 2: ...fino alla 9.
 ''';
     } catch (e) {
-      return "Errore nella costruzione del prompt: $e";
+      return 'Errore nella costruzione del prompt: $e';
     }
   }
 

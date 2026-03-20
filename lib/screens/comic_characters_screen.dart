@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/comic_character.dart';
+import '../models/user_profile.dart';
+import '../models/user_avatar_config.dart';
 import '../services/database_service.dart';
 import '../services/ai_service.dart';
 
@@ -18,6 +20,8 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
   bool _isAnalyzing = false;
   bool _isGeneratingPortrait = false;
   List<ComicCharacter> _characters = [];
+  UserProfile? _currentUserProfile;
+  List<UserProfile> _allUsers = [];
 
   @override
   void initState() {
@@ -29,8 +33,16 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
     setState(() => _isLoading = true);
     try {
       final chars = await _db.getComicCharacters();
+      final profile = await _db.getUserProfile();
+      List<UserProfile> allUsers = [];
+      if (profile != null && (profile.role == UserRole.presidente || profile.role == UserRole.capitano)) {
+        allUsers = await _db.getAllProfiles();
+      }
+      
       setState(() {
         _characters = chars;
+        _currentUserProfile = profile;
+        _allUsers = allUsers;
         _isLoading = false;
       });
     } catch (e) {
@@ -48,6 +60,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
     final descController = TextEditingController(text: character?.description);
     String? currentAvatarUrl = character?.avatarUrl;
     String? currentVisualDesc = character?.visualDescription;
+    String? currentLinkedUserId = character?.userId;
+
+    final canAssignUser = _currentUserProfile?.role == UserRole.presidente || _currentUserProfile?.role == UserRole.capitano;
 
     final result = await showDialog<bool>(
       context: context,
@@ -122,6 +137,24 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                   ),
                   maxLines: 4,
                 ),
+                if (canAssignUser) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String?>(
+                    value: currentLinkedUserId,
+                    decoration: const InputDecoration(labelText: 'Associa Utente'),
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Nessun utente associato')),
+                      ..._allUsers.map((u) => DropdownMenuItem(
+                            value: u.id,
+                            child: Text(u.name ?? 'Utente Sconosciuto'),
+                          )),
+                    ],
+                    onChanged: (val) {
+                      setDialogState(() => currentLinkedUserId = val);
+                    },
+                  ),
+                ],
                 if (currentVisualDesc != null || descController.text.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   SizedBox(
@@ -168,12 +201,33 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
         description: descController.text.trim(),
         avatarUrl: currentAvatarUrl,
         visualDescription: currentVisualDesc,
+        userId: currentLinkedUserId,
         createdAt: character?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
       try {
         await _db.saveComicCharacter(newChar);
+
+        // Se è associato un utente e c'è un'immagine, aggiorniamo la sua foto avatar!
+        if (currentLinkedUserId != null && currentAvatarUrl != null) {
+          try {
+            final profile = _allUsers.firstWhere(
+              (u) => u.id == currentLinkedUserId,
+              // Fallback nel caso non fosse in _allUsers (improbabile se l'ha scelto dalla combo)
+              orElse: () => UserProfile()..id = '',
+            );
+            if (profile.id.isNotEmpty) {
+              final config = profile.avatarConfig ?? UserAvatarConfig.defaultConfig();
+              config.customImageUrl = currentAvatarUrl;
+              profile.avatarData = config.toJsonString();
+              await _db.saveUserProfile(profile);
+            }
+          } catch (e) {
+            print('Errore aggiornamento avatar profilo: $e');
+          }
+        }
+
         _loadCharacters();
       } catch (e) {
         if (mounted) {
@@ -335,7 +389,22 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(char.description),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(char.description),
+                              if (char.userId != null) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.person, size: 14, color: Colors.green),
+                                    const SizedBox(width: 4),
+                                    Text('Utente associato', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.green)),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

@@ -66,12 +66,18 @@ class _BikeSelectionDialogState extends State<BikeSelectionDialog> {
         Navigator.pop(context); // Close dialog
       }
       
-      // Also update bike total km? Usually stored on bike model or aggregated.
-      // DatabaseService.getAllBicycles fetches from 'bicycles' table.
-      // We might want to increment bike.totalKilometers too if not auto-calculated.
-      // Let's assume for now we just save the ride. Sync logic might handle bike totals later or DB trigger.
-      // Actually, let's update the bike locally and save it to be safe/responsive.
-      bike.totalKilometers += widget.distanceKm;
+      // Also update bike total km, chain, tyres and components
+      final double rideDist = widget.distanceKm;
+      bike.totalKilometers =
+          (bike.totalKilometers.isNaN ? 0.0 : bike.totalKilometers) + rideDist;
+      bike.chainKms =
+          (bike.chainKms.isNaN ? 0.0 : bike.chainKms) + rideDist;
+      bike.tyreKms =
+          (bike.tyreKms.isNaN ? 0.0 : bike.tyreKms) + rideDist;
+      for (var component in bike.components) {
+        component.currentKm =
+            (component.currentKm.isNaN ? 0.0 : component.currentKm) + rideDist;
+      }
       await _db.updateBicycle(bike);
 
     } catch (e) {

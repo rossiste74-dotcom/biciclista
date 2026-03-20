@@ -15,6 +15,7 @@ class UserAvatarConfig {
   Color jerseyColor2;
   Color jerseyColor3;
   bool hasGlasses;
+  String? customImageUrl;
 
   UserAvatarConfig({
     required this.gender,
@@ -27,6 +28,7 @@ class UserAvatarConfig {
     required this.jerseyColor2,
     required this.jerseyColor3,
     required this.hasGlasses,
+    this.customImageUrl,
   });
 
   factory UserAvatarConfig.defaultConfig() {
@@ -41,6 +43,7 @@ class UserAvatarConfig {
       jerseyColor2: Colors.white,
       jerseyColor3: Colors.black,
       hasGlasses: false,
+      customImageUrl: null,
     );
   }
 
@@ -56,6 +59,7 @@ class UserAvatarConfig {
       'jerseyColor2': jerseyColor2.value,
       'jerseyColor3': jerseyColor3.value,
       'hasGlasses': hasGlasses,
+      'customImageUrl': customImageUrl,
     };
   }
 
@@ -91,6 +95,7 @@ class UserAvatarConfig {
       jerseyColor2: Color(json['jerseyColor2'] ?? Colors.white.value),
       jerseyColor3: Color(json['jerseyColor3'] ?? Colors.black.value),
       hasGlasses: json['hasGlasses'] ?? false,
+      customImageUrl: json['customImageUrl'],
     );
   }
 

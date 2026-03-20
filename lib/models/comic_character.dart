@@ -4,6 +4,7 @@ class ComicCharacter {
   final String description;
   final String? avatarUrl;
   final String? visualDescription;
+  final String? userId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +14,7 @@ class ComicCharacter {
     required this.description,
     this.avatarUrl,
     this.visualDescription,
+    this.userId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +26,7 @@ class ComicCharacter {
       description: json['description'] as String,
       avatarUrl: json['avatar_url'] as String?,
       visualDescription: json['visual_description'] as String?,
+      userId: json['user_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -36,6 +39,7 @@ class ComicCharacter {
       'description': description,
       'avatar_url': avatarUrl,
       'visual_description': visualDescription,
+      if (userId != null) 'user_id': userId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -47,6 +51,7 @@ class ComicCharacter {
     String? description,
     String? avatarUrl,
     String? visualDescription,
+    String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -56,6 +61,7 @@ class ComicCharacter {
       description: description ?? this.description,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       visualDescription: visualDescription ?? this.visualDescription,
+      userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
