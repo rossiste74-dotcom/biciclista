@@ -21,7 +21,6 @@ class _AlertRulesScreenState extends State<AlertRulesScreen> {
   }
 
   Future<void> _loadRules() async {
-    await _db.initDefaultAlertRulesIfNeeded();
     final rules = await _db.getAlertRules();
     if (mounted) {
       setState(() {

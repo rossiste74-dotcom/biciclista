@@ -566,9 +566,8 @@ class DatabaseService {
   // ==================== AlertRule CRUD ====================
   
   Future<List<AlertRule>> getAlertRules() async {
-     // Assuming 'alert_rules' table
      final uid = _userId;
-     if (uid == null) return AlertRule.createDefaultRules(); // Return defaults if offline/logged out?
+     if (uid == null) return AlertRule.createDefaultRules();
 
      try {
        final res = await _supabase.from('alert_rules').select().eq('user_id', uid).order('display_order');
@@ -583,13 +582,9 @@ class DatabaseService {
           r.displayOrder = m['display_order'] ?? 0;
           return r;
        }).toList();
-       
-       if (remoteRules.isEmpty) {
-         return await initDefaultAlertRulesIfNeeded();
-       }
-       return remoteRules;
+       return remoteRules.isNotEmpty ? remoteRules : AlertRule.createDefaultRules();
      } catch (e) {
-       print('Error getting alert rules: $e');
+       // Table may not exist yet in Supabase – silently return defaults
        return AlertRule.createDefaultRules();
      }
   }
@@ -603,24 +598,27 @@ class DatabaseService {
     final uid = _userId;
     if (uid == null) return 0;
     
-    final data = {
-      'user_id': uid,
-      'event_type_index': rule.eventTypeIndex,
-      'action_index': rule.actionIndex,
-      'trigger_value': rule.triggerValue,
-      'voice_message': rule.voiceMessage,
-      'is_enabled': rule.isEnabled,
-      'display_order': rule.displayOrder,
-    };
-    
-    if (rule.id != null) {
-      // Update
-      await _supabase.from('alert_rules').update(data).eq('id', rule.id!);
-      return rule.id!;
-    } else {
-      // Create
-      final res = await _supabase.from('alert_rules').insert(data).select('id').single();
-      return res['id'] as int;
+    try {
+      final data = {
+        'user_id': uid,
+        'event_type_index': rule.eventTypeIndex,
+        'action_index': rule.actionIndex,
+        'trigger_value': rule.triggerValue,
+        'voice_message': rule.voiceMessage,
+        'is_enabled': rule.isEnabled,
+        'display_order': rule.displayOrder,
+      };
+      
+      if (rule.id != null) {
+        await _supabase.from('alert_rules').update(data).eq('id', rule.id!);
+        return rule.id!;
+      } else {
+        final res = await _supabase.from('alert_rules').insert(data).select('id').single();
+        return res['id'] as int;
+      }
+    } catch (e) {
+      // Table may not exist yet – ignore silently
+      return 0;
     }
   }
 
@@ -631,16 +629,10 @@ class DatabaseService {
   }
 
   Future<bool> deleteAlertRule(int id) async {
-    await _supabase.from('alert_rules').delete().eq('id', id);
+    try {
+      await _supabase.from('alert_rules').delete().eq('id', id);
+    } catch (_) {}
     return true;
-  }
-  
-  Future<List<AlertRule>> initDefaultAlertRulesIfNeeded() async {
-     // If we are here, we probably found no rules.
-     // Create defaults in DB
-     final defaults = AlertRule.createDefaultRules();
-     await saveAlertRules(defaults);
-     return defaults;
   }
 
   // ==================== Streams ====================
@@ -851,6 +843,22 @@ class DatabaseService {
       return data?['generated_image_url'] as String?;
     } catch (e) {
       print('Error fetching daily comic image: $e');
+      return null;
+    }
+  }
+
+  Future<String?> getDailyComicScenario(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      final data = await _supabase
+          .from('daily_comic_prompts')
+          .select('scenario')
+          .eq('date', dateStr)
+          .maybeSingle();
+      
+      return data?['scenario'] as String?;
+    } catch (e) {
+      print('Error fetching daily comic scenario: $e');
       return null;
     }
   }

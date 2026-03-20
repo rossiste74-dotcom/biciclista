@@ -367,6 +367,7 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                           onPressed: () async {
                             final statsStr = await _aiService.getCommunityAIContext();
                             final fullPrompt = await _aiService.getFullDailyComicPrompt();
+                            final scenario = await _db.getDailyComicScenario(DateTime.now());
                             
                             if (mounted) {
                               showDialog(
@@ -384,6 +385,21 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                                           const SizedBox(height: 4),
                                           Text(statsStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
                                           const Divider(height: 24),
+                                          
+                                          Text('SCENARIO GENERATO (Prompt Immagine):', style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                                            ),
+                                            child: Text(scenario ?? 'Generazione in corso o non disponibile...', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+                                          ),
+                                          const Divider(height: 24),
+
                                           Text('FULL PROMPT SENT TO AI:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                                           const SizedBox(height: 4),
                                           Container(

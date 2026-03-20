@@ -581,6 +581,8 @@ class AIService {
       return "Oggi niente perle di saggezza. Il server è in fuga solitaria.";
     }
   }
+  static bool _isGenerationTriggered = false;
+
   /// Get Daily Comic Strip path based on community stats (Single 9-vignette strip)
   Future<String> getDailyComicPath() async {
     try {
@@ -590,6 +592,14 @@ class AIService {
       final cloudImageUrl = await _db.getDailyComicImage(date);
       if (cloudImageUrl != null && cloudImageUrl.isNotEmpty) {
         return cloudImageUrl;
+      }
+
+      // 1.5 Auto-generate on first open (Option B)
+      if (!_isGenerationTriggered) {
+        _isGenerationTriggered = true;
+        // Fire-and-forget regeneration in background
+        debugPrint('[AIService] Daily comic missing. Auto-triggering generation in background...');
+        regenerateDailyComic();
       }
 
       // 2. Fallback to existing logic if no cloud image is generated yet

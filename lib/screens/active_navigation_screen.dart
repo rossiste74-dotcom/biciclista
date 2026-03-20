@@ -67,7 +67,6 @@ class _ActiveNavigationScreenState extends State<ActiveNavigationScreen> {
   }
 
   Future<void> _loadAlertRules() async {
-    await _db.initDefaultAlertRulesIfNeeded();
     _alertRules = await _db.getEnabledAlertRules();
   }
 
