@@ -55,7 +55,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const DashboardScreen(),
       const RoutesLibraryScreen(),
       const AiLabScreen(),
-      const LeaderboardScreen(),
+      const UnifiedAgendaScreen(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExternalActivities();
@@ -496,7 +496,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 2:
         return const Text('Laboratorio AI');
       case 3:
-        return const Text('Community');
+        return const Text('Agenda');
       default:
         return const Text('biciclistico');
     }
@@ -509,10 +509,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: _buildAppBarTitle(),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.people_alt),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UnifiedAgendaScreen()),
+                MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
               );
             },
           ),
@@ -618,9 +618,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Expanded(
               child: _buildNavItem(
                 3,
-                Icons.people_outline,
-                Icons.people,
-                'Community',
+                Icons.calendar_month_outlined,
+                Icons.calendar_month,
+                'Agenda',
               ),
             ),
           ],

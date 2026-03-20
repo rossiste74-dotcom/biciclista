@@ -54,12 +54,8 @@ class UpcomingActivitiesSlider extends StatelessWidget {
           ),
         ),
 
-        // === La MIA prossima uscita ===
-        if (hasMyRide) _buildMyRideCard(context, myNextRide!),
-
         // === Uscite degli altri ===
         if (hasCommunity) ...[
-          if (hasMyRide) const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -81,6 +77,12 @@ class UpcomingActivitiesSlider extends StatelessWidget {
               },
             ),
           ),
+        ],
+
+        // === La MIA prossima uscita ===
+        if (hasMyRide) ...[
+          if (hasCommunity) const SizedBox(height: 12),
+          _buildMyRideCard(context, myNextRide!),
         ],
       ],
     );
