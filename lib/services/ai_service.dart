@@ -874,14 +874,16 @@ Sii conciso, massimo 30 parole.
       // We call the same 'generate-image' function used for portraits
       final imageUrl = await generateCharacterPortrait(scenario);
       
+      // 3. Save to DB for today (save scenario even if imageUrl is null)
+      await _db.saveDailyComicImage(DateTime.now(), imageUrl, scenario);
+      
       if (imageUrl != null) {
-        // 3. Save to DB for today
-        await _db.saveDailyComicImage(DateTime.now(), imageUrl, scenario);
         debugPrint('[AIService] Daily Comic Regenerated and Saved: $imageUrl');
         return true;
+      } else {
+        debugPrint('[AIService] Daily Comic scenario saved, but image generation failed (Quota).');
+        return true; // We return true because the DB record was created/updated with the text
       }
-      
-      return false;
     } catch (e) {
       debugPrint('[AIService] Error during comic regeneration: $e');
       return false;

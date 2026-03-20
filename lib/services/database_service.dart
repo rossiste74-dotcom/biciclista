@@ -855,15 +855,29 @@ class DatabaseService {
     }
   }
 
-  Future<void> saveDailyComicImage(DateTime date, String imageUrl, String scenario) async {
+  Future<void> saveDailyComicImage(DateTime date, String? imageUrl, String scenario) async {
     final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
-      await _supabase.from('daily_comic_prompts').upsert({
+      final existing = await _supabase
+          .from('daily_comic_prompts')
+          .select('prompt')
+          .eq('date', dateStr)
+          .maybeSingle();
+
+      final data = {
         'date': dateStr,
         'generated_image_url': imageUrl,
         'scenario': scenario,
         'updated_at': DateTime.now().toIso8601String(),
-      });
+      };
+
+      if (existing != null) {
+        await _supabase.from('daily_comic_prompts').update(data).eq('date', dateStr);
+      } else {
+        data['prompt'] = 'Generazione automatica';
+        if (_userId != null) data['author_id'] = _userId;
+        await _supabase.from('daily_comic_prompts').insert(data);
+      }
     } catch (e) {
       print('Error saving daily comic image: $e');
     }
@@ -958,6 +972,28 @@ class DatabaseService {
       return url;
     } catch (e) {
       print('Error uploading character avatar: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadDailyComicImage(DateTime date, Uint8List bytes, String fileName) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      final path = 'daily/$dateStr/$fileName';
+      await _supabase.storage.from('comic_avatars').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      
+      final url = _supabase.storage.from('comic_avatars').getPublicUrl(path);
+      
+      // Update the prompt record with the new image URL
+      await saveDailyComicImage(date, url, 'Uploaded by user');
+      
+      return url;
+    } catch (e) {
+      print('Error uploading daily comic image: $e');
       return null;
     }
   }

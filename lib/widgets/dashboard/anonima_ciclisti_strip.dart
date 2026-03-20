@@ -4,6 +4,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:biciclistico/services/ai_service.dart';
 import 'package:biciclistico/services/database_service.dart';
 import 'package:biciclistico/models/user_profile.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 
 class AnonimaCiclistiStrip extends StatefulWidget {
   const AnonimaCiclistiStrip({super.key});
@@ -21,6 +23,7 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
   String _activityLevel = 'avg';
   bool _isLoading = true;
   bool _isSavingPrompt = false;
+  bool _isUploading = false;
   UserProfile? _currentUser;
 
   @override
@@ -98,6 +101,40 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
     } finally {
       if (mounted) {
         setState(() => _isSavingPrompt = false);
+      }
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final bytes = await image.readAsBytes();
+      final fileName = 'upload_${DateTime.now().millisecondsSinceEpoch}.png';
+      
+      final url = await _db.uploadDailyComicImage(DateTime.now(), bytes, fileName);
+      
+      if (url != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Immagine caricata con successo!')),
+        );
+        setState(() => _isLoading = true);
+        await _loadComic();
+      }
+    } catch (e) {
+      debugPrint('[ComicStrip] Error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Errore durante l\'upload dell\'immagine.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
       }
     }
   }
@@ -299,6 +336,28 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 _isSavingPrompt ? 'Generando...' : 'Aggiorna Storia AI',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 200, // Sufficient width for the button
+                          child: ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _uploadImage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                              foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                            icon: _isUploading 
+                                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.upload_file_outlined, size: 18),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _isUploading ? 'Caricamento...' : 'Carica Immagine',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
