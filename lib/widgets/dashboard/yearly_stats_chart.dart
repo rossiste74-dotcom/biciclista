@@ -111,8 +111,9 @@ class _YearlyStatsChartState extends State<YearlyStatsChart> {
                         interval: 1,
                         getTitlesWidget: (value, meta) {
                           final idx = value.toInt();
-                          if (idx < 0 || idx >= months.length)
+                          if (idx < 0 || idx >= months.length) {
                             return const SizedBox.shrink();
+                          }
                           return Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(

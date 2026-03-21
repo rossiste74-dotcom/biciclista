@@ -1162,8 +1162,9 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> {
 
           if (forceConfirm == true && mounted) {
             try {
-              if (widget.track.id != null)
+              if (widget.track.id != null) {
                 await _trackService.deleteTrackAndUnlink(widget.track.id!);
+              }
               if (mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

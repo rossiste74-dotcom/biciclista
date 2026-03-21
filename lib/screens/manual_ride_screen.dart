@@ -63,16 +63,21 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
     _loadTracks();
     if (widget.initialDate != null) _selectedDate = widget.initialDate!;
     if (widget.initialName != null) _nameController.text = widget.initialName!;
-    if (widget.initialDistance != null)
+    if (widget.initialDistance != null) {
       _distanceController.text = widget.initialDistance!;
-    if (widget.initialElevation != null)
+    }
+    if (widget.initialElevation != null) {
       _elevationController.text = widget.initialElevation!;
-    if (widget.initialNotes != null)
+    }
+    if (widget.initialNotes != null) {
       _notesController.text = widget.initialNotes!;
-    if (widget.initialHeartRate != null)
+    }
+    if (widget.initialHeartRate != null) {
       _hrController.text = widget.initialHeartRate!.toString();
-    if (widget.initialPower != null)
+    }
+    if (widget.initialPower != null) {
       _powerController.text = widget.initialPower!.toString();
+    }
   }
 
   Future<void> _loadBicycles() async {
@@ -186,11 +191,18 @@ class _ManualRideScreenState extends State<ManualRideScreen> {
       // Update bicycle total distance
       final double rideDist = ride.distance;
       _selectedBicycle!.totalKilometers =
-          (_selectedBicycle!.totalKilometers.isNaN ? 0.0 : _selectedBicycle!.totalKilometers) + rideDist;
+          (_selectedBicycle!.totalKilometers.isNaN
+              ? 0.0
+              : _selectedBicycle!.totalKilometers) +
+          rideDist;
       _selectedBicycle!.chainKms =
-          (_selectedBicycle!.chainKms.isNaN ? 0.0 : _selectedBicycle!.chainKms) + rideDist;
+          (_selectedBicycle!.chainKms.isNaN
+              ? 0.0
+              : _selectedBicycle!.chainKms) +
+          rideDist;
       _selectedBicycle!.tyreKms =
-          (_selectedBicycle!.tyreKms.isNaN ? 0.0 : _selectedBicycle!.tyreKms) + rideDist;
+          (_selectedBicycle!.tyreKms.isNaN ? 0.0 : _selectedBicycle!.tyreKms) +
+          rideDist;
 
       // Update individual components
       for (var component in _selectedBicycle!.components) {

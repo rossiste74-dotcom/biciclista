@@ -97,7 +97,7 @@ class SyncService {
         ),
       );
 
-      if (result != null && result.authorizationCode != null) {
+      if (result.authorizationCode != null) {
         debugPrint('Strava Code Received: ${result.authorizationCode}');
         // 2. Exchange Code (Manual HTTP)
         await _exchangeCodeForTokenRaw(result.authorizationCode!);

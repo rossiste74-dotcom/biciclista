@@ -263,8 +263,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
 
   Widget _buildListView() {
     if (!_showCommunityRides) {
-      if (_groupActivities.isEmpty)
+      if (_groupActivities.isEmpty) {
         return _buildEmptyState('Nessuna uscita di gruppo');
+      }
       return RefreshIndicator(
         onRefresh: _loadAllData,
         child: ListView.builder(
@@ -281,8 +282,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
         ),
       );
     } else {
-      if (_communityRides.isEmpty)
+      if (_communityRides.isEmpty) {
         return _buildEmptyState('Nessuna attività completata');
+      }
       return RefreshIndicator(
         onRefresh: _loadAllData,
         child: ListView.builder(

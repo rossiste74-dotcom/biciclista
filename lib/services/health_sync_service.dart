@@ -52,14 +52,18 @@ class HealthSyncService {
     final List<HealthDataType> types = [];
 
     // Check preferences for each type
-    if (prefs.getBool('sync_enable_HEART_RATE') ?? true)
+    if (prefs.getBool('sync_enable_HEART_RATE') ?? true) {
       types.add(HealthDataType.HEART_RATE);
-    if (prefs.getBool('sync_enable_HEART_RATE_VARIABILITY_RMSSD') ?? true)
+    }
+    if (prefs.getBool('sync_enable_HEART_RATE_VARIABILITY_RMSSD') ?? true) {
       types.add(HealthDataType.HEART_RATE_VARIABILITY_RMSSD);
-    if (prefs.getBool('sync_enable_SLEEP_SESSION') ?? true)
+    }
+    if (prefs.getBool('sync_enable_SLEEP_SESSION') ?? true) {
       types.add(HealthDataType.SLEEP_SESSION);
-    if (prefs.getBool('sync_enable_WEIGHT') ?? true)
+    }
+    if (prefs.getBool('sync_enable_WEIGHT') ?? true) {
       types.add(HealthDataType.WEIGHT);
+    }
 
     if (types.isEmpty) {
       debugPrint("No health data types enabled for sync.");

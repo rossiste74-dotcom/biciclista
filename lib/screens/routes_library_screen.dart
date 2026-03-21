@@ -16,7 +16,6 @@ import '../widgets/route_map_widget.dart';
 import '../widgets/elevation_profile_widget.dart';
 import '../utils/gpx_optimizer.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:gpx/gpx.dart';
 
 /// Routes Library Screen - "Percorsi" (Il tuo Laboratorio)
 /// Two tabs: "Miei" (personal tracks) and "Community" (global catalog)

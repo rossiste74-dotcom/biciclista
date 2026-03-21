@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:biciclistico/services/ai_service.dart';
@@ -415,6 +417,21 @@ class _AnonimaCiclistiStripState extends State<AnonimaCiclistiStrip> {
                                     ),
                                   ),
                                   actions: [
+                                    TextButton(
+                                      onPressed: () async {
+                                        await Clipboard.setData(ClipboardData(text: fullPrompt));
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Prompt copiato negli appunti! Ora incollalo su Gemini.')),
+                                          );
+                                        }
+                                        final url = Uri.parse('https://gemini.google.com/app');
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                                        }
+                                      },
+                                      child: const Text('Apri in Gemini'),
+                                    ),
                                     TextButton(
                                       onPressed: () => Navigator.pop(context),
                                       child: const Text('Chiudi'),

@@ -5,7 +5,6 @@ import 'dashboard_screen.dart';
 import 'routes_library_screen.dart';
 import 'settings_screen.dart';
 import 'leaderboard_screen.dart';
-import 'discovery_screen.dart';
 import 'package:biciclistico/screens/gpx_import_screen.dart';
 
 import 'manual_ride_screen.dart';
@@ -18,7 +17,6 @@ import 'unified_agenda_screen.dart';
 import '../models/user_profile.dart';
 import '../widgets/avatar/avatar_preview.dart';
 
-import 'garage_screen.dart';
 import '../services/sync_service.dart';
 import 'package:intl/intl.dart';
 import '../services/database_service.dart';
@@ -548,9 +546,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
             ),
             onPressed: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
+              await Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
               // Refresh profile when returning from ProfileScreen just in case
               _loadProfile();
             },

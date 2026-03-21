@@ -35,10 +35,12 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       final chars = await _db.getComicCharacters();
       final profile = await _db.getUserProfile();
       List<UserProfile> allUsers = [];
-      if (profile != null && (profile.role == UserRole.presidente || profile.role == UserRole.capitano)) {
+      if (profile != null &&
+          (profile.role == UserRole.presidente ||
+              profile.role == UserRole.capitano)) {
         allUsers = await _db.getAllProfiles();
       }
-      
+
       setState(() {
         _characters = chars;
         _currentUserProfile = profile;
@@ -47,9 +49,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore nel caricamento: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore nel caricamento: $e')));
       }
       setState(() => _isLoading = false);
     }
@@ -62,70 +64,96 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
     String? currentVisualDesc = character?.visualDescription;
     String? currentLinkedUserId = character?.userId;
 
-    final canAssignUser = _currentUserProfile?.role == UserRole.presidente || _currentUserProfile?.role == UserRole.capitano;
+    final canAssignUser =
+        _currentUserProfile?.role == UserRole.presidente ||
+        _currentUserProfile?.role == UserRole.capitano;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(character == null ? 'Nuovo Personaggio' : 'Modifica Personaggio'),
+          title: Text(
+            character == null ? 'Nuovo Personaggio' : 'Modifica Personaggio',
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onTap: _isAnalyzing ? null : () async {
-                    final picker = ImagePicker();
-                    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                    
-                    if (image != null) {
-                      setDialogState(() => _isAnalyzing = true);
-                      try {
-                        final bytes = await image.readAsBytes();
-                        final charId = character?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
-                        final url = await _db.uploadCharacterAvatar(charId, bytes, image.name);
-                        
-                        if (url != null) {
-                          currentAvatarUrl = url;
-                          final aiDesc = await _aiService.analyzeCharacterAvatar(url);
-                          if (aiDesc != null) {
-                            currentVisualDesc = aiDesc;
-                            descController.text = aiDesc;
+                  onTap: _isAnalyzing
+                      ? null
+                      : () async {
+                          final picker = ImagePicker();
+                          final XFile? image = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 70,
+                          );
+
+                          if (image != null) {
+                            setDialogState(() => _isAnalyzing = true);
+                            try {
+                              final bytes = await image.readAsBytes();
+                              final charId =
+                                  character?.id ??
+                                  'temp_${DateTime.now().millisecondsSinceEpoch}';
+                              final url = await _db.uploadCharacterAvatar(
+                                charId,
+                                bytes,
+                                image.name,
+                              );
+
+                              if (url != null) {
+                                currentAvatarUrl = url;
+                                final aiDesc = await _aiService
+                                    .analyzeCharacterAvatar(url);
+                                if (aiDesc != null) {
+                                  currentVisualDesc = aiDesc;
+                                  descController.text = aiDesc;
+                                }
+                              }
+                            } finally {
+                              setDialogState(() => _isAnalyzing = false);
+                            }
                           }
-                        }
-                      } finally {
-                        setDialogState(() => _isAnalyzing = false);
-                      }
-                    }
-                  },
+                        },
                   child: Container(
                     height: 120,
                     width: 120,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
-                      image: currentAvatarUrl != null 
-                          ? DecorationImage(image: NetworkImage(currentAvatarUrl!), fit: BoxFit.cover)
+                      image: currentAvatarUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(currentAvatarUrl!),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
-                    child: _isAnalyzing 
+                    child: _isAnalyzing
                         ? const Center(child: CircularProgressIndicator())
-                        : currentAvatarUrl == null 
-                            ? const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_a_photo_outlined, size: 32),
-                                  SizedBox(height: 4),
-                                  Text('Aggiungi Foto', style: TextStyle(fontSize: 10)),
-                                ],
-                              )
-                            : null,
+                        : currentAvatarUrl == null
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, size: 32),
+                              SizedBox(height: 4),
+                              Text(
+                                'Aggiungi Foto',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ],
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Nome (es. IL PRESIDENTE)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome (es. IL PRESIDENTE)',
+                  ),
                   textCapitalization: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 16),
@@ -133,50 +161,77 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                   controller: descController,
                   decoration: const InputDecoration(
                     labelText: 'Descrizione / Caratteristiche',
-                    hintText: 'Verrà compilata automaticamente se carichi una foto',
+                    hintText:
+                        'Verrà compilata automaticamente se carichi una foto',
                   ),
                   maxLines: 4,
                 ),
                 if (canAssignUser) ...[
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String?>(
-                    value: currentLinkedUserId,
-                    decoration: const InputDecoration(labelText: 'Associa Utente'),
+                    initialValue: currentLinkedUserId,
+                    decoration: const InputDecoration(
+                      labelText: 'Associa Utente',
+                    ),
                     isExpanded: true,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Nessun utente associato')),
-                      ..._allUsers.map((u) => DropdownMenuItem(
-                            value: u.id,
-                            child: Text(u.name ?? 'Utente Sconosciuto'),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Nessun utente associato'),
+                      ),
+                      ..._allUsers.map(
+                        (u) => DropdownMenuItem(
+                          value: u.id,
+                          child: Text(u.name ?? 'Utente Sconosciuto'),
+                        ),
+                      ),
                     ],
                     onChanged: (val) {
                       setDialogState(() => currentLinkedUserId = val);
                     },
                   ),
                 ],
-                if (currentVisualDesc != null || descController.text.isNotEmpty) ...[
+                if (currentVisualDesc != null ||
+                    descController.text.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _isGeneratingPortrait ? null : () async {
-                        setDialogState(() => _isGeneratingPortrait = true);
-                        try {
-                          final portraitUrl = await _aiService.generateCharacterPortrait(
-                            currentVisualDesc ?? descController.text
-                          );
-                          if (portraitUrl != null) {
-                            setDialogState(() => currentAvatarUrl = portraitUrl);
-                          }
-                        } finally {
-                          if (mounted) setDialogState(() => _isGeneratingPortrait = false);
-                        }
-                      },
-                      icon: _isGeneratingPortrait 
-                          ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      onPressed: _isGeneratingPortrait
+                          ? null
+                          : () async {
+                              setDialogState(
+                                () => _isGeneratingPortrait = true,
+                              );
+                              try {
+                                final portraitUrl = await _aiService
+                                    .generateCharacterPortrait(
+                                      currentVisualDesc ?? descController.text,
+                                    );
+                                if (portraitUrl != null) {
+                                  setDialogState(
+                                    () => currentAvatarUrl = portraitUrl,
+                                  );
+                                }
+                              } finally {
+                                if (mounted)
+                                  setDialogState(
+                                    () => _isGeneratingPortrait = false,
+                                  );
+                              }
+                            },
+                      icon: _isGeneratingPortrait
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.palette_outlined),
-                      label: Text(_isGeneratingPortrait ? 'Generazione...' : 'Genera Ritratto Fumetto'),
+                      label: Text(
+                        _isGeneratingPortrait
+                            ? 'Generazione...'
+                            : 'Genera Ritratto Fumetto',
+                      ),
                     ),
                   ),
                 ],
@@ -184,9 +239,14 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
             FilledButton(
-              onPressed: _isAnalyzing ? null : () => Navigator.pop(context, true),
+              onPressed: _isAnalyzing
+                  ? null
+                  : () => Navigator.pop(context, true),
               child: const Text('Salva'),
             ),
           ],
@@ -218,7 +278,8 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
               orElse: () => UserProfile()..id = '',
             );
             if (profile.id.isNotEmpty) {
-              final config = profile.avatarConfig ?? UserAvatarConfig.defaultConfig();
+              final config =
+                  profile.avatarConfig ?? UserAvatarConfig.defaultConfig();
               config.customImageUrl = currentAvatarUrl;
               profile.avatarData = config.toJsonString();
               await _db.saveUserProfile(profile);
@@ -231,9 +292,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
         _loadCharacters();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Errore nel salvataggio: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Errore nel salvataggio: $e')));
         }
       }
     }
@@ -244,9 +305,14 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Elimina Personaggio'),
-        content: const Text('Sei sicuro di voler eliminare questo personaggio?'),
+        content: const Text(
+          'Sei sicuro di voler eliminare questo personaggio?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Elimina', style: TextStyle(color: Colors.red)),
@@ -274,9 +340,14 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Ripristina Predefiniti'),
-        content: const Text('Vuoi importare i personaggi classici della crew? I doppioni verranno ignorati o aggiornati.'),
+        content: const Text(
+          'Vuoi importare i personaggi classici della crew? I doppioni verranno ignorati o aggiornati.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Importa'),
@@ -289,13 +360,62 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       setState(() => _isLoading = true);
       try {
         final defaults = [
-          ComicCharacter(id: '', name: 'IL PRESIDENTE', description: 'Uomo con barba, casco bianco con piccola ananas sulla fronte, occhiali scuri, maglia "MTB CREW" con palma.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'MARCOTREK', description: 'Uomo con casco Rosso acceso sempre pronto a scattare in fuga, maglia verde con strisce nere.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'ENZOCHAR', description: 'Il nonno con un 10 marce in più. Ti stacca dopo 2 km. Maglia giallo nera MtbCrew.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'E-DAVIDE', description: 'Il e-bike robotico, maglia bianca con riferimenti al tricolore.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'DANY', description: 'DanySucciaruota, maglia nera con palma, sempre in scia a chi è davanti.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'PANTE', description: 'Magro e alto, pieno di tecnologia per filmati, maglia nera con palma.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-          ComicCharacter(id: '', name: 'TANCIO', description: 'Marc-Tancio, il ciclista con lo zainetto misterioso. Maglia nero-verde.', createdAt: DateTime.now(), updatedAt: DateTime.now()),
+          ComicCharacter(
+            id: '',
+            name: 'IL PRESIDENTE',
+            description:
+                'Uomo con barba, casco bianco con piccola ananas sulla fronte, occhiali scuri, maglia "MTB CREW" con palma.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'MARCOTREK',
+            description:
+                'Uomo con casco Rosso acceso sempre pronto a scattare in fuga, maglia verde con strisce nere.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'ENZOCHAR',
+            description:
+                'Il nonno con un 10 marce in più. Ti stacca dopo 2 km. Maglia giallo nera MtbCrew.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'E-DAVIDE',
+            description:
+                'Il e-bike robotico, maglia bianca con riferimenti al tricolore.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'DANY',
+            description:
+                'DanySucciaruota, maglia nera con palma, sempre in scia a chi è davanti.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'PANTE',
+            description:
+                'Magro e alto, pieno di tecnologia per filmati, maglia nera con palma.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          ComicCharacter(
+            id: '',
+            name: 'TANCIO',
+            description:
+                'Marc-Tancio, il ciclista con lo zainetto misterioso. Maglia nero-verde.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
         ];
 
         for (var char in defaults) {
@@ -304,7 +424,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
         await _loadCharacters();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore importazione: $e')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Errore importazione: $e')));
         }
       } finally {
         setState(() => _isLoading = false);
@@ -345,84 +467,119 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _characters.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.groups_outlined, size: 80, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text('Nessun personaggio attivo', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.grey)),
-                      const SizedBox(height: 24),
-                      FilledButton.icon(
-                        onPressed: () => _showEditDialog(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Crea Nuovo'),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _importDefaults,
-                        icon: const Icon(Icons.history),
-                        label: const Text('Importa Equipaggio Classico'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.groups_outlined,
+                    size: 80,
+                    color: Colors.grey,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _characters.length,
-                  itemBuilder: (context, index) {
-                    final char = _characters[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          backgroundImage: char.avatarUrl != null ? NetworkImage(char.avatarUrl!) : null,
-                          child: char.avatarUrl == null ? const Icon(Icons.person_outlined) : null,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        title: Text(
-                          char.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(char.description),
-                              if (char.userId != null) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.person, size: 14, color: Colors.green),
-                                    const SizedBox(width: 4),
-                                    Text('Utente associato', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.green)),
-                                  ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nessun personaggio attivo',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () => _showEditDialog(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Crea Nuovo'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _importDefaults,
+                    icon: const Icon(Icons.history),
+                    label: const Text('Importa Equipaggio Classico'),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _characters.length,
+              itemBuilder: (context, index) {
+                final char = _characters[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer,
+                      backgroundImage: char.avatarUrl != null
+                          ? NetworkImage(char.avatarUrl!)
+                          : null,
+                      child: char.avatarUrl == null
+                          ? const Icon(Icons.person_outlined)
+                          : null,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    title: Text(
+                      char.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(char.description),
+                          if (char.userId != null) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.person,
+                                  size: 14,
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Utente associato',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.green),
                                 ),
                               ],
-                            ],
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () => _showEditDialog(char),
-                              icon: const Icon(Icons.edit_outlined, size: 20),
-                            ),
-                            IconButton(
-                              onPressed: () => _deleteCharacter(char.id),
-                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => _showEditDialog(char),
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                        ),
+                        IconButton(
+                          onPressed: () => _deleteCharacter(char.id),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showEditDialog(),
         icon: const Icon(Icons.add),

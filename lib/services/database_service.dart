@@ -16,16 +16,16 @@ class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
   DatabaseService._internal();
-  
+
   // Get Supabase client
   SupabaseClient get _supabase => Supabase.instance.client;
 
-  // No auth? 
+  // No auth?
   String? get _userId => _supabase.auth.currentUser?.id;
 
   /// No-op for now, or ensure auth check
   Future<void> init() async {
-     // Isar init removed.
+    // Isar init removed.
   }
 
   /// Close connection (no-op for Supabase REST)
@@ -39,11 +39,15 @@ class DatabaseService {
     if (uid == null) return null;
 
     try {
-      final data = await _supabase.from('profiles').select().eq('user_id', uid).maybeSingle();
+      final data = await _supabase
+          .from('profiles')
+          .select()
+          .eq('user_id', uid)
+          .maybeSingle();
       if (data == null) return null;
-      
+
       final p = UserProfile();
-      p.id = uid; 
+      p.id = uid;
       p.name = data['name'];
       p.gender = data['gender'];
       p.age = data['age'] ?? 30;
@@ -55,23 +59,27 @@ class DatabaseService {
       p.sleepHours = (data['sleep_hours'] ?? 0.0).toDouble();
       p.thermalSensitivity = data['thermal_sensitivity'] ?? 3;
       p.role = UserRoleExtension.fromString(data['role'] ?? 'Gregario');
-      
+
       // Handle JSON fields (Supabase returns Map/List, Model expects String)
       final avatarJson = data['avatar_data'];
       if (avatarJson != null) {
-        p.avatarData = avatarJson is String ? avatarJson : json.encode(avatarJson);
+        p.avatarData = avatarJson is String
+            ? avatarJson
+            : json.encode(avatarJson);
       }
-      
+
       final historyJson = data['health_history'];
       if (historyJson != null) {
-        p.healthHistory = historyJson is String ? historyJson : json.encode(historyJson);
-      } 
-      
+        p.healthHistory = historyJson is String
+            ? historyJson
+            : json.encode(historyJson);
+      }
+
       // Load last sync date if available
       if (data['last_health_sync'] != null) {
         p.lastHealthSync = DateTime.tryParse(data['last_health_sync']);
       }
-      
+
       return p;
     } catch (e) {
       print('Error fetching profile: $e');
@@ -80,10 +88,13 @@ class DatabaseService {
   }
 
   /// Save or update user profile (Cloud)
-  Future<void> saveUserProfile(UserProfile profile, {bool syncToCloud = true}) async {
+  Future<void> saveUserProfile(
+    UserProfile profile, {
+    bool syncToCloud = true,
+  }) async {
     final uid = _userId;
     if (uid == null) return;
-    
+
     try {
       await _supabase.from('profiles').upsert({
         'user_id': uid,
@@ -91,15 +102,19 @@ class DatabaseService {
         'gender': profile.gender,
         'age': profile.age,
         'weight': profile.weight.toDouble(),
-        'height': profile.height != null ? profile.height!.toDouble() : null,
+        'height': profile.height?.toDouble(),
         'resting_heart_rate': profile.restingHeartRate.toInt(),
         'ftp': profile.functionalThresholdPower.toInt(),
         'hrv': profile.hrv.toInt(),
         'sleep_hours': profile.sleepHours.toDouble(),
         'thermal_sensitivity': profile.thermalSensitivity.toInt(),
         'role': profile.role.name,
-        'avatar_data': profile.avatarData != null ? json.decode(profile.avatarData!) : null,
-        'health_history': profile.healthHistory != null ? json.decode(profile.healthHistory!) : null,
+        'avatar_data': profile.avatarData != null
+            ? json.decode(profile.avatarData!)
+            : null,
+        'health_history': profile.healthHistory != null
+            ? json.decode(profile.healthHistory!)
+            : null,
         'last_health_sync': profile.lastHealthSync?.toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
@@ -109,13 +124,17 @@ class DatabaseService {
     }
   }
 
-  Future<void> updateUserProfile(UserProfile profile) async => saveUserProfile(profile);
+  Future<void> updateUserProfile(UserProfile profile) async =>
+      saveUserProfile(profile);
 
   /// Get all user profiles for the Crew tab (with stats from planned_rides)
   Future<List<UserProfile>> getAllProfiles() async {
     try {
-      final res = await _supabase.from('profiles').select().order('name', ascending: true);
-      
+      final res = await _supabase
+          .from('profiles')
+          .select()
+          .order('name', ascending: true);
+
       return (res as List).map((data) {
         final p = UserProfile();
         p.id = data['user_id'] ?? '';
@@ -124,12 +143,14 @@ class DatabaseService {
         p.age = data['age'] ?? 30;
         p.weight = (data['weight'] ?? 70.0).toDouble();
         p.role = UserRoleExtension.fromString(data['role'] ?? 'Gregario');
-        
+
         final avatarJson = data['avatar_data'];
         if (avatarJson != null) {
-          p.avatarData = avatarJson is String ? avatarJson : json.encode(avatarJson);
+          p.avatarData = avatarJson is String
+              ? avatarJson
+              : json.encode(avatarJson);
         }
-        
+
         return p;
       }).toList();
     } catch (e) {
@@ -172,13 +193,17 @@ class DatabaseService {
     final data = {
       'user_id': uid,
       'name': bicycle.name,
-      'bike_type': bicycle.type, 
+      'bike_type': bicycle.type,
       'total_kilometers': bicycle.totalKilometers,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
 
-    final res = await _supabase.from('bicycles').insert(data).select('id').single();
+    final res = await _supabase
+        .from('bicycles')
+        .insert(data)
+        .select('id')
+        .single();
     return res['id'] as String;
   }
 
@@ -203,26 +228,33 @@ class DatabaseService {
   }
 
   Future<Bicycle?> getBicycleById(String id) async {
-     final data = await _supabase.from('bicycles').select().eq('id', id).maybeSingle();
-     if (data == null) return null;
-     
-     final b = Bicycle();
-     b.id = data['id']?.toString();
-     b.name = data['name'];
-     b.type = data['bike_type'] ?? 'Road';
-     b.totalKilometers = (data['total_kilometers'] ?? 0).toDouble();
-     return b;
+    final data = await _supabase
+        .from('bicycles')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+    if (data == null) return null;
+
+    final b = Bicycle();
+    b.id = data['id']?.toString();
+    b.name = data['name'];
+    b.type = data['bike_type'] ?? 'Road';
+    b.totalKilometers = (data['total_kilometers'] ?? 0).toDouble();
+    return b;
   }
 
   Future<void> updateBicycle(Bicycle bicycle) async {
     if (bicycle.id == null) return;
-    
-    await _supabase.from('bicycles').update({
-      'name': bicycle.name,
-      'bike_type': bicycle.type,
-      'total_kilometers': bicycle.totalKilometers,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', bicycle.id!);
+
+    await _supabase
+        .from('bicycles')
+        .update({
+          'name': bicycle.name,
+          'bike_type': bicycle.type,
+          'total_kilometers': bicycle.totalKilometers,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', bicycle.id!);
   }
 
   Future<bool> deleteBicycle(String id) async {
@@ -235,17 +267,17 @@ class DatabaseService {
   Future<bool> doesRideExist(DateTime date) async {
     final uid = _userId;
     if (uid == null) return false;
-    
+
     final start = date.subtract(const Duration(minutes: 1));
     final end = date.add(const Duration(minutes: 1));
-    
+
     final count = await _supabase
         .from('planned_rides')
         .count()
         .eq('user_id', uid)
         .gte('ride_date', start.toIso8601String())
         .lte('ride_date', end.toIso8601String());
-        
+
     return count > 0;
   }
 
@@ -259,8 +291,8 @@ class DatabaseService {
       'ride_date': ride.rideDate.toIso8601String(),
       'distance': ride.distance,
       'elevation': ride.elevation,
-      'track_id': ride.trackId, 
-      'bicycle_id': ride.bicycleId, 
+      'track_id': ride.trackId,
+      'bicycle_id': ride.bicycleId,
       'supabase_event_id': ride.supabaseEventId,
       'is_completed': ride.isCompleted,
       'latitude': ride.latitude,
@@ -268,21 +300,26 @@ class DatabaseService {
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
-    
-    final res = await _supabase.from('planned_rides').insert(data).select('id').single();
+
+    final res = await _supabase
+        .from('planned_rides')
+        .insert(data)
+        .select('id')
+        .single();
     return res['id'] as String;
   }
 
   Future<List<PlannedRide>> getAllPlannedRides() async {
     final uid = _userId;
     if (uid == null) return [];
-    
+
     try {
-      final res = await _supabase.from('planned_rides')
-          .select('*, personal_tracks(*)') 
+      final res = await _supabase
+          .from('planned_rides')
+          .select('*, personal_tracks(*)')
           .eq('user_id', uid)
           .order('ride_date', ascending: true);
-          
+
       return (res as List).map((map) => _mapPlannedRide(map)).toList();
     } catch (e) {
       print('Error fetching rides: $e');
@@ -294,13 +331,14 @@ class DatabaseService {
     final uid = _userId;
     if (uid == null) return [];
     final now = DateTime.now().toIso8601String();
-    
-    final res = await _supabase.from('planned_rides')
+
+    final res = await _supabase
+        .from('planned_rides')
         .select()
         .eq('user_id', uid)
         .gt('ride_date', now)
         .order('ride_date', ascending: true);
-        
+
     return (res as List).map((map) => _mapPlannedRide(map)).toList();
   }
 
@@ -312,7 +350,9 @@ class DatabaseService {
         final r = PlannedRide();
         r.id = map['id'] as String?;
         r.rideName = map['ride_name'] as String? ?? 'Uscita Community';
-        r.rideDate = DateTime.tryParse(map['ride_date'] as String? ?? '') ?? DateTime.now();
+        r.rideDate =
+            DateTime.tryParse(map['ride_date'] as String? ?? '') ??
+            DateTime.now();
         r.distance = (map['distance'] as num?)?.toDouble() ?? 0.0;
         r.elevation = (map['elevation'] as num?)?.toDouble() ?? 0.0;
         r.latitude = (map['start_latitude'] as num?)?.toDouble();
@@ -330,7 +370,8 @@ class DatabaseService {
     if (uid == null) return [];
 
     // Fetch all incomplete rides, past and future
-    final res = await _supabase.from('planned_rides')
+    final res = await _supabase
+        .from('planned_rides')
         .select()
         .eq('user_id', uid)
         .eq('is_completed', false)
@@ -338,13 +379,14 @@ class DatabaseService {
 
     return (res as List).map((map) => _mapPlannedRide(map)).toList();
   }
-  
+
   Future<List<PlannedRide>> getImportedRides() async {
     final uid = _userId;
     if (uid == null) return [];
 
     // Fetch rides with "Health" marker in NAME (since notes column is missing)
-    final res = await _supabase.from('planned_rides')
+    final res = await _supabase
+        .from('planned_rides')
         .select()
         .eq('user_id', uid)
         .ilike('ride_name', '%(Health)%')
@@ -358,7 +400,8 @@ class DatabaseService {
     final uid = _userId;
     if (uid == null) return 0.0;
 
-    final res = await _supabase.from('planned_rides')
+    final res = await _supabase
+        .from('planned_rides')
         .select()
         .eq('user_id', uid)
         .eq('is_completed', true)
@@ -366,13 +409,13 @@ class DatabaseService {
         .order('ride_date', ascending: false);
 
     final rides = (res as List).map((map) => _mapPlannedRide(map)).toList();
-    
+
     // Filter out cycling activities
     final otherActivities = rides.where((r) {
       final name = (r.rideName ?? '').toUpperCase();
       return !name.contains('CYCLING') && !name.contains('BIKING');
     });
-    
+
     double total = 0;
     for (var r in otherActivities) {
       total += r.distance;
@@ -391,51 +434,59 @@ class DatabaseService {
     r.trackId = map['track_id']?.toString();
     r.bicycleId = map['bicycle_id']?.toString();
     r.supabaseEventId = map['supabase_event_id']?.toString();
-    
+
     if (map['personal_tracks'] != null) {
-       // Ideally manually map track if needed, but simplistic for now
+      // Ideally manually map track if needed, but simplistic for now
     }
     return r;
   }
 
   Future<PlannedRide?> getPlannedRideById(String id) async {
-    final data = await _supabase.from('planned_rides').select().eq('id', id).maybeSingle();
+    final data = await _supabase
+        .from('planned_rides')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
     if (data == null) return null;
     return _mapPlannedRide(data);
   }
 
   Future<void> updatePlannedRide(PlannedRide ride) async {
     if (ride.id == null) return;
-    await _supabase.from('planned_rides').update({
-       'ride_name': ride.rideName,
-       'ride_date': ride.rideDate.toIso8601String(),
-       'distance': ride.distance,
-       'is_completed': ride.isCompleted,
-       'track_id': ride.trackId,
-       'bicycle_id': ride.bicycleId,
-       'supabase_event_id': ride.supabaseEventId,
-       'latitude': ride.latitude,
-       'longitude': ride.longitude,
-       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', ride.id!);
+    await _supabase
+        .from('planned_rides')
+        .update({
+          'ride_name': ride.rideName,
+          'ride_date': ride.rideDate.toIso8601String(),
+          'distance': ride.distance,
+          'is_completed': ride.isCompleted,
+          'track_id': ride.trackId,
+          'bicycle_id': ride.bicycleId,
+          'supabase_event_id': ride.supabaseEventId,
+          'latitude': ride.latitude,
+          'longitude': ride.longitude,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', ride.id!);
   }
 
   Future<bool> deletePlannedRide(String id) async {
     await _supabase.from('planned_rides').delete().eq('id', id);
     return true;
   }
-  
+
   // ==================== Health / Stats ====================
-  
+
   Future<List<PlannedRide>> getCompletedRides() async {
     final uid = _userId;
     if (uid == null) return [];
-    
-    final res = await _supabase.from('planned_rides')
-       .select()
-       .eq('user_id', uid)
-       .eq('is_completed', true)
-       .order('ride_date', ascending: false);
+
+    final res = await _supabase
+        .from('planned_rides')
+        .select()
+        .eq('user_id', uid)
+        .eq('is_completed', true)
+        .order('ride_date', ascending: false);
     return (res as List).map((m) => _mapPlannedRide(m)).toList();
   }
 
@@ -444,12 +495,13 @@ class DatabaseService {
     if (uid == null) return {};
 
     try {
-      final res = await _supabase.from('planned_rides')
+      final res = await _supabase
+          .from('planned_rides')
           .select('supabase_event_id')
           .eq('user_id', uid)
           .eq('is_completed', true)
           .not('supabase_event_id', 'is', null);
-      
+
       return (res as List).map((m) => m['supabase_event_id'] as String).toSet();
     } catch (e) {
       print('Error fetching completed group ride IDs: $e');
@@ -461,16 +513,16 @@ class DatabaseService {
     final rides = await getCompletedRides();
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    
+
     double total = 0;
     for (var r in rides) {
-       if (r.rideDate.isAfter(startOfWeek)) {
-         total += r.distance;
-       }
+      if (r.rideDate.isAfter(startOfWeek)) {
+        total += r.distance;
+      }
     }
     return total;
   }
-  
+
   /// Monthly km + elevation from the last 12 months (calls get_my_monthly_stats RPC)
   Future<List<Map<String, dynamic>>> getMonthlyStats() async {
     try {
@@ -483,21 +535,25 @@ class DatabaseService {
   }
 
   Future<double> getTotalCompletedKm() async {
-     final rides = await getCompletedRides();
-     double total = 0;
-     for (var r in rides) {
-       total += r.distance;
-     }
-     return total;
+    final rides = await getCompletedRides();
+    double total = 0;
+    for (var r in rides) {
+      total += r.distance;
+    }
+    return total;
   }
 
   Future<int> getTotalCompletedRidesCount() async {
-     final uid = _userId;
-     if (uid == null) return 0;
-     final count = await _supabase.from('planned_rides').count().eq('user_id', uid).eq('is_completed', true);
-     return count;
+    final uid = _userId;
+    if (uid == null) return 0;
+    final count = await _supabase
+        .from('planned_rides')
+        .count()
+        .eq('user_id', uid)
+        .eq('is_completed', true);
+    return count;
   }
-  
+
   /// Ottieni tutte le attività concluse pubbliche della community, con le coordinate della traccia associata.
   Future<List<PlannedRide>> getCommunityCompletedRides() async {
     try {
@@ -507,28 +563,29 @@ class DatabaseService {
 
       final List<PlannedRide> rides = [];
       for (var map in (res as List)) {
-         final ride = PlannedRide();
-         ride.id = map['ride_id']?.toString();
-         ride.rideName = map['ride_name'];
-         
-         if (map['ride_date'] != null) {
-            ride.rideDate = DateTime.parse(map['ride_date']);
-         } else {
-            ride.rideDate = DateTime.now();
-         }
-         
-         ride.distance = (map['distance'] ?? 0).toDouble();
-         ride.elevation = (map['elevation'] ?? 0).toDouble();
-         ride.isCompleted = true; // by definition of the query
-         
-         // Dati uniti (Join)
-         ride.notes = map['author_name']; // Usiamo questo campo temporaneamente per l'UI
-         
-         if (map['start_latitude'] != null && map['start_longitude'] != null) {
-            ride.latitude = (map['start_latitude'] as num).toDouble();
-            ride.longitude = (map['start_longitude'] as num).toDouble();
-            rides.add(ride);
-         }
+        final ride = PlannedRide();
+        ride.id = map['ride_id']?.toString();
+        ride.rideName = map['ride_name'];
+
+        if (map['ride_date'] != null) {
+          ride.rideDate = DateTime.parse(map['ride_date']);
+        } else {
+          ride.rideDate = DateTime.now();
+        }
+
+        ride.distance = (map['distance'] ?? 0).toDouble();
+        ride.elevation = (map['elevation'] ?? 0).toDouble();
+        ride.isCompleted = true; // by definition of the query
+
+        // Dati uniti (Join)
+        ride.notes =
+            map['author_name']; // Usiamo questo campo temporaneamente per l'UI
+
+        if (map['start_latitude'] != null && map['start_longitude'] != null) {
+          ride.latitude = (map['start_latitude'] as num).toDouble();
+          ride.longitude = (map['start_longitude'] as num).toDouble();
+          rides.add(ride);
+        }
       }
       return rides;
     } catch (e) {
@@ -536,7 +593,7 @@ class DatabaseService {
       return [];
     }
   }
-  
+
   // ==================== HealthSnapshot CRUD ====================
 
   Future<int> createHealthSnapshot(HealthSnapshot snapshot) async {
@@ -554,7 +611,11 @@ class DatabaseService {
     };
 
     try {
-      final res = await _supabase.from('health_snapshots').insert(data).select('id').single();
+      final res = await _supabase
+          .from('health_snapshots')
+          .insert(data)
+          .select('id')
+          .single();
       return res['id'] as int;
     } catch (e) {
       print('Error saving health snapshot: $e');
@@ -562,42 +623,48 @@ class DatabaseService {
       return 0;
     }
   }
-  
-  // ==================== AlertRule CRUD ====================
-  
-  Future<List<AlertRule>> getAlertRules() async {
-     final uid = _userId;
-     if (uid == null) return AlertRule.createDefaultRules();
 
-     try {
-       final res = await _supabase.from('alert_rules').select().eq('user_id', uid).order('display_order');
-       final remoteRules = (res as List).map((m) {
-          final r = AlertRule();
-          r.id = m['id'];
-          r.eventTypeIndex = m['event_type_index'];
-          r.actionIndex = m['action_index'];
-          r.triggerValue = (m['trigger_value'] as num?)?.toDouble();
-          r.voiceMessage = m['voice_message'];
-          r.isEnabled = m['is_enabled'] ?? true;
-          r.displayOrder = m['display_order'] ?? 0;
-          return r;
-       }).toList();
-       return remoteRules.isNotEmpty ? remoteRules : AlertRule.createDefaultRules();
-     } catch (e) {
-       // Table may not exist yet in Supabase – silently return defaults
-       return AlertRule.createDefaultRules();
-     }
+  // ==================== AlertRule CRUD ====================
+
+  Future<List<AlertRule>> getAlertRules() async {
+    final uid = _userId;
+    if (uid == null) return AlertRule.createDefaultRules();
+
+    try {
+      final res = await _supabase
+          .from('alert_rules')
+          .select()
+          .eq('user_id', uid)
+          .order('display_order');
+      final remoteRules = (res as List).map((m) {
+        final r = AlertRule();
+        r.id = m['id'];
+        r.eventTypeIndex = m['event_type_index'];
+        r.actionIndex = m['action_index'];
+        r.triggerValue = (m['trigger_value'] as num?)?.toDouble();
+        r.voiceMessage = m['voice_message'];
+        r.isEnabled = m['is_enabled'] ?? true;
+        r.displayOrder = m['display_order'] ?? 0;
+        return r;
+      }).toList();
+      return remoteRules.isNotEmpty
+          ? remoteRules
+          : AlertRule.createDefaultRules();
+    } catch (e) {
+      // Table may not exist yet in Supabase – silently return defaults
+      return AlertRule.createDefaultRules();
+    }
   }
-  
+
   Future<List<AlertRule>> getEnabledAlertRules() async {
-     final rules = await getAlertRules();
-     return rules.where((r) => r.isEnabled).toList();
+    final rules = await getAlertRules();
+    return rules.where((r) => r.isEnabled).toList();
   }
-  
+
   Future<int> saveAlertRule(AlertRule rule) async {
     final uid = _userId;
     if (uid == null) return 0;
-    
+
     try {
       final data = {
         'user_id': uid,
@@ -608,12 +675,16 @@ class DatabaseService {
         'is_enabled': rule.isEnabled,
         'display_order': rule.displayOrder,
       };
-      
+
       if (rule.id != null) {
         await _supabase.from('alert_rules').update(data).eq('id', rule.id!);
         return rule.id!;
       } else {
-        final res = await _supabase.from('alert_rules').insert(data).select('id').single();
+        final res = await _supabase
+            .from('alert_rules')
+            .insert(data)
+            .select('id')
+            .single();
         return res['id'] as int;
       }
     } catch (e) {
@@ -642,9 +713,14 @@ class DatabaseService {
   // ==================== Daily Wisdom CRUD ====================
 
   Future<String?> getDailyWisdom(DateTime date) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
-      final data = await _supabase.from('daily_wisdom').select('content').eq('date', dateStr).maybeSingle();
+      final data = await _supabase
+          .from('daily_wisdom')
+          .select('content')
+          .eq('date', dateStr)
+          .maybeSingle();
       if (data != null) {
         return data['content'] as String;
       }
@@ -656,16 +732,17 @@ class DatabaseService {
   }
 
   Future<void> saveDailyWisdom(DateTime date, String content) async {
-      final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-      try {
-        await _supabase.from('daily_wisdom').insert({
-          'date': dateStr,
-          'content': content,
-        });
-      } catch (e) {
-        // Ignore duplicate key errors (race condition if two users gen at same time)
-        print('Error saving daily wisdom (might exist): $e');
-      }
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    try {
+      await _supabase.from('daily_wisdom').insert({
+        'date': dateStr,
+        'content': content,
+      });
+    } catch (e) {
+      // Ignore duplicate key errors (race condition if two users gen at same time)
+      print('Error saving daily wisdom (might exist): $e');
+    }
   }
   // ==================== Dashboard Messages ====================
 
@@ -677,12 +754,15 @@ class DatabaseService {
 
   Future<Map<String, String>> getWeatherMessages() async {
     if (_weatherMessages != null) return _weatherMessages!;
-    
+
     try {
-      final response = await _supabase.from('weather_messages').select('condition_key, message_text');
+      final response = await _supabase
+          .from('weather_messages')
+          .select('condition_key, message_text');
       final Map<String, String> messages = {};
       for (var row in response) {
-        messages[row['condition_key'] as String] = row['message_text'] as String;
+        messages[row['condition_key'] as String] =
+            row['message_text'] as String;
       }
       _weatherMessages = messages;
       return messages;
@@ -694,12 +774,15 @@ class DatabaseService {
 
   Future<Map<String, String>> getStatsMessages() async {
     if (_statsMessages != null) return _statsMessages!;
-    
+
     try {
-      final response = await _supabase.from('stats_messages').select('condition_key, message_text');
+      final response = await _supabase
+          .from('stats_messages')
+          .select('condition_key, message_text');
       final Map<String, String> messages = {};
       for (var row in response) {
-        messages[row['condition_key'] as String] = row['message_text'] as String;
+        messages[row['condition_key'] as String] =
+            row['message_text'] as String;
       }
       _statsMessages = messages;
       return messages;
@@ -711,12 +794,15 @@ class DatabaseService {
 
   Future<Map<String, String>> getMaintenanceMessages() async {
     if (_maintenanceMessages != null) return _maintenanceMessages!;
-    
+
     try {
-      final response = await _supabase.from('maintenance_messages').select('condition_key, message_text');
+      final response = await _supabase
+          .from('maintenance_messages')
+          .select('condition_key, message_text');
       final Map<String, String> messages = {};
       for (var row in response) {
-        messages[row['condition_key'] as String] = row['message_text'] as String;
+        messages[row['condition_key'] as String] =
+            row['message_text'] as String;
       }
       _maintenanceMessages = messages;
       return messages;
@@ -728,12 +814,15 @@ class DatabaseService {
 
   Future<Map<String, String>> getChallengeMessages() async {
     if (_challengeMessages != null) return _challengeMessages!;
-    
+
     try {
-      final response = await _supabase.from('challenge_messages').select('condition_key, message_text');
+      final response = await _supabase
+          .from('challenge_messages')
+          .select('condition_key, message_text');
       final Map<String, String> messages = {};
       for (var row in response) {
-        messages[row['condition_key'] as String] = row['message_text'] as String;
+        messages[row['condition_key'] as String] =
+            row['message_text'] as String;
       }
       _challengeMessages = messages;
       return messages;
@@ -764,11 +853,7 @@ class DatabaseService {
       return res as Map<String, dynamic>;
     } catch (e) {
       print('Error fetching full leaderboard: $e');
-      return {
-        'most_active': [],
-        'organizers': [],
-        'laziest': [],
-      };
+      return {'most_active': [], 'organizers': [], 'laziest': []};
     }
   }
 
@@ -808,7 +893,7 @@ class DatabaseService {
 
       // Extract model from JSON
       final analysisData = data['analysis_data'] as Map<String, dynamic>;
-      
+
       return BiomechanicsAnalysis.fromJson({
         ...analysisData,
         'verdict': data['verdict'],
@@ -832,14 +917,15 @@ class DatabaseService {
   // ==================== Daily Comic Prompts ====================
 
   Future<String?> getDailyComicImage(DateTime date) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final data = await _supabase
           .from('daily_comic_prompts')
           .select('generated_image_url')
           .eq('date', dateStr)
           .maybeSingle();
-      
+
       return data?['generated_image_url'] as String?;
     } catch (e) {
       print('Error fetching daily comic image: $e');
@@ -848,14 +934,15 @@ class DatabaseService {
   }
 
   Future<String?> getDailyComicScenario(DateTime date) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final data = await _supabase
           .from('daily_comic_prompts')
           .select('scenario')
           .eq('date', dateStr)
           .maybeSingle();
-      
+
       return data?['scenario'] as String?;
     } catch (e) {
       print('Error fetching daily comic scenario: $e');
@@ -863,8 +950,13 @@ class DatabaseService {
     }
   }
 
-  Future<void> saveDailyComicImage(DateTime date, String? imageUrl, String scenario) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  Future<void> saveDailyComicImage(
+    DateTime date,
+    String? imageUrl,
+    String scenario,
+  ) async {
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final existing = await _supabase
           .from('daily_comic_prompts')
@@ -880,7 +972,10 @@ class DatabaseService {
       };
 
       if (existing != null) {
-        await _supabase.from('daily_comic_prompts').update(data).eq('date', dateStr);
+        await _supabase
+            .from('daily_comic_prompts')
+            .update(data)
+            .eq('date', dateStr);
       } else {
         data['prompt'] = 'Generazione automatica';
         if (_userId != null) data['author_id'] = _userId;
@@ -892,7 +987,8 @@ class DatabaseService {
   }
 
   Future<void> saveDailyComicPrompt(DateTime date, String prompt) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     final uid = _userId;
     if (uid == null) return;
 
@@ -910,14 +1006,15 @@ class DatabaseService {
   }
 
   Future<String?> getDailyComicPrompt(DateTime date) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final data = await _supabase
           .from('daily_comic_prompts')
           .select('prompt')
           .eq('date', dateStr)
           .maybeSingle();
-      
+
       return data?['prompt'] as String?;
     } catch (e) {
       print('Error fetching daily comic prompt: $e');
@@ -933,7 +1030,7 @@ class DatabaseService {
           .from('comic_characters')
           .select()
           .order('name', ascending: true);
-      
+
       return (response as List)
           .map((json) => ComicCharacter.fromJson(json))
           .toList();
@@ -950,7 +1047,7 @@ class DatabaseService {
         json.remove('id');
       }
       json['updated_at'] = DateTime.now().toIso8601String();
-      
+
       await _supabase.from('comic_characters').upsert(json);
     } catch (e) {
       print('Error saving comic character: $e');
@@ -967,15 +1064,21 @@ class DatabaseService {
     }
   }
 
-  Future<String?> uploadCharacterAvatar(String charId, Uint8List bytes, String fileName) async {
+  Future<String?> uploadCharacterAvatar(
+    String charId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
     try {
       final path = 'avatars/$charId/$fileName';
-      await _supabase.storage.from('comic_avatars').uploadBinary(
-        path,
-        bytes,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      
+      await _supabase.storage
+          .from('comic_avatars')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
       final url = _supabase.storage.from('comic_avatars').getPublicUrl(path);
       return url;
     } catch (e) {
@@ -984,21 +1087,28 @@ class DatabaseService {
     }
   }
 
-  Future<String?> uploadDailyComicImage(DateTime date, Uint8List bytes, String fileName) async {
-    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  Future<String?> uploadDailyComicImage(
+    DateTime date,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    final dateStr =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     try {
       final path = 'daily/$dateStr/$fileName';
-      await _supabase.storage.from('comic_avatars').uploadBinary(
-        path,
-        bytes,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      
+      await _supabase.storage
+          .from('comic_avatars')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
       final url = _supabase.storage.from('comic_avatars').getPublicUrl(path);
-      
+
       // Update the prompt record with the new image URL
       await saveDailyComicImage(date, url, 'Uploaded by user');
-      
+
       return url;
     } catch (e) {
       print('Error uploading daily comic image: $e');

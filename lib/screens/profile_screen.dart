@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 import '../models/user_profile.dart';
 import '../services/database_service.dart';
 import '../services/biometric_service.dart';
@@ -11,7 +10,6 @@ import '../widgets/metric_sparkline_chart.dart';
 import '../services/health_sync_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
-import 'health_activity_list_screen.dart';
 import 'unified_agenda_screen.dart';
 import 'garage_screen.dart';
 

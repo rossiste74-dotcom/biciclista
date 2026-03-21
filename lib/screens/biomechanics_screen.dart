@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,7 +10,6 @@ import '../models/user_profile.dart'; // Ensure this model exists and has avatar
 // I saw 'AvatarPreview' uses 'UserAvatarConfig'. UserProfile usually has it.
 // Checking 'lib/models/user_profile.dart' might be wise, but I will assume standard pattern.
 import '../widgets/avatar/avatar_preview.dart';
-import '../models/user_avatar_config.dart';
 import '../models/biomechanics_analysis.dart'; // New model
 import '../widgets/biomechanics_painter.dart'; // New painter
 

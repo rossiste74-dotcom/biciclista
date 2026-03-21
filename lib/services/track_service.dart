@@ -7,7 +7,6 @@ import 'package:gpx/gpx.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 
 /// Service for managing Track CRUD operations (Cloud Only)

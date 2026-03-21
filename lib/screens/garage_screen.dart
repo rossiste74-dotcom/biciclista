@@ -183,7 +183,10 @@ class _GarageScreenState extends State<GarageScreen> {
 
   Future<bool> _isCameraAvailable() async => true;
 
-  Future<void> _replaceComponent(Bicycle bike, BicycleComponent component) async {
+  Future<void> _replaceComponent(
+    Bicycle bike,
+    BicycleComponent component,
+  ) async {
     DateTime selectedDate = DateTime.now();
 
     final confirm = await showDialog<bool>(
@@ -195,7 +198,9 @@ class _GarageScreenState extends State<GarageScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Questa azione registrerà la sostituzione e azzererà il contatore km.'),
+              const Text(
+                'Questa azione registrerà la sostituzione e azzererà il contatore km.',
+              ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -242,10 +247,12 @@ class _GarageScreenState extends State<GarageScreen> {
 
     if (confirm == true) {
       // Record this replacement in history
-      component.addReplacement(ReplacementRecord(
-        date: selectedDate,
-        kmAtReplacement: component.currentKm,
-      ));
+      component.addReplacement(
+        ReplacementRecord(
+          date: selectedDate,
+          kmAtReplacement: component.currentKm,
+        ),
+      );
 
       // Reset counter
       component.currentKm = 0.0;
@@ -572,14 +579,13 @@ class _GarageScreenState extends State<GarageScreen> {
                   vertical: 0,
                 ),
                 minimumSize: const Size(0, 32),
-                side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.6)),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                ),
                 foregroundColor: Theme.of(context).colorScheme.primary,
               ),
               icon: const Icon(Icons.swap_horiz, size: 14),
-              label: const Text(
-                'Sostituisci',
-                style: TextStyle(fontSize: 12),
-              ),
+              label: const Text('Sostituisci', style: TextStyle(fontSize: 12)),
             ),
           ],
         ),
@@ -594,33 +600,37 @@ class _GarageScreenState extends State<GarageScreen> {
                 const SizedBox(width: 6),
                 Text(
                   'Storico interventi',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.grey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
           ),
-          ...component.replacementHistory.map((record) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.build, size: 12, color: Colors.green),
-                    const SizedBox(width: 6),
-                    Text(
-                      DateFormat('dd MMM yyyy', 'it_IT').format(record.date),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${record.kmAtReplacement.toStringAsFixed(0)} km al momento',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+          ...component.replacementHistory.map(
+            (record) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.build, size: 12, color: Colors.green),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat('dd MMM yyyy', 'it_IT').format(record.date),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${record.kmAtReplacement.toStringAsFixed(0)} km al momento',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ],
     );
@@ -723,8 +733,9 @@ class _GarageScreenState extends State<GarageScreen> {
                                     ],
                                   ),
                                   onSelected: (value) {
-                                    if (value == 'edit')
+                                    if (value == 'edit') {
                                       _showBicycleDialog(bike: bike);
+                                    }
                                     if (value == 'delete') _deleteBicycle(bike);
                                   },
                                   itemBuilder: (context) => [

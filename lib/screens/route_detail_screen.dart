@@ -707,8 +707,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     );
 
     if (confirm == true) {
-      if (widget.plannedRide.id != null)
+      if (widget.plannedRide.id != null) {
         await _db.deletePlannedRide(widget.plannedRide.id!);
+      }
       if (mounted) {
         Navigator.pop(
           context,
@@ -1289,8 +1290,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   }
 
   Widget _buildElevationChart() {
-    if (_routeData == null || _routeData!['elevationProfile'] == null)
+    if (_routeData == null || _routeData!['elevationProfile'] == null) {
       return const SizedBox.shrink();
+    }
 
     final profile =
         _routeData!['elevationProfile'] as List<Map<String, double>>;

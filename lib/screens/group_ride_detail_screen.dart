@@ -253,8 +253,9 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
 
   Future<void> _fetchWeatherAndAnalyze() async {
     if (widget.groupRide.meetingLatitude == null ||
-        widget.groupRide.meetingLongitude == null)
+        widget.groupRide.meetingLongitude == null) {
       return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -1111,10 +1112,11 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
           // Remove from local list
           widget.groupRide.participants.removeWhere((p) => p.userId == userId);
         });
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Hai lasciato l\'uscita')),
           );
+        }
       } else {
         final user = _supabase.auth.currentUser!;
 
@@ -1169,18 +1171,20 @@ class _GroupRideDetailScreenState extends State<GroupRideDetailScreen> {
           widget.groupRide.participants.add(newPart);
         });
 
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Ti sei unito all\'uscita!')),
           );
+        }
       }
 
       // Do NOT pop, stay on screen to show update
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      }
     }
   }
 
