@@ -60,8 +60,8 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
   Future<void> _showEditDialog([ComicCharacter? character]) async {
     final nameController = TextEditingController(text: character?.name);
     final descController = TextEditingController(text: character?.description);
+    final visualDescController = TextEditingController(text: character?.visualDescription);
     String? currentAvatarUrl = character?.avatarUrl;
-    String? currentVisualDesc = character?.visualDescription;
     String? currentLinkedUserId = character?.userId;
 
     final canAssignUser =
@@ -107,8 +107,7 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                                 final aiDesc = await _aiService
                                     .analyzeCharacterAvatar(url);
                                 if (aiDesc != null) {
-                                  currentVisualDesc = aiDesc;
-                                  descController.text = aiDesc;
+                                  visualDescController.text = aiDesc;
                                 }
                               }
                             } finally {
@@ -160,7 +159,15 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
-                    labelText: 'Descrizione / Caratteristiche',
+                    labelText: 'Carattere / Personalità',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: visualDescController,
+                  decoration: const InputDecoration(
+                    labelText: 'Aspetto / Descrizione Visiva',
                     hintText:
                         'Verrà compilata automaticamente se carichi una foto',
                   ),
@@ -191,7 +198,7 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                     },
                   ),
                 ],
-                if (currentVisualDesc != null ||
+                if (visualDescController.text.isNotEmpty ||
                     descController.text.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   SizedBox(
@@ -206,7 +213,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                               try {
                                 final portraitUrl = await _aiService
                                     .generateCharacterPortrait(
-                                      currentVisualDesc ?? descController.text,
+                                      visualDescController.text.isNotEmpty 
+                                          ? visualDescController.text 
+                                          : descController.text,
                                     );
                                 if (portraitUrl != null) {
                                   setDialogState(
@@ -260,7 +269,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
         name: nameController.text.trim().toUpperCase(),
         description: descController.text.trim(),
         avatarUrl: currentAvatarUrl,
-        visualDescription: currentVisualDesc,
+        visualDescription: visualDescController.text.trim().isNotEmpty 
+            ? visualDescController.text.trim() 
+            : null,
         userId: currentLinkedUserId,
         createdAt: character?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
@@ -537,7 +548,11 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(char.description),
+                          Text('Carattere: ${char.description}', style: Theme.of(context).textTheme.bodyMedium),
+                          if (char.visualDescription != null && char.visualDescription!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text('Aspetto: ${char.visualDescription}', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                          ],
                           if (char.userId != null) ...[
                             const SizedBox(height: 4),
                             Row(
