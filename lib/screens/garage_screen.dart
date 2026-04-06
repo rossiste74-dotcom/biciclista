@@ -3,9 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import '../models/bicycle.dart';
-import '../models/user_profile.dart'; // Needed for type safety if used
+// Needed for type safety if used
 import '../services/database_service.dart';
 import '../services/ai_service.dart';
 import 'package:path_provider/path_provider.dart';

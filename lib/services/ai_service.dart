@@ -11,12 +11,10 @@ import '../services/database_service.dart';
 import '../services/prompt_service.dart';
 import '../services/supabase_config.dart';
 import '../models/comic_prompts.dart';
-import '../models/comic_character.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/biomechanics_analysis.dart';
-import '../models/comic_prompts.dart';
 
 /// Service for AI Coach functionality using Supabase Edge Functions (Butler AI via OpenRouter)
 class AIService {
@@ -688,9 +686,9 @@ class AIService {
         _isGenerationTriggered = true;
         // Fire-and-forget regeneration in background
         debugPrint(
-          '[AIService] Daily comic missing. Auto-triggering generation in background...',
+          '[AIService] Daily comic missing. Auto-triggering scenario generation in background...',
         );
-        regenerateDailyComic();
+        regenerateDailyScenarioOnly();
       }
 
       // 2. Fallback to existing logic if no cloud image is generated yet
@@ -861,10 +859,14 @@ Livello Attività rilevato: $level
 $plannedRidesSection
 $leaderPromptSection
 ISTRUZIONI:
-Genera una STORIA COMPLETA in un'UNICA IMMAGINE (STRISCIA VERTICALE).
-La striscia deve contenere ESATTAMENTE 9 VIGNETTE, ma NON usare una griglia fissa 3x3.
-Usa uno SCHEMA DINAMICO E CASUALE per le dimensioni dei riquadri (esempio: 2x1x3x2x1).
-Lo schema deve essere fluido e cinematico.
+ISTRUZIONI:
+Genera una STORIA COMPLETA descrittiva per la striscia a fumetti.
+L'immagine finale dovrà avere dimensioni di 1080 x 1350 pixel (rapporto 4:5).
+La striscia deve contenere ESATTAMENTE 6 VIGNETTE, disposte rigorosamente in questo layout a griglia:
+- Riga 1: 2 vignette
+- Riga 2: 3 vignette
+- Riga 3: 1 vignetta finale (centrata) che DEVE includere il logo "Anonima Ciclisti".
+NON usare formati o griglie differenti. Il layout deve essere fluido e cinematico ma rispettare queste divisioni.
 
 Utilizza i dati reali della crew (uscite pianificate, attività recenti e meteo) come ispirazione per la storia di oggi.
 Se sono presenti uscite pianificate, la storia può anticiparle con battute o situazioni legate alla preparazione.
@@ -879,11 +881,11 @@ Includi sempre una punchline comica nel pannello finale.
 
 Formatta l'output in modo chiaro:
 TITOLO STORIA: [Titolo della giornata]
-LAYOUT PROPOSTO: [Esempio: 2x1x3x2x1]
+LAYOUT PROPOSTO: 1080x1350 px (4:5), 6 vignette (2 - 3 - 1)
 
 DESCRIZIONE GENERALE: [Tema della striscia]
-- Vignetta 1: [Dimensione/Posizione] [Descrizione] - Dialogo: "..."
-- Vignetta 2: ...fino alla 9.
+- Vignetta 1: [Riga 1, Sinistra] [Descrizione] - Dialogo: "..."
+- Vignetta 2: ...fino alla 6.
 ''';
     } catch (e) {
       return 'Errore nella costruzione del prompt: $e';
@@ -1063,6 +1065,24 @@ Sii conciso, massimo 30 parole.
       }
     } catch (e) {
       debugPrint('[AIService] Error during comic regeneration: $e');
+      return false;
+    }
+  }
+
+  /// Force a regeneration of the daily comic scenario only (no image generation)
+  Future<bool> regenerateDailyScenarioOnly() async {
+    try {
+      final scenario = await generateDailyComicScenario();
+      if (scenario.contains('Errore')) return false;
+
+      debugPrint('[AIService] New Scenario Generated (Only Scenario).');
+
+      // Save to DB for today (save scenario with null imageUrl, keeping existing image if any)
+      // Actually we just want to update the text. Passing null keeps the old image if the DB service is written properly.
+      await _db.saveDailyComicImage(DateTime.now(), null, scenario);
+      return true;
+    } catch (e) {
+      debugPrint('[AIService] Error during scenario regeneration: $e');
       return false;
     }
   }

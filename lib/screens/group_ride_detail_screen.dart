@@ -2,13 +2,11 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/group_ride.dart';
 import '../models/planned_ride.dart'; // Added
 import '../models/user_profile.dart';

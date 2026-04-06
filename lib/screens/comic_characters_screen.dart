@@ -60,7 +60,9 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
   Future<void> _showEditDialog([ComicCharacter? character]) async {
     final nameController = TextEditingController(text: character?.name);
     final descController = TextEditingController(text: character?.description);
-    final visualDescController = TextEditingController(text: character?.visualDescription);
+    final visualDescController = TextEditingController(
+      text: character?.visualDescription,
+    );
     String? currentAvatarUrl = character?.avatarUrl;
     String? currentLinkedUserId = character?.userId;
 
@@ -213,8 +215,8 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                               try {
                                 final portraitUrl = await _aiService
                                     .generateCharacterPortrait(
-                                      visualDescController.text.isNotEmpty 
-                                          ? visualDescController.text 
+                                      visualDescController.text.isNotEmpty
+                                          ? visualDescController.text
                                           : descController.text,
                                     );
                                 if (portraitUrl != null) {
@@ -223,10 +225,11 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                                   );
                                 }
                               } finally {
-                                if (mounted)
+                                if (mounted) {
                                   setDialogState(
                                     () => _isGeneratingPortrait = false,
                                   );
+                                }
                               }
                             },
                       icon: _isGeneratingPortrait
@@ -269,8 +272,8 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
         name: nameController.text.trim().toUpperCase(),
         description: descController.text.trim(),
         avatarUrl: currentAvatarUrl,
-        visualDescription: visualDescController.text.trim().isNotEmpty 
-            ? visualDescController.text.trim() 
+        visualDescription: visualDescController.text.trim().isNotEmpty
+            ? visualDescController.text.trim()
             : null,
         userId: currentLinkedUserId,
         createdAt: character?.createdAt ?? DateTime.now(),
@@ -292,8 +295,10 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
               final config =
                   profile.avatarConfig ?? UserAvatarConfig.defaultConfig();
               config.customImageUrl = currentAvatarUrl;
-              profile.avatarData = config.toJsonString();
-              await _db.saveUserProfile(profile);
+              await _db.updateUserAvatarData(
+                currentLinkedUserId!,
+                config.toJsonString(),
+              );
             }
           } catch (e) {
             print('Errore aggiornamento avatar profilo: $e');
@@ -548,10 +553,18 @@ class _ComicCharactersScreenState extends State<ComicCharactersScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Carattere: ${char.description}', style: Theme.of(context).textTheme.bodyMedium),
-                          if (char.visualDescription != null && char.visualDescription!.isNotEmpty) ...[
+                          Text(
+                            'Carattere: ${char.description}',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          if (char.visualDescription != null &&
+                              char.visualDescription!.isNotEmpty) ...[
                             const SizedBox(height: 4),
-                            Text('Aspetto: ${char.visualDescription}', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                            Text(
+                              'Aspetto: ${char.visualDescription}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(fontStyle: FontStyle.italic),
+                            ),
                           ],
                           if (char.userId != null) ...[
                             const SizedBox(height: 4),

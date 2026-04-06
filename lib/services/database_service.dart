@@ -1,11 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import '../models/user_profile.dart';
 import '../models/bicycle.dart';
 import '../models/planned_ride.dart';
-import '../models/track.dart';
 import '../models/health_snapshot.dart';
 import '../models/alert_rule.dart';
 import '../models/biomechanics_analysis.dart';
@@ -126,6 +124,23 @@ class DatabaseService {
 
   Future<void> updateUserProfile(UserProfile profile) async =>
       saveUserProfile(profile);
+
+  /// Safely update only the avatar data for a specific user (Admin use case)
+  Future<bool> updateUserAvatarData(
+    String targetUserId,
+    String avatarDataJson,
+  ) async {
+    try {
+      await _supabase
+          .from('profiles')
+          .update({'avatar_data': json.decode(avatarDataJson)})
+          .eq('user_id', targetUserId);
+      return true;
+    } catch (e) {
+      print('Error updating user avatar: $e');
+      return false;
+    }
+  }
 
   /// Get all user profiles for the Crew tab (with stats from planned_rides)
   Future<List<UserProfile>> getAllProfiles() async {
